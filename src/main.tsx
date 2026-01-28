@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
+import { getPlatformKind } from "./utils/platform";
 
 const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ??
@@ -16,7 +17,7 @@ Sentry.init({
 Sentry.metrics.count("app_open", 1, {
   attributes: {
     env: import.meta.env.MODE,
-    platform: "macos",
+    platform: getPlatformKind(),
   },
 });
 
