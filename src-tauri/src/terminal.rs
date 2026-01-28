@@ -27,8 +27,38 @@ fn terminal_key(workspace_id: &str, terminal_id: &str) -> String {
     format!("{workspace_id}:{terminal_id}")
 }
 
-fn shell_path() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
+fn find_on_path(candidates: &[&str]) -> Option<String> {
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        for candidate in candidates {
+            let path = dir.join(candidate);
+            if path.is_file() {
+                return Some(path.to_string_lossy().to_string());
+            }
+        }
+    }
+    None
+}
+
+fn resolve_shell_command() -> (String, Vec<String>) {
+    if cfg!(windows) {
+        let shell = std::env::var("COMSPEC")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| find_on_path(&["pwsh.exe", "powershell.exe", "cmd.exe"]))
+            .unwrap_or_else(|| "C:\\Windows\\System32\\cmd.exe".to_string());
+        let shell_lower = shell.to_lowercase();
+        let args = if shell_lower.ends_with("pwsh.exe")
+            || shell_lower.ends_with("powershell.exe")
+        {
+            vec!["-NoLogo".to_string()]
+        } else {
+            Vec::new()
+        };
+        return (shell, args);
+    }
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+    (shell, vec!["-i".to_string()])
 }
 
 fn resolve_locale() -> String {
@@ -150,9 +180,12 @@ pub(crate) async fn terminal_open(
         .openpty(size)
         .map_err(|e| format!("Failed to open pty: {e}"))?;
 
-    let mut cmd = CommandBuilder::new(shell_path());
+    let (shell, shell_args) = resolve_shell_command();
+    let mut cmd = CommandBuilder::new(shell);
     cmd.cwd(cwd);
-    cmd.arg("-i");
+    for arg in shell_args {
+        cmd.arg(arg);
+    }
     cmd.env("TERM", "xterm-256color");
     let locale = resolve_locale();
     cmd.env("LANG", &locale);
