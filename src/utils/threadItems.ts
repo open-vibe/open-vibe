@@ -5,8 +5,17 @@ const MAX_ITEMS_PER_THREAD = 200;
 const MAX_ITEM_TEXT = 20000;
 const TOOL_OUTPUT_RECENT_ITEMS = 40;
 const NO_TRUNCATE_TOOL_TYPES = new Set(["fileChange", "commandExecution"]);
-const READ_COMMANDS = new Set(["cat", "sed", "head", "tail", "less", "more", "nl"]);
-const LIST_COMMANDS = new Set(["ls", "tree", "find", "fd"]);
+const READ_COMMANDS = new Set([
+  "cat",
+  "sed",
+  "head",
+  "tail",
+  "less",
+  "more",
+  "nl",
+  "type",
+]);
+const LIST_COMMANDS = new Set(["ls", "tree", "find", "fd", "dir"]);
 const SEARCH_COMMANDS = new Set(["rg", "grep", "ripgrep", "findstr"]);
 const PATH_HINT_REGEX = /[\\/]/;
 const PATHLIKE_REGEX = /(\.[a-z0-9]+$)|(^\.{1,2}$)/i;
