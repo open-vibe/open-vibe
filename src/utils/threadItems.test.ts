@@ -279,6 +279,29 @@ describe("threadItems", () => {
     }
   });
 
+  it("unwraps cmd.exe /c rg commands", () => {
+    const items: ConversationItem[] = [
+      {
+        id: "cmd-1",
+        kind: "tool",
+        toolType: "commandExecution",
+        title: 'Command: cmd.exe /c rg -n "RouterDestination" src',
+        detail: "",
+        status: "completed",
+        output: "",
+      },
+    ];
+
+    const prepared = prepareThreadItems(items);
+    expect(prepared).toHaveLength(1);
+    expect(prepared[0].kind).toBe("explore");
+    if (prepared[0].kind === "explore") {
+      expect(prepared[0].entries).toHaveLength(1);
+      expect(prepared[0].entries[0].kind).toBe("search");
+      expect(prepared[0].entries[0].label).toBe("RouterDestination in src");
+    }
+  });
+
   it("treats nl -ba as a read command", () => {
     const items: ConversationItem[] = [
       {

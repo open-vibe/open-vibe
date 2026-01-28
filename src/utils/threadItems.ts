@@ -1,4 +1,5 @@
 import type { ConversationItem } from "../types";
+import { cleanCommandText } from "./commandText";
 
 const MAX_ITEMS_PER_THREAD = 200;
 const MAX_ITEM_TEXT = 20000;
@@ -116,22 +117,6 @@ export function normalizeItem(item: ConversationItem): ConversationItem {
     };
   }
   return item;
-}
-
-function cleanCommandText(commandText: string) {
-  if (!commandText) {
-    return "";
-  }
-  const trimmed = commandText.trim();
-  const shellMatch = trimmed.match(
-    /^(?:\/\S+\/)?(?:bash|zsh|sh|fish)(?:\.exe)?\s+-lc\s+(?:(['"])([\s\S]+)\1|([\s\S]+))$/,
-  );
-  const inner = shellMatch ? (shellMatch[2] ?? shellMatch[3] ?? "") : trimmed;
-  const cdMatch = inner.match(
-    /^\s*cd\s+[^&;]+(?:\s*&&\s*|\s*;\s*)([\s\S]+)$/i,
-  );
-  const stripped = cdMatch ? cdMatch[1] : inner;
-  return stripped.trim();
 }
 
 function tokenizeCommand(command: string) {

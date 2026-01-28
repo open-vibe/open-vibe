@@ -21,6 +21,7 @@ import type {
 import { Markdown } from "./Markdown";
 import { DiffBlock } from "../../git/components/DiffBlock";
 import { languageFromPath } from "../../../utils/syntax";
+import { cleanCommandText } from "../../../utils/commandText";
 import { useFileLinkOpener } from "../hooks/useFileLinkOpener";
 import { RequestUserInputMessage } from "../../app/components/RequestUserInputMessage";
 
@@ -308,22 +309,6 @@ function toolIconForSummary(
   }
 
   return Wrench;
-}
-
-function cleanCommandText(commandText: string) {
-  if (!commandText) {
-    return "";
-  }
-  const trimmed = commandText.trim();
-  const shellMatch = trimmed.match(
-    /^(?:\/\S+\/)?(?:bash|zsh|sh|fish)(?:\.exe)?\s+-lc\s+(['"])([\s\S]+)\1$/,
-  );
-  const inner = shellMatch ? shellMatch[2] : trimmed;
-  const cdMatch = inner.match(
-    /^\s*cd\s+[^&;]+(?:\s*&&\s*|\s*;\s*)([\s\S]+)$/i,
-  );
-  const stripped = cdMatch ? cdMatch[1] : inner;
-  return stripped.trim();
 }
 
 function formatDurationMs(durationMs: number) {
