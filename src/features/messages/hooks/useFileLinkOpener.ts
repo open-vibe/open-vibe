@@ -7,6 +7,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import * as Sentry from "@sentry/react";
 import { openWorkspaceIn } from "../../../services/tauri";
 import { pushErrorToast } from "../../../services/toasts";
+import { getRevealInFileManagerLabel } from "../../../utils/platform";
 import type { OpenAppTarget } from "../../../types";
 
 type OpenTarget = {
@@ -42,20 +43,6 @@ function resolveFilePath(path: string, workspacePath?: string | null) {
 function stripLineSuffix(path: string) {
   const match = path.match(/^(.*?)(?::\d+(?::\d+)?)?$/);
   return match ? match[1] : path;
-}
-
-function revealLabel() {
-  const platform =
-    (navigator as Navigator & { userAgentData?: { platform?: string } })
-      .userAgentData?.platform ?? navigator.platform ?? "";
-  const normalized = platform.toLowerCase();
-  if (normalized.includes("mac")) {
-    return "Reveal in Finder";
-  }
-  if (normalized.includes("win")) {
-    return "Show in Explorer";
-  }
-  return "Reveal in File Manager";
 }
 
 export function useFileLinkOpener(
@@ -146,7 +133,7 @@ export function useFileLinkOpener(
       const appName = (target.appName || target.label || "").trim();
       const openLabel =
         target.kind === "finder"
-          ? revealLabel()
+          ? getRevealInFileManagerLabel()
           : target.kind === "command"
             ? `Open in ${target.label}`
             : appName
@@ -163,7 +150,7 @@ export function useFileLinkOpener(
           ? []
           : [
               await MenuItem.new({
-                text: revealLabel(),
+                text: getRevealInFileManagerLabel(),
                 action: async () => {
                   try {
                     await revealItemInDir(resolvedPath);

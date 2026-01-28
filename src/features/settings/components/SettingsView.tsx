@@ -30,6 +30,7 @@ import {
   getDefaultInterruptShortcut,
 } from "../../../utils/shortcuts";
 import { clampUiScale } from "../../../utils/uiScale";
+import { getFileManagerLabel, getOpenInFileManagerLabel } from "../../../utils/platform";
 import { getCodexConfigPath } from "../../../services/tauri";
 import {
   DEFAULT_CODE_FONT_FAMILY,
@@ -2409,7 +2410,7 @@ export function SettingsView({
                             >
                               <option value="app">App</option>
                               <option value="command">Command</option>
-                              <option value="finder">Finder</option>
+                              <option value="finder">{getFileManagerLabel()}</option>
                             </select>
                           </label>
                           {target.kind === "app" && (
@@ -2524,8 +2525,8 @@ export function SettingsView({
                     Add app
                   </button>
                   <div className="settings-help">
-                    Commands receive the selected path as the final argument. Apps use macOS open
-                    with optional args.
+                    Commands receive the selected path as the final argument. Apps use the system
+                    opener with optional args.
                   </div>
                 </div>
               </section>
@@ -2952,11 +2953,11 @@ export function SettingsView({
                   <div>
                     <div className="settings-toggle-title">Config file</div>
                     <div className="settings-toggle-subtitle">
-                      Open the Codex config in Finder.
+                      Open the Codex config in {getFileManagerLabel()}.
                     </div>
                   </div>
                   <button type="button" className="ghost" onClick={handleOpenConfig}>
-                    Open in Finder
+                    {getOpenInFileManagerLabel()}
                   </button>
                 </div>
                 {openConfigError && (

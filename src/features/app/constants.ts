@@ -1,4 +1,5 @@
 import type { OpenAppTarget } from "../../types";
+import { getFileManagerLabel } from "../../utils/platform";
 
 export const OPEN_APP_STORAGE_KEY = "open-workspace-app";
 export const DEFAULT_OPEN_APP_ID = "vscode";
@@ -43,7 +44,7 @@ export const DEFAULT_OPEN_APP_TARGETS: OpenAppTarget[] = [
   },
   {
     id: "finder",
-    label: "Finder",
+    label: getFileManagerLabel(),
     kind: "finder",
     args: [],
   },

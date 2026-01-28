@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/react";
 import { openWorkspaceIn } from "../../../services/tauri";
 import { pushErrorToast } from "../../../services/toasts";
 import type { OpenAppTarget } from "../../../types";
+import { getFileManagerLabel } from "../../../utils/platform";
 import {
   DEFAULT_OPEN_APP_ID,
   DEFAULT_OPEN_APP_TARGETS,
@@ -50,7 +51,7 @@ export function OpenAppMenu({
     () =>
       availableTargets.map((target) => ({
         id: target.id,
-        label: target.label,
+        label: target.kind === "finder" ? getFileManagerLabel() : target.label,
         icon:
           getKnownOpenAppIcon(target.id) ??
           iconById[target.id] ??

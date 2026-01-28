@@ -3,6 +3,7 @@ import Check from "lucide-react/dist/esm/icons/check";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import Terminal from "lucide-react/dist/esm/icons/terminal";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { getRevealInFileManagerLabel } from "../../../utils/platform";
 import type { BranchInfo, OpenAppTarget, WorkspaceInfo } from "../../../types";
 import type { ReactNode } from "react";
 import { OpenAppMenu } from "./OpenAppMenu";
@@ -355,7 +356,7 @@ export function MainHeader({
                       }}
                       data-tauri-drag-region="false"
                     >
-                      Reveal in Finder
+                      {getRevealInFileManagerLabel()}
                     </button>
                   </div>
                 </div>

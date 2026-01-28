@@ -30,6 +30,7 @@ import { PanelTabs, type PanelTabId } from "../../layout/components/PanelTabs";
 import { readWorkspaceFile } from "../../../services/tauri";
 import type { OpenAppTarget } from "../../../types";
 import { languageFromPath } from "../../../utils/syntax";
+import { getRevealInFileManagerLabel } from "../../../utils/platform";
 import { FilePreviewPopover } from "./FilePreviewPopover";
 
 type FileTreeNode = {
@@ -485,7 +486,7 @@ export function FileTreePanel({
       const menu = await Menu.new({
         items: [
           await MenuItem.new({
-            text: "Reveal in Finder",
+            text: getRevealInFileManagerLabel(),
             action: async () => {
               await revealItemInDir(resolvePath(relativePath));
             },
