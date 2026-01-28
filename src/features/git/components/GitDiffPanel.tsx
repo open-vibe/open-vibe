@@ -18,6 +18,7 @@ import Upload from "lucide-react/dist/esm/icons/upload";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { formatRelativeTime } from "../../../utils/time";
 import { PanelTabs, type PanelTabId } from "../../layout/components/PanelTabs";
+import { isMissingGitRepoError } from "../../../utils/gitErrors";
 
 type GitDiffPanelProps = {
   mode: "diff" | "log" | "issues" | "prs";
@@ -166,20 +167,6 @@ function getStatusClass(status: string) {
     default:
       return "diff-icon-unknown";
   }
-}
-
-function isMissingRepo(error: string | null | undefined) {
-  if (!error) {
-    return false;
-  }
-  const normalized = error.toLowerCase();
-  return (
-    normalized.includes("could not find repository") ||
-    normalized.includes("not a git repository") ||
-    (normalized.includes("repository") && normalized.includes("notfound")) ||
-    normalized.includes("repository not found") ||
-    normalized.includes("git root not found")
-  );
 }
 
 type CommitButtonProps = {
@@ -950,8 +937,9 @@ export function GitDiffPanel({
       ? `${logSyncLabel} · ${fileStatus}`
       : fileStatus;
   const hasGitRoot = Boolean(gitRoot && gitRoot.trim());
+  const isMissingRepo = isMissingGitRepoError(error);
   const showGitRootPanel =
-    isMissingRepo(error) ||
+    isMissingRepo ||
     gitRootScanLoading ||
     gitRootScanHasScanned ||
     Boolean(gitRootScanError) ||
@@ -1072,7 +1060,7 @@ export function GitDiffPanel({
       )}
       {mode === "diff" ? (
         <div className="diff-list" onClick={handleDiffListClick}>
-          {error && <div className="diff-error">{error}</div>}
+          {error && !isMissingRepo && <div className="diff-error">{error}</div>}
           {showGitRootPanel && (
             <div className="git-root-panel">
               <div className="git-root-title">Choose a repo for this workspace.</div>

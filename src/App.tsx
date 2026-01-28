@@ -78,6 +78,7 @@ import { useLocalUsage } from "./features/home/hooks/useLocalUsage";
 import { useGitHubPanelController } from "./features/app/hooks/useGitHubPanelController";
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
+import { isMissingGitRepoError } from "./utils/gitErrors";
 import { useSyncSelectedDiffPath } from "./features/app/hooks/useSyncSelectedDiffPath";
 import { useMenuAcceleratorController } from "./features/app/hooks/useMenuAcceleratorController";
 import { useAppMenuEvents } from "./features/app/hooks/useAppMenuEvents";
@@ -520,14 +521,15 @@ function MainApp() {
     }
     await handleSetGitRoot(nextRoot);
   }, [activeWorkspace, handleSetGitRoot, normalizePath]);
-  const fileStatus =
-    gitStatus.error
-      ? "Git status unavailable"
-      : gitStatus.files.length > 0
-        ? `${gitStatus.files.length} file${
-            gitStatus.files.length === 1 ? "" : "s"
-          } changed`
-        : "Working tree clean";
+  const fileStatus = gitStatus.error
+    ? isMissingGitRepoError(gitStatus.error)
+      ? "No git repository"
+      : "Git status unavailable"
+    : gitStatus.files.length > 0
+      ? `${gitStatus.files.length} file${
+          gitStatus.files.length === 1 ? "" : "s"
+        } changed`
+      : "Working tree clean";
 
   usePersistComposerSettings({
     appSettingsLoading,
