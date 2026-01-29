@@ -54,13 +54,15 @@ describe("ThreadList", () => {
       />,
     );
 
-    const row = screen.getByText("Alpha").closest(".thread-row");
+    const row = screen.getByText("Alpha").closest('[data-thread-row="true"]');
     expect(row).toBeTruthy();
     if (!row) {
       throw new Error("Missing thread row");
     }
-    expect(row.classList.contains("active")).toBe(true);
-    expect(row.querySelector(".thread-status")?.className).toContain("unread");
+    expect(row.getAttribute("data-active")).toBe("true");
+    expect(
+      row.querySelector("[data-thread-status]")?.getAttribute("data-thread-status"),
+    ).toBe("unread");
 
     fireEvent.click(row);
     expect(onSelectThread).toHaveBeenCalledWith("ws-1", "thread-1");
@@ -118,12 +120,14 @@ describe("ThreadList", () => {
       />,
     );
 
-    const nestedRow = screen.getByText("Nested Agent").closest(".thread-row");
+    const nestedRow = screen
+      .getByText("Nested Agent")
+      .closest('[data-thread-row="true"]');
     expect(nestedRow).toBeTruthy();
     if (!nestedRow) {
       throw new Error("Missing nested thread row");
     }
-    expect(nestedRow.getAttribute("style")).toContain("--thread-indent");
+    expect(nestedRow.getAttribute("style")).toContain("padding-left");
 
     fireEvent.contextMenu(nestedRow);
     expect(onShowThreadMenu).toHaveBeenCalledWith(

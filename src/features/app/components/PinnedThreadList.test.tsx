@@ -45,15 +45,17 @@ describe("PinnedThreadList", () => {
       />,
     );
 
-    const row = screen.getByText("Pinned Alpha").closest(".thread-row");
+    const row = screen
+      .getByText("Pinned Alpha")
+      .closest('[data-thread-row="true"]');
     expect(row).toBeTruthy();
     if (!row) {
       throw new Error("Missing pinned row");
     }
-    expect(row.classList.contains("active")).toBe(true);
-    expect(row.querySelector(".thread-status")?.className).toContain(
-      "reviewing",
-    );
+    expect(row.getAttribute("data-active")).toBe("true");
+    expect(
+      row.querySelector("[data-thread-status]")?.getAttribute("data-thread-status"),
+    ).toBe("reviewing");
     expect(screen.getByLabelText("Pinned")).toBeTruthy();
 
     fireEvent.click(row);
@@ -84,7 +86,9 @@ describe("PinnedThreadList", () => {
       />,
     );
 
-    const secondRow = screen.getByText("Pinned Beta").closest(".thread-row");
+    const secondRow = screen
+      .getByText("Pinned Beta")
+      .closest('[data-thread-row="true"]');
     expect(secondRow).toBeTruthy();
     if (!secondRow) {
       throw new Error("Missing second pinned row");

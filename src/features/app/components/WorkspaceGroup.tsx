@@ -29,7 +29,7 @@ export function WorkspaceGroup({
   const label = (
     <SidebarGroupLabel
       asChild
-      className="px-1 text-[10px] uppercase tracking-[0.18em] text-[var(--text-faint)]"
+      className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
     >
       {isToggleable ? (
         <button

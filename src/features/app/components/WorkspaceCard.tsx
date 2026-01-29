@@ -45,9 +45,9 @@ export function WorkspaceCard({
         onClick={() => onSelectWorkspace(workspace.id)}
         onContextMenu={(event) => onShowWorkspaceMenu(event, workspace.id)}
         className={cn(
-          "h-9 rounded-lg px-2",
-          "hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]",
-          "data-[active=true]:bg-[var(--surface-active)] data-[active=true]:text-[var(--text-strong)]",
+          "h-9 rounded-md px-2 text-sm",
+          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
         )}
         data-tauri-drag-region="false"
         onKeyDown={(event) => {
@@ -66,7 +66,7 @@ export function WorkspaceCard({
             {!workspace.connected && (
               <button
                 type="button"
-                className="rounded-full border border-[var(--border-quiet)] px-2 py-0.5 text-xs text-[var(--text-muted)] transition-colors hover:border-[var(--border-stronger)] hover:text-[var(--text-strong)]"
+                className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
                 onClick={(event) => {
                   event.stopPropagation();
                   onConnectWorkspace(workspace);
@@ -79,7 +79,7 @@ export function WorkspaceCard({
             <button
               type="button"
               className={cn(
-                "text-[var(--text-muted)] opacity-0 transition-all group-hover/menu-item:opacity-100",
+                "text-muted-foreground opacity-0 transition-all group-hover/menu-item:opacity-100",
                 !isCollapsed && "rotate-180",
               )}
               onClick={(event) => {
@@ -94,7 +94,7 @@ export function WorkspaceCard({
             </button>
             <button
               type="button"
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-stronger)] bg-[var(--surface-card-muted)] text-[var(--text-muted)] opacity-0 transition-opacity hover:bg-[var(--surface-card-strong)] hover:text-[var(--text-strong)] group-hover/menu-item:opacity-100"
+              className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-background text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover/menu-item:opacity-100"
               onClick={(event) => {
                 event.stopPropagation();
                 const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
