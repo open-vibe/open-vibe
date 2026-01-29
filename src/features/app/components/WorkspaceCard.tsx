@@ -66,7 +66,7 @@ export function WorkspaceCard({
             {!workspace.connected && (
               <button
                 type="button"
-                className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
+                className="cursor-pointer select-none rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
                 onClick={(event) => {
                   event.stopPropagation();
                   onConnectWorkspace(workspace);
@@ -76,15 +76,15 @@ export function WorkspaceCard({
                 Connect
               </button>
             )}
-            <button
-              type="button"
-              className={cn(
-                "text-muted-foreground opacity-0 transition-all group-hover/menu-item:opacity-100",
-                !isCollapsed && "rotate-180",
-              )}
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggleWorkspaceCollapse(workspace.id, !isCollapsed);
+              <button
+                type="button"
+                className={cn(
+                  "text-muted-foreground cursor-pointer opacity-0 transition-all group-hover/menu-item:opacity-100",
+                  !isCollapsed && "rotate-180",
+                )}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleWorkspaceCollapse(workspace.id, !isCollapsed);
               }}
               data-tauri-drag-region="false"
               aria-label={isCollapsed ? "Show agents" : "Hide agents"}
@@ -94,7 +94,7 @@ export function WorkspaceCard({
             </button>
             <button
               type="button"
-              className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-background text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover/menu-item:opacity-100"
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover/menu-item:opacity-100"
               onClick={(event) => {
                 event.stopPropagation();
                 const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();

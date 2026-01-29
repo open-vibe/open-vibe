@@ -86,7 +86,7 @@ export function WorktreeCard({
                 <button
                   type="button"
                   className={cn(
-                    "text-muted-foreground opacity-0 transition-all group-hover/menu-item:opacity-100",
+                    "text-muted-foreground cursor-pointer opacity-0 transition-all group-hover/menu-item:opacity-100",
                     !worktreeCollapsed && "rotate-180",
                   )}
                   onClick={(event) => {
@@ -102,7 +102,7 @@ export function WorktreeCard({
                 {!worktree.connected && (
                   <button
                     type="button"
-                    className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
+                    className="cursor-pointer select-none rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
                     onClick={(event) => {
                       event.stopPropagation();
                       onConnectWorkspace(worktree);
