@@ -20,7 +20,7 @@ export default defineConfig(async () => ({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": resolve(rootDir, "."),
+      "@": resolve(rootDir, "src"),
     },
   },
   worker: {
