@@ -1,4 +1,25 @@
 import type { CSSProperties } from "react";
+import {
+  Brain,
+  ChevronDown,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { AccessMode, ThreadTokenUsage } from "../../../types";
 import { formatCollaborationModeLabel } from "../../../utils/collaborationModes";
 
@@ -35,6 +56,20 @@ export function ComposerMetaBar({
   onSelectAccessMode,
   contextUsage = null,
 }: ComposerMetaBarProps) {
+  const collabLabel = collaborationModes.find(
+    (mode) => mode.id === selectedCollaborationModeId
+  )?.label;
+  const selectedModel = models.find((model) => model.id === selectedModelId);
+  const modelLabel = selectedModel?.displayName || selectedModel?.model;
+  const effortLabel =
+    reasoningOptions.find((effort) => effort === selectedEffort) ??
+    (reasoningOptions.length === 0 ? "Default" : selectedEffort);
+  const accessLabel =
+    accessMode === "read-only"
+      ? "Read only"
+      : accessMode === "full-access"
+        ? "Full access"
+        : "On-Request";
   const contextWindow = contextUsage?.modelContextWindow ?? null;
   const lastTokens = contextUsage?.last.totalTokens ?? 0;
   const totalTokens = contextUsage?.total.totalTokens ?? 0;
@@ -49,178 +84,181 @@ export function ComposerMetaBar({
       : null;
 
   return (
-    <div className="composer-bar">
-      <div className="composer-meta">
-        {collaborationModes.length > 0 && (
-          <div className="composer-select-wrap">
-            <span className="composer-icon" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M7 7h10M7 12h6M7 17h8"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
-            <select
-              className="composer-select composer-select--model composer-select--collab"
-              aria-label="Collaboration mode"
-              value={selectedCollaborationModeId ?? ""}
-              onChange={(event) =>
-                onSelectCollaborationMode(event.target.value || null)
-              }
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+      {collaborationModes.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-full px-3 text-xs"
               disabled={disabled}
             >
+              <Users className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+              <span className="max-w-[140px] truncate">
+                {formatCollaborationModeLabel(collabLabel ?? "Collaboration")}
+              </span>
+              <ChevronDown
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuRadioGroup
+              value={selectedCollaborationModeId ?? ""}
+              onValueChange={(value) => onSelectCollaborationMode(value || null)}
+            >
               {collaborationModes.map((mode) => (
-                <option key={mode.id} value={mode.id}>
+                <DropdownMenuRadioItem key={mode.id} value={mode.id}>
                   {formatCollaborationModeLabel(mode.label || mode.id)}
-                </option>
+                </DropdownMenuRadioItem>
               ))}
-            </select>
-          </div>
-        )}
-        <div className="composer-select-wrap">
-          <span className="composer-icon" aria-hidden>
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M7 8V6a5 5 0 0 1 10 0v2"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-              <rect
-                x="4.5"
-                y="8"
-                width="15"
-                height="11"
-                rx="3"
-                stroke="currentColor"
-                strokeWidth="1.4"
-              />
-              <circle cx="9" cy="13" r="1" fill="currentColor" />
-              <circle cx="15" cy="13" r="1" fill="currentColor" />
-              <path
-                d="M9 16h6"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
-          </span>
-          <select
-            className="composer-select composer-select--model"
-            aria-label="Model"
-            value={selectedModelId ?? ""}
-            onChange={(event) => onSelectModel(event.target.value)}
-            disabled={disabled}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-full px-3 text-xs"
+            disabled={disabled || models.length === 0}
           >
-            {models.length === 0 && <option value="">No models</option>}
+            <Sparkles className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            <span className="max-w-[160px] truncate">
+              {modelLabel ?? "No models"}
+            </span>
+            <ChevronDown
+              className="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden
+            />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup
+            value={selectedModelId ?? ""}
+            onValueChange={onSelectModel}
+          >
+            {models.length === 0 && (
+              <DropdownMenuRadioItem value="" disabled>
+                No models
+              </DropdownMenuRadioItem>
+            )}
             {models.map((model) => (
-              <option key={model.id} value={model.id}>
+              <DropdownMenuRadioItem key={model.id} value={model.id}>
                 {model.displayName || model.model}
-              </option>
+              </DropdownMenuRadioItem>
             ))}
-          </select>
-        </div>
-        <div className="composer-select-wrap">
-          <span className="composer-icon" aria-hidden>
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M8.5 4.5a3.5 3.5 0 0 0-3.46 4.03A4 4 0 0 0 6 16.5h2"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-              <path
-                d="M15.5 4.5a3.5 3.5 0 0 1 3.46 4.03A4 4 0 0 1 18 16.5h-2"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-              <path
-                d="M9 12h6"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-              <path
-                d="M12 12v6"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
-          </span>
-          <select
-            className="composer-select composer-select--effort"
-            aria-label="Thinking mode"
-            value={selectedEffort ?? ""}
-            onChange={(event) => onSelectEffort(event.target.value)}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-full px-3 text-xs"
             disabled={disabled || !reasoningSupported}
           >
-            {reasoningOptions.length === 0 && <option value="">Default</option>}
+            <Brain className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            <span className="max-w-[90px] truncate">{effortLabel ?? "Default"}</span>
+            <ChevronDown
+              className="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden
+            />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup
+            value={selectedEffort ?? ""}
+            onValueChange={onSelectEffort}
+          >
+            {reasoningOptions.length === 0 && (
+              <DropdownMenuRadioItem value="" disabled>
+                Default
+              </DropdownMenuRadioItem>
+            )}
             {reasoningOptions.map((effort) => (
-              <option key={effort} value={effort}>
+              <DropdownMenuRadioItem key={effort} value={effort}>
                 {effort}
-              </option>
+              </DropdownMenuRadioItem>
             ))}
-          </select>
-        </div>
-        <div className="composer-select-wrap">
-          <span className="composer-icon" aria-hidden>
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 4l7 3v5c0 4.5-3 7.5-7 8-4-0.5-7-3.5-7-8V7l7-3z"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9.5 12.5l1.8 1.8 3.7-4"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <select
-            className="composer-select composer-select--approval"
-            aria-label="Agent access"
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-full px-3 text-xs"
             disabled={disabled}
+          >
+            <ShieldCheck
+              className="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden
+            />
+            <span className="max-w-[120px] truncate">{accessLabel}</span>
+            <ChevronDown
+              className="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden
+            />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup
             value={accessMode}
-            onChange={(event) =>
-              onSelectAccessMode(event.target.value as AccessMode)
+            onValueChange={(value) =>
+              onSelectAccessMode(value as AccessMode)
             }
           >
-            <option value="read-only">Read only</option>
-            <option value="current">On-Request</option>
-            <option value="full-access">Full access</option>
-          </select>
-        </div>
-      </div>
-      <div className="composer-context">
-        <div
-          className="composer-context-ring"
-          data-tooltip={
-            contextFreePercent === null
+            <DropdownMenuRadioItem value="read-only">
+              Read only
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="current">
+              On-Request
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="full-access">
+              Full access
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div className="ml-auto">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className="relative grid size-5 place-items-center rounded-full"
+              aria-label={
+                contextFreePercent === null
+                  ? "Context free --"
+                  : `Context free ${Math.round(contextFreePercent)}%`
+              }
+              style={
+                {
+                  "--context-free": contextFreePercent ?? 0,
+                  background:
+                    "radial-gradient(circle, hsl(var(--background)) 54%, transparent 56%), conic-gradient(from 180deg, hsl(calc(120deg * var(--context-free) / 100) 80% 55%) calc(var(--context-free) * 1%), hsl(var(--border)) 0)",
+                } as CSSProperties
+              }
+            >
+              <span className="text-[6px] font-semibold text-muted-foreground">
+                ●
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {contextFreePercent === null
               ? "Context free --"
-              : `Context free ${Math.round(contextFreePercent)}%`
-          }
-          aria-label={
-            contextFreePercent === null
-              ? "Context free --"
-              : `Context free ${Math.round(contextFreePercent)}%`
-          }
-          style={
-            {
-              "--context-free": contextFreePercent ?? 0,
-            } as CSSProperties
-          }
-        >
-          <span className="composer-context-value">●</span>
-        </div>
+              : `Context free ${Math.round(contextFreePercent)}%`}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

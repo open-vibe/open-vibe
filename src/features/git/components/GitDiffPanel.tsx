@@ -7,6 +7,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import ArrowLeftRight from "lucide-react/dist/esm/icons/arrow-left-right";
 import Check from "lucide-react/dist/esm/icons/check";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import GitBranch from "lucide-react/dist/esm/icons/git-branch";
 import Minus from "lucide-react/dist/esm/icons/minus";
@@ -19,6 +20,14 @@ import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { formatRelativeTime } from "../../../utils/time";
 import { PanelTabs, type PanelTabId } from "../../layout/components/PanelTabs";
 import { isMissingGitRepoError } from "../../../utils/gitErrors";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type GitDiffPanelProps = {
   mode: "diff" | "log" | "issues" | "prs";
@@ -715,6 +724,14 @@ export function GitDiffPanel({
         return FileText;
     }
   }, [mode]);
+  const modeOptions = [
+    { value: "diff", label: "Diff" },
+    { value: "log", label: "Log" },
+    { value: "issues", label: "Issues" },
+    { value: "prs", label: "PRs" },
+  ] as const;
+  const modeLabel =
+    modeOptions.find((option) => option.value === mode)?.label ?? "Diff";
   const githubBaseUrl = useMemo(() => {
     if (!gitRemoteUrl) {
       return null;
@@ -956,29 +973,43 @@ export function GitDiffPanel({
   ) : (
     <Upload size={12} aria-hidden />
   );
+  const depthLabel = String(gitRootScanDepth ?? DEPTH_OPTIONS[0]);
   return (
     <aside className="diff-panel">
       <div className="git-panel-header">
         <PanelTabs active={filePanelMode} onSelect={onFilePanelModeChange} />
-        <div className="git-panel-actions" role="group" aria-label="Git panel">
-          <div className="git-panel-select">
-            <span className="git-panel-select-icon" aria-hidden>
-              <ModeIcon />
-            </span>
-            <select
-              className="git-panel-select-input"
-              value={mode}
-              onChange={(event) =>
-                onModeChange(event.target.value as GitDiffPanelProps["mode"])
-              }
-              aria-label="Git panel view"
-            >
-              <option value="diff">Diff</option>
-              <option value="log">Log</option>
-              <option value="issues">Issues</option>
-              <option value="prs">PRs</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2" role="group" aria-label="Git panel">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full px-3 text-[11px] uppercase tracking-wider"
+                aria-label="Git panel view"
+              >
+                <ModeIcon className="h-3 w-3 text-muted-foreground" aria-hidden />
+                <span>{modeLabel}</span>
+                <ChevronDown
+                  className="h-3 w-3 text-muted-foreground"
+                  aria-hidden
+                />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={mode}
+                onValueChange={(value) =>
+                  onModeChange(value as GitDiffPanelProps["mode"])
+                }
+              >
+                {modeOptions.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {showApplyWorktree && (
             <button
               type="button"
@@ -1073,26 +1104,42 @@ export function GitDiffPanel({
                 >
                   Scan workspace
                 </button>
-                <label className="git-root-depth">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>Depth</span>
-                  <select
-                    className="git-root-select"
-                    value={gitRootScanDepth}
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      if (!Number.isNaN(value)) {
-                        onGitRootScanDepthChange?.(value);
-                      }
-                    }}
-                    disabled={gitRootScanLoading}
-                  >
-                    {DEPTH_OPTIONS.map((depth) => (
-                      <option key={depth} value={depth}>
-                        {depth}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        className="h-7 rounded-md px-2 text-xs"
+                        disabled={gitRootScanLoading}
+                      >
+                        {depthLabel}
+                        <ChevronDown
+                          className="h-3 w-3 text-muted-foreground"
+                          aria-hidden
+                        />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuRadioGroup
+                        value={String(gitRootScanDepth ?? DEPTH_OPTIONS[0])}
+                        onValueChange={(value) => {
+                          const next = Number(value);
+                          if (!Number.isNaN(next)) {
+                            onGitRootScanDepthChange?.(next);
+                          }
+                        }}
+                      >
+                        {DEPTH_OPTIONS.map((depth) => (
+                          <DropdownMenuRadioItem key={depth} value={String(depth)}>
+                            {depth}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 {onPickGitRoot && (
                   <button
                     type="button"
