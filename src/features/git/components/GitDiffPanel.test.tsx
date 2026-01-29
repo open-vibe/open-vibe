@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { GitLogEntry } from "../../../types";
+import { I18nProvider } from "../../../i18n";
 import { GitDiffPanel } from "./GitDiffPanel";
 
 vi.mock("@tauri-apps/api/menu", () => ({
@@ -52,15 +53,17 @@ describe("GitDiffPanel", () => {
   it("enables commit when message exists and only unstaged changes", () => {
     const onCommit = vi.fn();
     render(
-      <GitDiffPanel
-        {...baseProps}
-        commitMessage="feat: add thing"
-        onCommit={onCommit}
-        onGenerateCommitMessage={vi.fn()}
-        unstagedFiles={[
-          { path: "file.txt", status: "M", additions: 1, deletions: 0 },
-        ]}
-      />,
+      <I18nProvider language="en">
+        <GitDiffPanel
+          {...baseProps}
+          commitMessage="feat: add thing"
+          onCommit={onCommit}
+          onGenerateCommitMessage={vi.fn()}
+          unstagedFiles={[
+            { path: "file.txt", status: "M", additions: 1, deletions: 0 },
+          ]}
+        />
+      </I18nProvider>,
     );
 
     const commitButton = screen.getByRole("button", { name: "Commit" });

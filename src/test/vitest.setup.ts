@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-
+import { beforeEach } from "vitest";
 if (!("IS_REACT_ACT_ENVIRONMENT" in globalThis)) {
   Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", {
     value: true,
@@ -24,6 +24,23 @@ if (!("matchMedia" in globalThis)) {
     }),
   });
 }
+
+if (typeof window !== "undefined" && !("matchMedia" in window)) {
+  Object.defineProperty(window, "matchMedia", {
+    value: globalThis.matchMedia,
+  });
+}
+
+beforeEach(() => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (!("matchMedia" in window)) {
+    Object.defineProperty(window, "matchMedia", {
+      value: globalThis.matchMedia,
+    });
+  }
+});
 
 if (!("ResizeObserver" in globalThis)) {
   class ResizeObserverMock {

@@ -3,6 +3,7 @@ import { act, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import type { ComposerEditorSettings } from "../../../types";
+import { I18nProvider } from "../../../i18n";
 import { Composer } from "./Composer";
 
 vi.mock("../../../services/dragDrop", () => ({
@@ -65,7 +66,11 @@ function renderComposerHarness(props: HarnessProps): RenderedHarness {
   const root = createRoot(container);
 
   act(() => {
-    root.render(<ComposerHarness {...props} />);
+    root.render(
+      <I18nProvider language="en">
+        <ComposerHarness {...props} />
+      </I18nProvider>,
+    );
   });
 
   return {

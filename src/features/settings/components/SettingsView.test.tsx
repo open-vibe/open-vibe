@@ -10,6 +10,7 @@ import {
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { AppSettings, WorkspaceInfo } from "../../../types";
+import { I18nProvider } from "../../../i18n";
 import { SettingsView } from "./SettingsView";
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -136,7 +137,11 @@ const renderDisplaySection = (
     onRemoveDictationModel: vi.fn(),
   };
 
-  render(<SettingsView {...props} />);
+  render(
+    <I18nProvider language="en">
+      <SettingsView {...props} />
+    </I18nProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Display & Sound" }));
 
   return { onUpdateAppSettings, onToggleTransparency };
@@ -305,37 +310,39 @@ describe("SettingsView Codex overrides", () => {
     };
 
     render(
-      <SettingsView
-        workspaceGroups={[]}
-        groupedWorkspaces={[
-          { id: null, name: "Ungrouped", workspaces: [workspace] },
-        ]}
-        ungroupedLabel="Ungrouped"
-        onClose={vi.fn()}
-        onMoveWorkspace={vi.fn()}
-        onDeleteWorkspace={vi.fn()}
-        onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        reduceTransparency={false}
-        onToggleTransparency={vi.fn()}
-        appSettings={baseSettings}
-        openAppIconById={{}}
-        onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
-        onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
-        onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
-        onUpdateWorkspaceSettings={onUpdateWorkspaceSettings}
-        scaleShortcutTitle="Scale shortcut"
-        scaleShortcutText="Use Command +/-"
-        onTestNotificationSound={vi.fn()}
-        dictationModelStatus={null}
-        onDownloadDictationModel={vi.fn()}
-        onCancelDictationDownload={vi.fn()}
-        onRemoveDictationModel={vi.fn()}
-        initialSection="codex"
-      />,
+      <I18nProvider language="en">
+        <SettingsView
+          workspaceGroups={[]}
+          groupedWorkspaces={[
+            { id: null, name: "Ungrouped", workspaces: [workspace] },
+          ]}
+          ungroupedLabel="Ungrouped"
+          onClose={vi.fn()}
+          onMoveWorkspace={vi.fn()}
+          onDeleteWorkspace={vi.fn()}
+          onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          reduceTransparency={false}
+          onToggleTransparency={vi.fn()}
+          appSettings={baseSettings}
+          openAppIconById={{}}
+          onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
+          onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+          onUpdateWorkspaceSettings={onUpdateWorkspaceSettings}
+          scaleShortcutTitle="Scale shortcut"
+          scaleShortcutText="Use Command +/-"
+          onTestNotificationSound={vi.fn()}
+          dictationModelStatus={null}
+          onDownloadDictationModel={vi.fn()}
+          onCancelDictationDownload={vi.fn()}
+          onRemoveDictationModel={vi.fn()}
+          initialSection="codex"
+        />
+      </I18nProvider>,
     );
 
     const input = screen.getByLabelText("Codex args override for Workspace");
@@ -354,34 +361,36 @@ describe("SettingsView Shortcuts", () => {
   it("closes on Cmd+W", () => {
     const onClose = vi.fn();
     render(
-      <SettingsView
-        workspaceGroups={[]}
-        groupedWorkspaces={[]}
-        ungroupedLabel="Ungrouped"
-        onClose={onClose}
-        onMoveWorkspace={vi.fn()}
-        onDeleteWorkspace={vi.fn()}
-        onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        reduceTransparency={false}
-        onToggleTransparency={vi.fn()}
-        appSettings={baseSettings}
-        openAppIconById={{}}
-        onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
-        onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
-        onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
-        onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
-        scaleShortcutTitle="Scale shortcut"
-        scaleShortcutText="Use Command +/-"
-        onTestNotificationSound={vi.fn()}
-        dictationModelStatus={null}
-        onDownloadDictationModel={vi.fn()}
-        onCancelDictationDownload={vi.fn()}
-        onRemoveDictationModel={vi.fn()}
-      />,
+      <I18nProvider language="en">
+        <SettingsView
+          workspaceGroups={[]}
+          groupedWorkspaces={[]}
+          ungroupedLabel="Ungrouped"
+          onClose={onClose}
+          onMoveWorkspace={vi.fn()}
+          onDeleteWorkspace={vi.fn()}
+          onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          reduceTransparency={false}
+          onToggleTransparency={vi.fn()}
+          appSettings={baseSettings}
+          openAppIconById={{}}
+          onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
+          onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+          onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
+          scaleShortcutTitle="Scale shortcut"
+          scaleShortcutText="Use Command +/-"
+          onTestNotificationSound={vi.fn()}
+          dictationModelStatus={null}
+          onDownloadDictationModel={vi.fn()}
+          onCancelDictationDownload={vi.fn()}
+          onRemoveDictationModel={vi.fn()}
+        />
+      </I18nProvider>,
     );
 
     window.dispatchEvent(
@@ -394,34 +403,36 @@ describe("SettingsView Shortcuts", () => {
   it("closes on Escape", () => {
     const onClose = vi.fn();
     render(
-      <SettingsView
-        workspaceGroups={[]}
-        groupedWorkspaces={[]}
-        ungroupedLabel="Ungrouped"
-        onClose={onClose}
-        onMoveWorkspace={vi.fn()}
-        onDeleteWorkspace={vi.fn()}
-        onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
-        reduceTransparency={false}
-        onToggleTransparency={vi.fn()}
-        appSettings={baseSettings}
-        openAppIconById={{}}
-        onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
-        onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
-        onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
-        onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
-        scaleShortcutTitle="Scale shortcut"
-        scaleShortcutText="Use Command +/-"
-        onTestNotificationSound={vi.fn()}
-        dictationModelStatus={null}
-        onDownloadDictationModel={vi.fn()}
-        onCancelDictationDownload={vi.fn()}
-        onRemoveDictationModel={vi.fn()}
-      />,
+      <I18nProvider language="en">
+        <SettingsView
+          workspaceGroups={[]}
+          groupedWorkspaces={[]}
+          ungroupedLabel="Ungrouped"
+          onClose={onClose}
+          onMoveWorkspace={vi.fn()}
+          onDeleteWorkspace={vi.fn()}
+          onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          reduceTransparency={false}
+          onToggleTransparency={vi.fn()}
+          appSettings={baseSettings}
+          openAppIconById={{}}
+          onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
+          onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+          onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
+          scaleShortcutTitle="Scale shortcut"
+          scaleShortcutText="Use Command +/-"
+          onTestNotificationSound={vi.fn()}
+          dictationModelStatus={null}
+          onDownloadDictationModel={vi.fn()}
+          onCancelDictationDownload={vi.fn()}
+          onRemoveDictationModel={vi.fn()}
+        />
+      </I18nProvider>,
     );
 
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));

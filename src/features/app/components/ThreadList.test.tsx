@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ThreadSummary } from "../../../types";
+import { SidebarProvider } from "../../../components/ui/sidebar";
 import { ThreadList } from "./ThreadList";
 
 const nestedThread: ThreadSummary = {
@@ -47,11 +48,13 @@ describe("ThreadList", () => {
     const onShowThreadMenu = vi.fn();
 
     render(
-      <ThreadList
-        {...baseProps}
-        onSelectThread={onSelectThread}
-        onShowThreadMenu={onShowThreadMenu}
-      />,
+      <SidebarProvider>
+        <ThreadList
+          {...baseProps}
+          onSelectThread={onSelectThread}
+          onShowThreadMenu={onShowThreadMenu}
+        />
+      </SidebarProvider>,
     );
 
     const row = screen.getByText("Alpha").closest('[data-thread-row="true"]');
@@ -79,11 +82,13 @@ describe("ThreadList", () => {
   it("shows the more button and toggles expanded", () => {
     const onToggleExpanded = vi.fn();
     render(
-      <ThreadList
-        {...baseProps}
-        totalThreadRoots={4}
-        onToggleExpanded={onToggleExpanded}
-      />,
+      <SidebarProvider>
+        <ThreadList
+          {...baseProps}
+          totalThreadRoots={4}
+          onToggleExpanded={onToggleExpanded}
+        />
+      </SidebarProvider>,
     );
 
     const moreButton = screen.getByRole("button", { name: "More..." });
@@ -94,11 +99,13 @@ describe("ThreadList", () => {
   it("loads older threads when a cursor is available", () => {
     const onLoadOlderThreads = vi.fn();
     render(
-      <ThreadList
-        {...baseProps}
-        nextCursor="cursor"
-        onLoadOlderThreads={onLoadOlderThreads}
-      />,
+      <SidebarProvider>
+        <ThreadList
+          {...baseProps}
+          nextCursor="cursor"
+          onLoadOlderThreads={onLoadOlderThreads}
+        />
+      </SidebarProvider>,
     );
 
     const loadButton = screen.getByRole("button", { name: "Load older..." });
@@ -109,15 +116,17 @@ describe("ThreadList", () => {
   it("renders nested rows with indentation and disables pinning", () => {
     const onShowThreadMenu = vi.fn();
     render(
-      <ThreadList
-        {...baseProps}
-        nested
-        unpinnedRows={[
-          { thread, depth: 0 },
-          { thread: nestedThread, depth: 1 },
-        ]}
-        onShowThreadMenu={onShowThreadMenu}
-      />,
+      <SidebarProvider>
+        <ThreadList
+          {...baseProps}
+          nested
+          unpinnedRows={[
+            { thread, depth: 0 },
+            { thread: nestedThread, depth: 1 },
+          ]}
+          onShowThreadMenu={onShowThreadMenu}
+        />
+      </SidebarProvider>,
     );
 
     const nestedRow = screen

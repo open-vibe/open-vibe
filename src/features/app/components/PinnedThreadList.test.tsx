@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ThreadSummary } from "../../../types";
+import { SidebarProvider } from "../../../components/ui/sidebar";
 import { PinnedThreadList } from "./PinnedThreadList";
 
 const thread: ThreadSummary = {
@@ -38,11 +39,13 @@ describe("PinnedThreadList", () => {
     const onShowThreadMenu = vi.fn();
 
     render(
-      <PinnedThreadList
-        {...baseProps}
-        onSelectThread={onSelectThread}
-        onShowThreadMenu={onShowThreadMenu}
-      />,
+      <SidebarProvider>
+        <PinnedThreadList
+          {...baseProps}
+          onSelectThread={onSelectThread}
+          onShowThreadMenu={onShowThreadMenu}
+        />
+      </SidebarProvider>,
     );
 
     const row = screen
@@ -75,15 +78,17 @@ describe("PinnedThreadList", () => {
     const onShowThreadMenu = vi.fn();
 
     render(
-      <PinnedThreadList
-        {...baseProps}
-        rows={[
-          { thread, depth: 0, workspaceId: "ws-1" },
-          { thread: otherThread, depth: 0, workspaceId: "ws-2" },
-        ]}
-        onSelectThread={onSelectThread}
-        onShowThreadMenu={onShowThreadMenu}
-      />,
+      <SidebarProvider>
+        <PinnedThreadList
+          {...baseProps}
+          rows={[
+            { thread, depth: 0, workspaceId: "ws-1" },
+            { thread: otherThread, depth: 0, workspaceId: "ws-2" },
+          ]}
+          onSelectThread={onSelectThread}
+          onShowThreadMenu={onShowThreadMenu}
+        />
+      </SidebarProvider>,
     );
 
     const secondRow = screen
