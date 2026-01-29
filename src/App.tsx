@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./styles/base.css";
+import "./styles/globals.css";
 import "./styles/buttons.css";
 import "./styles/sidebar.css";
 import "./styles/home.css";

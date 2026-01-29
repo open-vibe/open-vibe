@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
@@ -11,10 +13,16 @@ const packageJson = JSON.parse(
 ) as {
   version: string;
 };
+const rootDir = dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
+  resolve: {
+    alias: {
+      "@": resolve(rootDir, "."),
+    },
+  },
   worker: {
     format: "es",
   },
