@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import * as Sentry from "@sentry/react";
-import App from "./App";
+import App from "./AppPreview";
 import { getPlatformKind } from "./utils/platform";
 
 const sentryDsn =
