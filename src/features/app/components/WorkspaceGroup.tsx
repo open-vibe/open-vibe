@@ -1,3 +1,13 @@
+import { ChevronDown } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+} from "@/components/ui/sidebar";
+
 type WorkspaceGroupProps = {
   toggleId: string | null;
   name: string;
@@ -16,56 +26,47 @@ export function WorkspaceGroup({
   children,
 }: WorkspaceGroupProps) {
   const isToggleable = Boolean(toggleId);
-  return (
-    <div className="workspace-group">
-      {showHeader && (
-        <div
-          className={`workspace-group-header${isToggleable ? " is-toggleable" : ""}`}
-          onClick={
-            toggleId
-              ? () => {
-                  onToggleCollapse(toggleId);
-                }
-              : undefined
-          }
-          onKeyDown={
-            toggleId
-              ? (event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onToggleCollapse(toggleId);
-                  }
-                }
-              : undefined
-          }
-          role={isToggleable ? "button" : undefined}
-          aria-label={isToggleable ? `${isCollapsed ? "Expand" : "Collapse"} group` : undefined}
-          aria-expanded={isToggleable ? !isCollapsed : undefined}
-          tabIndex={isToggleable ? 0 : undefined}
+  const label = (
+    <SidebarGroupLabel
+      asChild
+      className="px-1 text-[10px] uppercase tracking-[0.18em] text-[var(--text-faint)]"
+    >
+      {isToggleable ? (
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2"
+          onClick={() => {
+            if (!toggleId) {
+              return;
+            }
+            onToggleCollapse(toggleId);
+          }}
+          aria-label={isCollapsed ? "Expand group" : "Collapse group"}
+          aria-expanded={!isCollapsed}
         >
-          <div className="workspace-group-label">{name}</div>
-          {isToggleable && (
-            <button
-              className={`group-toggle ${isCollapsed ? "" : "expanded"}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                if (!toggleId) {
-                  return;
-                }
-                onToggleCollapse(toggleId);
-              }}
-              aria-label={isCollapsed ? "Expand group" : "Collapse group"}
-              aria-expanded={!isCollapsed}
-              type="button"
-            >
-              <span className="group-toggle-icon">›</span>
-            </button>
-          )}
+          <span className="truncate">{name}</span>
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 text-[var(--text-faint)] transition-transform",
+              !isCollapsed && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <div className="flex w-full items-center">
+          <span className="truncate">{name}</span>
         </div>
       )}
-      <div className={`workspace-group-list ${isCollapsed ? "collapsed" : ""}`}>
-        <div className="workspace-group-content">{children}</div>
-      </div>
-    </div>
+    </SidebarGroupLabel>
+  );
+
+  return (
+    <SidebarGroup className="gap-1 px-0 py-1">
+      {showHeader && label}
+      <SidebarGroupContent hidden={isCollapsed} aria-hidden={isCollapsed}>
+        <SidebarMenu className="gap-2">{children}</SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 }

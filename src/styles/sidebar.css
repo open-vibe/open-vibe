@@ -14,6 +14,13 @@
   transition: opacity 200ms ease, transform 200ms ease;
 }
 
+.sidebar [data-slot="sidebar-wrapper"] {
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .sidebar,
 .sidebar * {
   -webkit-user-select: none;
