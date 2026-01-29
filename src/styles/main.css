@@ -296,9 +296,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px var(--main-panel-padding) 8px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-topbar);
+  background: var(--background);
   -webkit-app-region: drag;
   grid-column: 1;
   grid-row: 1;

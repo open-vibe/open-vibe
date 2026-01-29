@@ -294,6 +294,10 @@ body {
   overflow: hidden;
 }
 
+.sidebar-provider {
+  display: contents !important;
+}
+
 .app {
   height: 100vh;
   width: 100vw;
@@ -303,7 +307,7 @@ body {
   border-radius: 0;
   overflow: hidden;
   position: relative;
-  --main-topbar-height: 44px;
+  --main-topbar-height: 64px;
   transition: grid-template-columns 220ms ease;
   font-family: var(--ui-font-family);
 }

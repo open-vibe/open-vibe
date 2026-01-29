@@ -1,12 +1,13 @@
 .sidebar {
-  --sidebar-padding: 20px;
-  padding: 36px var(--sidebar-padding) 56px;
-  background: var(--surface-sidebar);
+  --sidebar-padding: 16px;
+  padding: 0;
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
   backdrop-filter: none;
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   -webkit-app-region: no-drag;
   min-height: 0;
   overflow: hidden;
@@ -940,15 +941,4 @@
 .app.reduced-transparency .sidebar {
   background: var(--surface-sidebar-opaque);
   backdrop-filter: none;
-}
-
-.app.sidebar-collapsed .sidebar {
-  opacity: 0;
-  transform: translateX(-12px);
-  pointer-events: none;
-}
-
-.app.sidebar-collapsed .sidebar-resizer {
-  opacity: 0;
-  pointer-events: none;
 }

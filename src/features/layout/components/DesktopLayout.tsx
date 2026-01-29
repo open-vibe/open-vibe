@@ -1,5 +1,6 @@
 import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { MainTopbar } from "../../app/components/MainTopbar";
+import { SidebarInset } from "@/components/ui/sidebar";
 
 type DesktopLayoutProps = {
   sidebarNode: ReactNode;
@@ -91,7 +92,7 @@ export function DesktopLayout({
         onMouseDown={onSidebarResizeStart}
       />
 
-      <section className="main">
+      <SidebarInset className="main">
         {updateToastNode}
         {errorToastsNode}
         {showHome && homeNode}
@@ -141,7 +142,7 @@ export function DesktopLayout({
             {debugPanelNode}
           </>
         )}
-      </section>
+      </SidebarInset>
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { MouseEvent, ReactNode } from "react";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { DesktopLayout } from "../../layout/components/DesktopLayout";
 import { TabletLayout } from "../../layout/components/TabletLayout";
 import { PhoneLayout } from "../../layout/components/PhoneLayout";
@@ -74,73 +75,79 @@ export const AppLayout = memo(function AppLayout({
 }: AppLayoutProps) {
   if (isPhone) {
     return (
-      <PhoneLayout
-        approvalToastsNode={approvalToastsNode}
-        updateToastNode={updateToastNode}
-        errorToastsNode={errorToastsNode}
-        tabBarNode={tabBarNode}
-        sidebarNode={sidebarNode}
-        activeTab={activeTab}
-        activeWorkspace={activeWorkspace}
-        showGitDetail={showGitDetail}
-        compactEmptyCodexNode={compactEmptyCodexNode}
-        compactEmptyGitNode={compactEmptyGitNode}
-        compactGitBackNode={compactGitBackNode}
-        topbarLeftNode={mainHeaderNode}
-        messagesNode={messagesNode}
-        composerNode={composerNode}
-        gitDiffPanelNode={gitDiffPanelNode}
-        gitDiffViewerNode={gitDiffViewerNode}
-        debugPanelNode={debugPanelFullNode}
-      />
+      <SidebarProvider className="sidebar-provider">
+        <PhoneLayout
+          approvalToastsNode={approvalToastsNode}
+          updateToastNode={updateToastNode}
+          errorToastsNode={errorToastsNode}
+          tabBarNode={tabBarNode}
+          sidebarNode={sidebarNode}
+          activeTab={activeTab}
+          activeWorkspace={activeWorkspace}
+          showGitDetail={showGitDetail}
+          compactEmptyCodexNode={compactEmptyCodexNode}
+          compactEmptyGitNode={compactEmptyGitNode}
+          compactGitBackNode={compactGitBackNode}
+          topbarLeftNode={mainHeaderNode}
+          messagesNode={messagesNode}
+          composerNode={composerNode}
+          gitDiffPanelNode={gitDiffPanelNode}
+          gitDiffViewerNode={gitDiffViewerNode}
+          debugPanelNode={debugPanelFullNode}
+        />
+      </SidebarProvider>
     );
   }
 
   if (isTablet) {
     return (
-      <TabletLayout
-        tabletNavNode={tabletNavNode}
-        approvalToastsNode={approvalToastsNode}
-        updateToastNode={updateToastNode}
-        errorToastsNode={errorToastsNode}
-        homeNode={homeNode}
-        showHome={showHome}
-        showWorkspace={activeWorkspace && !showHome}
-        sidebarNode={sidebarNode}
-        tabletTab={tabletTab}
-        onSidebarResizeStart={onSidebarResizeStart}
-        topbarLeftNode={mainHeaderNode}
-        messagesNode={messagesNode}
-        composerNode={composerNode}
-        gitDiffPanelNode={gitDiffPanelNode}
-        gitDiffViewerNode={gitDiffViewerNode}
-        debugPanelNode={debugPanelFullNode}
-      />
+      <SidebarProvider className="sidebar-provider">
+        <TabletLayout
+          tabletNavNode={tabletNavNode}
+          approvalToastsNode={approvalToastsNode}
+          updateToastNode={updateToastNode}
+          errorToastsNode={errorToastsNode}
+          homeNode={homeNode}
+          showHome={showHome}
+          showWorkspace={activeWorkspace && !showHome}
+          sidebarNode={sidebarNode}
+          tabletTab={tabletTab}
+          onSidebarResizeStart={onSidebarResizeStart}
+          topbarLeftNode={mainHeaderNode}
+          messagesNode={messagesNode}
+          composerNode={composerNode}
+          gitDiffPanelNode={gitDiffPanelNode}
+          gitDiffViewerNode={gitDiffViewerNode}
+          debugPanelNode={debugPanelFullNode}
+        />
+      </SidebarProvider>
     );
   }
 
   return (
-    <DesktopLayout
-      sidebarNode={sidebarNode}
-      updateToastNode={updateToastNode}
-      approvalToastsNode={approvalToastsNode}
-      errorToastsNode={errorToastsNode}
-      homeNode={homeNode}
-      showHome={showHome}
-      showWorkspace={activeWorkspace && !showHome}
-      topbarLeftNode={desktopTopbarLeftNode}
-      centerMode={centerMode}
-      messagesNode={messagesNode}
-      gitDiffViewerNode={gitDiffViewerNode}
-      gitDiffPanelNode={gitDiffPanelNode}
-      planPanelNode={planPanelNode}
-      composerNode={composerNode}
-      terminalDockNode={terminalDockNode}
-      debugPanelNode={debugPanelNode}
-      hasActivePlan={hasActivePlan}
-      onSidebarResizeStart={onSidebarResizeStart}
-      onRightPanelResizeStart={onRightPanelResizeStart}
-      onPlanPanelResizeStart={onPlanPanelResizeStart}
-    />
+    <SidebarProvider className="sidebar-provider">
+      <DesktopLayout
+        sidebarNode={sidebarNode}
+        updateToastNode={updateToastNode}
+        approvalToastsNode={approvalToastsNode}
+        errorToastsNode={errorToastsNode}
+        homeNode={homeNode}
+        showHome={showHome}
+        showWorkspace={activeWorkspace && !showHome}
+        topbarLeftNode={desktopTopbarLeftNode}
+        centerMode={centerMode}
+        messagesNode={messagesNode}
+        gitDiffViewerNode={gitDiffViewerNode}
+        gitDiffPanelNode={gitDiffPanelNode}
+        planPanelNode={planPanelNode}
+        composerNode={composerNode}
+        terminalDockNode={terminalDockNode}
+        debugPanelNode={debugPanelNode}
+        hasActivePlan={hasActivePlan}
+        onSidebarResizeStart={onSidebarResizeStart}
+        onRightPanelResizeStart={onRightPanelResizeStart}
+        onPlanPanelResizeStart={onPlanPanelResizeStart}
+      />
+    </SidebarProvider>
   );
 });

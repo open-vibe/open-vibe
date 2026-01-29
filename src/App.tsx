@@ -57,10 +57,9 @@ import { useRenameWorktreePrompt } from "./features/workspaces/hooks/useRenameWo
 import { useLayoutController } from "./features/app/hooks/useLayoutController";
 import { useWindowLabel } from "./features/layout/hooks/useWindowLabel";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import {
-  SidebarCollapseButton,
-  TitlebarExpandControls,
-} from "./features/layout/components/SidebarToggleControls";
+import { TitlebarExpandControls } from "./features/layout/components/SidebarToggleControls";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAppSettingsController } from "./features/app/hooks/useAppSettingsController";
 import { useUpdaterController } from "./features/app/hooks/useUpdaterController";
 import { useErrorToasts } from "./features/notifications/hooks/useErrorToasts";
@@ -1933,7 +1932,11 @@ function MainApp() {
 
   const desktopTopbarLeftNodeWithToggle = !isCompact ? (
     <div className="topbar-leading">
-      <SidebarCollapseButton {...sidebarToggleProps} />
+      <SidebarTrigger className="-ml-1" data-tauri-drag-region="false" />
+      <Separator
+        orientation="vertical"
+        className="mr-2 data-[orientation=vertical]:h-4"
+      />
       {desktopTopbarLeftNode}
     </div>
   ) : (

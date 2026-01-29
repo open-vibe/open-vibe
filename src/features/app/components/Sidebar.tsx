@@ -3,7 +3,13 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { FolderOpen } from "lucide-react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import {
+  Sidebar as ShadcnSidebar,
+  SidebarContent,
+  SidebarFooter as ShadcnSidebarFooter,
+  SidebarHeader as ShadcnSidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 import { SidebarCornerActions } from "./SidebarCornerActions";
 import { SidebarFooter } from "./SidebarFooter";
 import { SidebarHeader } from "./SidebarHeader";
@@ -281,41 +287,49 @@ export function Sidebar({
   }, [addMenuAnchor]);
 
   return (
-    <aside
-      className="sidebar"
-      ref={workspaceDropTargetRef}
-      onDragOver={onWorkspaceDragOver}
-      onDragEnter={onWorkspaceDragEnter}
-      onDragLeave={onWorkspaceDragLeave}
-      onDrop={onWorkspaceDrop}
+    <ShadcnSidebar
+      variant="inset"
+      collapsible="icon"
+      className="sidebar relative"
+      data-tauri-drag-region="false"
     >
-      <SidebarHeader onSelectHome={onSelectHome} onAddWorkspace={onAddWorkspace} />
       <div
-        className={`workspace-drop-overlay${
-          isWorkspaceDropActive ? " is-active" : ""
-        }`}
-        aria-hidden
+        className="relative flex h-full flex-col"
+        ref={workspaceDropTargetRef as RefObject<HTMLDivElement | null>}
+        onDragOver={onWorkspaceDragOver}
+        onDragEnter={onWorkspaceDragEnter}
+        onDragLeave={onWorkspaceDragLeave}
+        onDrop={onWorkspaceDrop}
       >
+        <ShadcnSidebarHeader className="px-3 pt-3">
+          <SidebarHeader onSelectHome={onSelectHome} onAddWorkspace={onAddWorkspace} />
+        </ShadcnSidebarHeader>
         <div
-          className={`workspace-drop-overlay-text${
-            workspaceDropText === "Adding Project..." ? " is-busy" : ""
+          className={`workspace-drop-overlay${
+            isWorkspaceDropActive ? " is-active" : ""
           }`}
+          aria-hidden
         >
-          {workspaceDropText === "Drop Project Here" && (
-            <FolderOpen className="workspace-drop-overlay-icon" aria-hidden />
-          )}
-          {workspaceDropText}
+          <div
+            className={`workspace-drop-overlay-text${
+              workspaceDropText === "Adding Project..." ? " is-busy" : ""
+            }`}
+          >
+            {workspaceDropText === "Drop Project Here" && (
+              <FolderOpen className="workspace-drop-overlay-icon" aria-hidden />
+            )}
+            {workspaceDropText}
+          </div>
         </div>
-      </div>
-      <div
-        className={`sidebar-body${scrollFade.top ? " fade-top" : ""}${
-          scrollFade.bottom ? " fade-bottom" : ""
-        }`}
-        onScroll={updateScrollFade}
-        ref={sidebarBodyRef}
-      >
-        <SidebarProvider className="sidebar-shadcn-wrapper" defaultOpen>
-          <div className="workspace-list">
+        <SidebarContent className="px-3 pb-3">
+          <div
+            className={`sidebar-body${scrollFade.top ? " fade-top" : ""}${
+              scrollFade.bottom ? " fade-bottom" : ""
+            }`}
+            onScroll={updateScrollFade}
+            ref={sidebarBodyRef}
+          >
+            <div className="workspace-list">
             {pinnedThreadRows.length > 0 && (
               <div className="pinned-section">
                 <div className="workspace-group-header">
@@ -486,25 +500,29 @@ export function Sidebar({
                 </WorkspaceGroup>
               );
             })}
-            {!groupedWorkspaces.length && (
-              <div className="empty">Add a workspace to start.</div>
-            )}
+          {!groupedWorkspaces.length && (
+            <div className="empty">Add a workspace to start.</div>
+          )}
+        </div>
           </div>
-        </SidebarProvider>
+        </SidebarContent>
+        <ShadcnSidebarFooter className="gap-3 px-3 pb-4">
+          <SidebarFooter
+            sessionPercent={sessionPercent}
+            weeklyPercent={weeklyPercent}
+            sessionResetLabel={sessionResetLabel}
+            weeklyResetLabel={weeklyResetLabel}
+            creditsLabel={creditsLabel}
+            showWeekly={showWeekly}
+          />
+        </ShadcnSidebarFooter>
+        <SidebarCornerActions
+          onOpenSettings={onOpenSettings}
+          onOpenDebug={onOpenDebug}
+          showDebugButton={showDebugButton}
+        />
       </div>
-      <SidebarFooter
-        sessionPercent={sessionPercent}
-        weeklyPercent={weeklyPercent}
-        sessionResetLabel={sessionResetLabel}
-        weeklyResetLabel={weeklyResetLabel}
-        creditsLabel={creditsLabel}
-        showWeekly={showWeekly}
-      />
-      <SidebarCornerActions
-        onOpenSettings={onOpenSettings}
-        onOpenDebug={onOpenDebug}
-        showDebugButton={showDebugButton}
-      />
-    </aside>
+      <SidebarRail />
+    </ShadcnSidebar>
   );
 }
