@@ -7,6 +7,9 @@ import { PhoneLayout } from "../../layout/components/PhoneLayout";
 type AppLayoutProps = {
   isPhone: boolean;
   isTablet: boolean;
+  sidebarWidth: number;
+  sidebarCollapsed: boolean;
+  onSidebarOpenChange: (open: boolean) => void;
   showHome: boolean;
   showGitDetail: boolean;
   activeTab: "projects" | "codex" | "git" | "log";
@@ -42,6 +45,9 @@ type AppLayoutProps = {
 export const AppLayout = memo(function AppLayout({
   isPhone,
   isTablet,
+  sidebarWidth,
+  sidebarCollapsed,
+  onSidebarOpenChange,
   showHome,
   showGitDetail,
   activeTab,
@@ -73,9 +79,18 @@ export const AppLayout = memo(function AppLayout({
   onRightPanelResizeStart,
   onPlanPanelResizeStart,
 }: AppLayoutProps) {
+  const sidebarStyle = {
+    "--sidebar-width": `${sidebarWidth}px`,
+  } as React.CSSProperties;
+
   if (isPhone) {
     return (
-      <SidebarProvider className="sidebar-provider">
+      <SidebarProvider
+        className="sidebar-provider"
+        open={!sidebarCollapsed}
+        onOpenChange={onSidebarOpenChange}
+        style={sidebarStyle}
+      >
         <PhoneLayout
           approvalToastsNode={approvalToastsNode}
           updateToastNode={updateToastNode}
@@ -101,7 +116,12 @@ export const AppLayout = memo(function AppLayout({
 
   if (isTablet) {
     return (
-      <SidebarProvider className="sidebar-provider">
+      <SidebarProvider
+        className="sidebar-provider"
+        open={!sidebarCollapsed}
+        onOpenChange={onSidebarOpenChange}
+        style={sidebarStyle}
+      >
         <TabletLayout
           tabletNavNode={tabletNavNode}
           approvalToastsNode={approvalToastsNode}
@@ -125,7 +145,12 @@ export const AppLayout = memo(function AppLayout({
   }
 
   return (
-    <SidebarProvider className="sidebar-provider">
+    <SidebarProvider
+      className="sidebar-provider"
+      open={!sidebarCollapsed}
+      onOpenChange={onSidebarOpenChange}
+      style={sidebarStyle}
+    >
       <DesktopLayout
         sidebarNode={sidebarNode}
         updateToastNode={updateToastNode}

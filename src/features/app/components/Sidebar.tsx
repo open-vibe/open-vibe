@@ -290,7 +290,7 @@ export function Sidebar({
     <ShadcnSidebar
       variant="inset"
       collapsible="icon"
-      className="sidebar relative"
+      className="sidebar relative shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border))]"
       data-tauri-drag-region="false"
     >
       <div

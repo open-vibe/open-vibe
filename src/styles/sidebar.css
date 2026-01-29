@@ -132,8 +132,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-app-region: no-drag;
-  margin-right: calc(-1 * var(--sidebar-padding));
-  padding-right: calc(var(--sidebar-padding) - 12px);
+  margin-right: 0;
+  padding-right: 0;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;

@@ -1495,6 +1495,7 @@ function MainApp() {
   }${!isCompact && sidebarCollapsed ? " sidebar-collapsed" : ""}${
     !isCompact && rightPanelCollapsed ? " right-panel-collapsed" : ""
   }`;
+  const sidebarColumnWidth = sidebarCollapsed ? 48 : sidebarWidth;
   const {
     sidebarNode,
     messagesNode,
@@ -1949,7 +1950,7 @@ function MainApp() {
       style={
         {
           "--sidebar-width": `${
-            isCompact ? sidebarWidth : sidebarCollapsed ? 0 : sidebarWidth
+            isCompact ? sidebarWidth : sidebarColumnWidth
           }px`,
           "--right-panel-width": `${
             isCompact ? rightPanelWidth : rightPanelCollapsed ? 0 : rightPanelWidth
@@ -1983,6 +1984,15 @@ function MainApp() {
       <AppLayout
         isPhone={isPhone}
         isTablet={isTablet}
+        sidebarWidth={sidebarColumnWidth}
+        sidebarCollapsed={sidebarCollapsed}
+        onSidebarOpenChange={(open) => {
+          if (open) {
+            expandSidebar();
+          } else {
+            collapseSidebar();
+          }
+        }}
         showHome={showHome}
         showGitDetail={showGitDetail}
         activeTab={activeTab}

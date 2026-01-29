@@ -1,4 +1,12 @@
 import FolderKanban from "lucide-react/dist/esm/icons/folder-kanban";
+import Plus from "lucide-react/dist/esm/icons/plus";
+
+import {
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 type SidebarHeaderProps = {
   onSelectHome: () => void;
@@ -7,26 +15,25 @@ type SidebarHeaderProps = {
 
 export function SidebarHeader({ onSelectHome, onAddWorkspace }: SidebarHeaderProps) {
   return (
-    <div className="sidebar-header">
-      <div>
-        <button
-          className="subtitle subtitle-button"
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
           onClick={onSelectHome}
           data-tauri-drag-region="false"
-          aria-label="Open home"
+          className="h-9 font-medium"
         >
-          <FolderKanban className="sidebar-nav-icon" />
-          Projects
-        </button>
-      </div>
-      <button
-        className="ghost workspace-add"
-        onClick={onAddWorkspace}
-        data-tauri-drag-region="false"
-        aria-label="Add workspace"
-      >
-        +
-      </button>
-    </div>
+          <FolderKanban className="h-4 w-4" aria-hidden />
+          <span>Projects</span>
+        </SidebarMenuButton>
+        <SidebarMenuAction
+          onClick={onAddWorkspace}
+          data-tauri-drag-region="false"
+          aria-label="Add workspace"
+          showOnHover
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+        </SidebarMenuAction>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
