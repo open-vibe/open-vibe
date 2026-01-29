@@ -2,7 +2,7 @@ import type { RateLimitSnapshot, ThreadSummary, WorkspaceInfo } from "../../../t
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { FolderOpen } from "lucide-react";
+import { FolderKanban, FolderOpen, Home, Layers, Plus } from "lucide-react";
 import {
   Sidebar as ShadcnSidebar,
   SidebarContent,
@@ -10,13 +10,16 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarHeader as ShadcnSidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { SidebarCornerActions } from "./SidebarCornerActions";
+import { NavUser } from "@/components/nav-user";
+import { TeamSwitcher } from "@/components/team-switcher";
 import { SidebarFooter } from "./SidebarFooter";
-import { SidebarHeader } from "./SidebarHeader";
 import { ThreadList } from "./ThreadList";
 import { ThreadLoading } from "./ThreadLoading";
 import { WorktreeSection } from "./WorktreeSection";
@@ -31,6 +34,8 @@ import { formatRelativeTimeShort } from "../../../utils/time";
 
 const COLLAPSED_GROUPS_STORAGE_KEY = "codexmonitor.collapsedGroups";
 const UNGROUPED_COLLAPSE_ID = "__ungrouped__";
+const ALL_WORKSPACES_ID = "__all__";
+const UNGROUPED_TEAM_ID = "__ungrouped__team__";
 const ADD_MENU_WIDTH = 200;
 
 type WorkspaceGroupSection = {
@@ -136,6 +141,7 @@ export function Sidebar({
   const [expandedWorkspaces, setExpandedWorkspaces] = useState(
     new Set<string>(),
   );
+  const [activeGroupId, setActiveGroupId] = useState(ALL_WORKSPACES_ID);
   const [addMenuAnchor, setAddMenuAnchor] = useState<{
     workspaceId: string;
     top: number;
@@ -167,6 +173,37 @@ export function Sidebar({
     creditsLabel,
     showWeekly,
   } = getUsageLabels(accountRateLimits);
+  const teamOptions = useMemo(() => {
+    const options = [
+      {
+        id: ALL_WORKSPACES_ID,
+        name: "All Workspaces",
+        logo: Layers,
+        plan: `${workspaces.length} workspace${workspaces.length === 1 ? "" : "s"}`,
+      },
+    ];
+    groupedWorkspaces.forEach((group) => {
+      const groupId = group.id ?? UNGROUPED_TEAM_ID;
+      options.push({
+        id: groupId,
+        name: group.name,
+        logo: group.id ? FolderKanban : FolderOpen,
+        plan: `${group.workspaces.length} workspace${
+          group.workspaces.length === 1 ? "" : "s"
+        }`,
+      });
+    });
+    return options;
+  }, [groupedWorkspaces, workspaces.length]);
+  const visibleGroups = useMemo(() => {
+    if (activeGroupId === ALL_WORKSPACES_ID) {
+      return groupedWorkspaces;
+    }
+    const selected = groupedWorkspaces.find(
+      (group) => (group.id ?? UNGROUPED_TEAM_ID) === activeGroupId,
+    );
+    return selected ? [selected] : groupedWorkspaces;
+  }, [activeGroupId, groupedWorkspaces]);
 
   const pinnedThreadRows = (() => {
     type ThreadRow = { thread: ThreadSummary; depth: number };
@@ -299,7 +336,11 @@ export function Sidebar({
         onDrop={onWorkspaceDrop}
       >
         <ShadcnSidebarHeader className="px-2 pt-2">
-          <SidebarHeader onSelectHome={onSelectHome} onAddWorkspace={onAddWorkspace} />
+          <TeamSwitcher
+            teams={teamOptions}
+            activeTeamId={activeGroupId}
+            onSelectTeam={setActiveGroupId}
+          />
         </ShadcnSidebarHeader>
         <div
           className={cn(
@@ -321,6 +362,22 @@ export function Sidebar({
           </div>
         </div>
         <SidebarContent className="gap-3 px-2 pb-3">
+          <SidebarGroup className="px-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={onSelectHome} tooltip="Home">
+                  <Home />
+                  <span>Home</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={onAddWorkspace} tooltip="Add workspace">
+                  <Plus />
+                  <span>Add workspace</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
           {pinnedThreadRows.length > 0 && (
             <SidebarGroup className="px-0">
               <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -340,7 +397,7 @@ export function Sidebar({
               </SidebarGroupContent>
             </SidebarGroup>
           )}
-          {groupedWorkspaces.map((group) => {
+          {visibleGroups.map((group) => {
             const groupId = group.id;
             const showGroupHeader = Boolean(groupId) || hasWorkspaceGroups;
             const toggleId = groupId ?? (showGroupHeader ? UNGROUPED_COLLAPSE_ID : null);
@@ -501,22 +558,39 @@ export function Sidebar({
               Add a workspace to start.
             </div>
           )}
+          {(sessionPercent !== null ||
+            weeklyPercent !== null ||
+            creditsLabel ||
+            showWeekly) && (
+            <SidebarGroup className="mt-2 px-0">
+              <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Usage
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="px-1">
+                <SidebarFooter
+                  sessionPercent={sessionPercent}
+                  weeklyPercent={weeklyPercent}
+                  sessionResetLabel={sessionResetLabel}
+                  weeklyResetLabel={weeklyResetLabel}
+                  creditsLabel={creditsLabel}
+                  showWeekly={showWeekly}
+                />
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </SidebarContent>
-        <ShadcnSidebarFooter className="gap-3 px-2 pb-3">
-          <SidebarFooter
-            sessionPercent={sessionPercent}
-            weeklyPercent={weeklyPercent}
-            sessionResetLabel={sessionResetLabel}
-            weeklyResetLabel={weeklyResetLabel}
-            creditsLabel={creditsLabel}
-            showWeekly={showWeekly}
+        <ShadcnSidebarFooter className="px-2 pb-3">
+          <NavUser
+            user={{
+              name: "Codex Monitor",
+              email: "Local Workspace",
+              avatar: "",
+            }}
+            onOpenSettings={onOpenSettings}
+            onOpenDebug={onOpenDebug}
+            showDebugButton={showDebugButton}
           />
         </ShadcnSidebarFooter>
-        <SidebarCornerActions
-          onOpenSettings={onOpenSettings}
-          onOpenDebug={onOpenDebug}
-          showDebugButton={showDebugButton}
-        />
       </div>
       <SidebarRail />
     </ShadcnSidebar>

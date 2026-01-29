@@ -1,11 +1,4 @@
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react"
+import { ChevronsUpDown, ScrollText, Settings } from "lucide-react"
 
 import {
   Avatar,
@@ -30,12 +23,18 @@ import {
 
 export function NavUser({
   user,
+  onOpenSettings,
+  onOpenDebug,
+  showDebugButton = true,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
+  onOpenSettings?: () => void
+  onOpenDebug?: () => void
+  showDebugButton?: boolean
 }) {
   const { isMobile } = useSidebar()
 
@@ -79,31 +78,27 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault()
+                  onOpenSettings?.()
+                }}
+              >
+                <Settings />
+                Settings
               </DropdownMenuItem>
+              {showDebugButton && (
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault()
+                    onOpenDebug?.()
+                  }}
+                >
+                  <ScrollText />
+                  Debug log
+                </DropdownMenuItem>
+              )}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
