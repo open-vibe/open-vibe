@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { AccessMode, ThreadTokenUsage } from "../../../types";
 import { formatCollaborationModeLabel } from "../../../utils/collaborationModes";
+import { useI18n } from "../../../i18n";
 
 type ComposerMetaBarProps = {
   disabled: boolean;
@@ -56,6 +57,7 @@ export function ComposerMetaBar({
   onSelectAccessMode,
   contextUsage = null,
 }: ComposerMetaBarProps) {
+  const { t } = useI18n();
   const collabLabel = collaborationModes.find(
     (mode) => mode.id === selectedCollaborationModeId
   )?.label;
@@ -63,13 +65,13 @@ export function ComposerMetaBar({
   const modelLabel = selectedModel?.displayName || selectedModel?.model;
   const effortLabel =
     reasoningOptions.find((effort) => effort === selectedEffort) ??
-    (reasoningOptions.length === 0 ? "Default" : selectedEffort);
+    (reasoningOptions.length === 0 ? t("composer.default") : selectedEffort);
   const accessLabel =
     accessMode === "read-only"
-      ? "Read only"
+      ? t("composer.access.readOnly")
       : accessMode === "full-access"
-        ? "Full access"
-        : "On-Request";
+        ? t("composer.access.full")
+        : t("composer.access.onRequest");
   const contextWindow = contextUsage?.modelContextWindow ?? null;
   const lastTokens = contextUsage?.last.totalTokens ?? 0;
   const totalTokens = contextUsage?.total.totalTokens ?? 0;
@@ -96,7 +98,9 @@ export function ComposerMetaBar({
             >
               <Users className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               <span className="max-w-[140px] truncate">
-                {formatCollaborationModeLabel(collabLabel ?? "Collaboration")}
+                {formatCollaborationModeLabel(
+                  collabLabel ?? t("composer.collaboration")
+                )}
               </span>
               <ChevronDown
                 className="h-3.5 w-3.5 text-muted-foreground"
@@ -129,7 +133,7 @@ export function ComposerMetaBar({
           >
             <Sparkles className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
             <span className="max-w-[160px] truncate">
-              {modelLabel ?? "No models"}
+              {modelLabel ?? t("composer.noModels")}
             </span>
             <ChevronDown
               className="h-3.5 w-3.5 text-muted-foreground"
@@ -144,7 +148,7 @@ export function ComposerMetaBar({
           >
             {models.length === 0 && (
               <DropdownMenuRadioItem value="" disabled>
-                No models
+                {t("composer.noModels")}
               </DropdownMenuRadioItem>
             )}
             {models.map((model) => (
@@ -165,7 +169,9 @@ export function ComposerMetaBar({
             disabled={disabled || !reasoningSupported}
           >
             <Brain className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-            <span className="max-w-[90px] truncate">{effortLabel ?? "Default"}</span>
+            <span className="max-w-[90px] truncate">
+              {effortLabel ?? t("composer.default")}
+            </span>
             <ChevronDown
               className="h-3.5 w-3.5 text-muted-foreground"
               aria-hidden
@@ -179,7 +185,7 @@ export function ComposerMetaBar({
           >
             {reasoningOptions.length === 0 && (
               <DropdownMenuRadioItem value="" disabled>
-                Default
+                {t("composer.default")}
               </DropdownMenuRadioItem>
             )}
             {reasoningOptions.map((effort) => (
@@ -218,13 +224,13 @@ export function ComposerMetaBar({
             }
           >
             <DropdownMenuRadioItem value="read-only">
-              Read only
+              {t("composer.access.readOnly")}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="current">
-              On-Request
+              {t("composer.access.onRequest")}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="full-access">
-              Full access
+              {t("composer.access.full")}
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
@@ -237,8 +243,10 @@ export function ComposerMetaBar({
               className="relative grid size-5 place-items-center rounded-full"
               aria-label={
                 contextFreePercent === null
-                  ? "Context free --"
-                  : `Context free ${Math.round(contextFreePercent)}%`
+                  ? t("composer.contextFreeUnknown")
+                  : t("composer.contextFree", {
+                      percent: Math.round(contextFreePercent),
+                    })
               }
               style={
                 {
@@ -255,8 +263,10 @@ export function ComposerMetaBar({
           </TooltipTrigger>
           <TooltipContent>
             {contextFreePercent === null
-              ? "Context free --"
-              : `Context free ${Math.round(contextFreePercent)}%`}
+              ? t("composer.contextFreeUnknown")
+              : t("composer.contextFree", {
+                  percent: Math.round(contextFreePercent),
+                })}
           </TooltipContent>
         </Tooltip>
       </div>

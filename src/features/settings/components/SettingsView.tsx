@@ -32,6 +32,7 @@ import {
 import { clampUiScale } from "../../../utils/uiScale";
 import { getFileManagerLabel, getOpenInFileManagerLabel } from "../../../utils/platform";
 import { getCodexConfigPath } from "../../../services/tauri";
+import { useI18n } from "../../../i18n";
 import {
   DEFAULT_CODE_FONT_FAMILY,
   DEFAULT_UI_FONT_FAMILY,
@@ -278,6 +279,7 @@ export function SettingsView({
   onRemoveDictationModel,
   initialSection,
 }: SettingsViewProps) {
+  const { t } = useI18n();
   const [activeSection, setActiveSection] = useState<CodexSection>("projects");
   const [codexPathDraft, setCodexPathDraft] = useState(appSettings.codexBin ?? "");
   const [codexArgsDraft, setCodexArgsDraft] = useState(appSettings.codexArgs ?? "");
@@ -1298,6 +1300,27 @@ export function SettingsView({
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                   </select>
+                </div>
+                <div className="settings-field">
+                  <label className="settings-field-label" htmlFor="language-select">
+                    {t("settings.language.label")}
+                  </label>
+                  <select
+                    id="language-select"
+                    className="settings-select"
+                    value={appSettings.language}
+                    onChange={(event) =>
+                      void onUpdateAppSettings({
+                        ...appSettings,
+                        language: event.target.value as AppSettings["language"],
+                      })
+                    }
+                  >
+                    <option value="system">{t("language.system")}</option>
+                    <option value="en">{t("language.english")}</option>
+                    <option value="zh-CN">{t("language.chinese")}</option>
+                  </select>
+                  <div className="settings-help">{t("settings.language.help")}</div>
                 </div>
                 <div className="settings-toggle-row">
                   <div>

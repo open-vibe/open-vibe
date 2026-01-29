@@ -83,6 +83,7 @@ export type ReviewTarget =
 export type AccessMode = "read-only" | "current" | "full-access";
 export type BackendMode = "local" | "remote";
 export type ThemePreference = "system" | "light" | "dark";
+export type AppLanguage = "system" | "en" | "zh-CN";
 
 
 export type ComposerEditorPreset = "default" | "helpful" | "smart";
@@ -135,6 +136,7 @@ export type AppSettings = {
   lastComposerReasoningEffort: string | null;
   uiScale: number;
   theme: ThemePreference;
+  language: AppLanguage;
   uiFontFamily: string;
   codeFontFamily: string;
   codeFontSize: number;

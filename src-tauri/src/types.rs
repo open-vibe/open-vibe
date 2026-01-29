@@ -393,6 +393,8 @@ pub(crate) struct AppSettings {
     pub(crate) ui_scale: f64,
     #[serde(default = "default_theme", rename = "theme")]
     pub(crate) theme: String,
+    #[serde(default = "default_language", rename = "language")]
+    pub(crate) language: String,
     #[serde(default = "default_ui_font_family", rename = "uiFontFamily")]
     pub(crate) ui_font_family: String,
     #[serde(default = "default_code_font_family", rename = "codeFontFamily")]
@@ -493,6 +495,10 @@ fn default_ui_scale() -> f64 {
 }
 
 fn default_theme() -> String {
+    "system".to_string()
+}
+
+fn default_language() -> String {
     "system".to_string()
 }
 
@@ -741,6 +747,7 @@ impl Default for AppSettings {
             last_composer_reasoning_effort: None,
             ui_scale: 1.0,
             theme: default_theme(),
+            language: default_language(),
             ui_font_family: default_ui_font_family(),
             code_font_family: default_code_font_family(),
             code_font_size: default_code_font_size(),
@@ -837,6 +844,7 @@ mod tests {
         assert!(settings.last_composer_reasoning_effort.is_none());
         assert!((settings.ui_scale - 1.0).abs() < f64::EPSILON);
         assert_eq!(settings.theme, "system");
+        assert_eq!(settings.language, "system");
         assert!(settings.ui_font_family.contains("SF Pro Text"));
         assert!(settings.code_font_family.contains("SF Mono"));
         assert_eq!(settings.code_font_size, 11);

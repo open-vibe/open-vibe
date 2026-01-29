@@ -79,6 +79,7 @@ import { useGitHubPanelController } from "./features/app/hooks/useGitHubPanelCon
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
 import { isMissingGitRepoError } from "./utils/gitErrors";
+import { I18nProvider } from "./i18n";
 import { useSyncSelectedDiffPath } from "./features/app/hooks/useSyncSelectedDiffPath";
 import { useMenuAcceleratorController } from "./features/app/hooks/useMenuAcceleratorController";
 import { useAppMenuEvents } from "./features/app/hooks/useAppMenuEvents";
@@ -1945,143 +1946,145 @@ function MainApp() {
   );
 
   return (
-    <div
-      className={appClassName}
-      style={
-        {
-          "--sidebar-width": `${
-            isCompact ? sidebarWidth : sidebarColumnWidth
-          }px`,
-          "--right-panel-width": `${
-            isCompact ? rightPanelWidth : rightPanelCollapsed ? 0 : rightPanelWidth
-          }px`,
-          "--plan-panel-height": `${planPanelHeight}px`,
-          "--terminal-panel-height": `${terminalPanelHeight}px`,
-          "--debug-panel-height": `${debugPanelHeight}px`,
-          "--ui-font-family": appSettings.uiFontFamily,
-          "--code-font-family": appSettings.codeFontFamily,
-          "--code-font-size": `${appSettings.codeFontSize}px`
-        } as React.CSSProperties
-      }
-    >
-      <div className="drag-strip" id="titlebar" data-tauri-drag-region />
-      <TitlebarExpandControls {...sidebarToggleProps} />
-      {shouldLoadGitHubPanelData ? (
-        <Suspense fallback={null}>
-          <GitHubPanelData
-            activeWorkspace={activeWorkspace}
-            gitPanelMode={gitPanelMode}
-            shouldLoadDiffs={shouldLoadDiffs}
-            diffSource={diffSource}
-            selectedPullRequestNumber={selectedPullRequest?.number ?? null}
-            onIssuesChange={handleGitIssuesChange}
-            onPullRequestsChange={handleGitPullRequestsChange}
-            onPullRequestDiffsChange={handleGitPullRequestDiffsChange}
-            onPullRequestCommentsChange={handleGitPullRequestCommentsChange}
-          />
-        </Suspense>
-      ) : null}
-      <AppLayout
-        isPhone={isPhone}
-        isTablet={isTablet}
-        sidebarWidth={sidebarColumnWidth}
-        sidebarCollapsed={sidebarCollapsed}
-        onSidebarOpenChange={(open) => {
-          if (open) {
-            expandSidebar();
-          } else {
-            collapseSidebar();
-          }
-        }}
-        showHome={showHome}
-        showGitDetail={showGitDetail}
-        activeTab={activeTab}
-        tabletTab={tabletTab}
-        centerMode={centerMode}
-        hasActivePlan={hasActivePlan}
-        activeWorkspace={Boolean(activeWorkspace)}
-        sidebarNode={sidebarNode}
-        messagesNode={mainMessagesNode}
-        composerNode={composerNode}
-        approvalToastsNode={approvalToastsNode}
-        updateToastNode={updateToastNode}
-        errorToastsNode={errorToastsNode}
-        homeNode={homeNode}
-        mainHeaderNode={mainHeaderNode}
-        desktopTopbarLeftNode={desktopTopbarLeftNodeWithToggle}
-        tabletNavNode={tabletNavNode}
-        tabBarNode={tabBarNode}
-        gitDiffPanelNode={gitDiffPanelNode}
-        gitDiffViewerNode={gitDiffViewerNode}
-        planPanelNode={planPanelNode}
-        debugPanelNode={debugPanelNode}
-        debugPanelFullNode={debugPanelFullNode}
-        terminalDockNode={terminalDockNode}
-        compactEmptyCodexNode={compactEmptyCodexNode}
-        compactEmptyGitNode={compactEmptyGitNode}
-        compactGitBackNode={compactGitBackNode}
-        onSidebarResizeStart={onSidebarResizeStart}
-        onRightPanelResizeStart={onRightPanelResizeStart}
-        onPlanPanelResizeStart={onPlanPanelResizeStart}
-      />
-      <AppModals
-        renamePrompt={renamePrompt}
-        onRenamePromptChange={handleRenamePromptChange}
-        onRenamePromptCancel={handleRenamePromptCancel}
-        onRenamePromptConfirm={handleRenamePromptConfirm}
-        worktreePrompt={worktreePrompt}
-        onWorktreePromptChange={updateWorktreeBranch}
-        onWorktreeSetupScriptChange={updateWorktreeSetupScript}
-        onWorktreePromptCancel={cancelWorktreePrompt}
-        onWorktreePromptConfirm={confirmWorktreePrompt}
-        clonePrompt={clonePrompt}
-        onClonePromptCopyNameChange={updateCloneCopyName}
-        onClonePromptChooseCopiesFolder={chooseCloneCopiesFolder}
-        onClonePromptUseSuggestedFolder={useSuggestedCloneCopiesFolder}
-        onClonePromptClearCopiesFolder={clearCloneCopiesFolder}
-        onClonePromptCancel={cancelClonePrompt}
-        onClonePromptConfirm={confirmClonePrompt}
-        settingsOpen={settingsOpen}
-        settingsSection={settingsSection ?? undefined}
-        onCloseSettings={closeSettings}
-        SettingsViewComponent={SettingsView}
-        settingsProps={{
-          workspaceGroups,
-          groupedWorkspaces,
-          ungroupedLabel,
-          onMoveWorkspace: handleMoveWorkspace,
-          onDeleteWorkspace: (workspaceId) => {
-            void removeWorkspace(workspaceId);
-          },
-          onCreateWorkspaceGroup: createWorkspaceGroup,
-          onRenameWorkspaceGroup: renameWorkspaceGroup,
-          onMoveWorkspaceGroup: moveWorkspaceGroup,
-          onDeleteWorkspaceGroup: deleteWorkspaceGroup,
-          onAssignWorkspaceGroup: assignWorkspaceGroup,
-          reduceTransparency,
-          onToggleTransparency: setReduceTransparency,
-          appSettings,
-          openAppIconById,
-          onUpdateAppSettings: async (next) => {
-            await queueSaveSettings(next);
-          },
-          onRunDoctor: doctor,
-          onUpdateWorkspaceCodexBin: async (id, codexBin) => {
-            await updateWorkspaceCodexBin(id, codexBin);
-          },
-          onUpdateWorkspaceSettings: async (id, settings) => {
-            await updateWorkspaceSettings(id, settings);
-          },
-          scaleShortcutTitle,
-          scaleShortcutText,
-          onTestNotificationSound: handleTestNotificationSound,
-          dictationModelStatus: dictationModel.status,
-          onDownloadDictationModel: dictationModel.download,
-          onCancelDictationDownload: dictationModel.cancel,
-          onRemoveDictationModel: dictationModel.remove,
-        }}
-      />
-    </div>
+    <I18nProvider language={appSettings.language}>
+      <div
+        className={appClassName}
+        style={
+          {
+            "--sidebar-width": `${
+              isCompact ? sidebarWidth : sidebarColumnWidth
+            }px`,
+            "--right-panel-width": `${
+              isCompact ? rightPanelWidth : rightPanelCollapsed ? 0 : rightPanelWidth
+            }px`,
+            "--plan-panel-height": `${planPanelHeight}px`,
+            "--terminal-panel-height": `${terminalPanelHeight}px`,
+            "--debug-panel-height": `${debugPanelHeight}px`,
+            "--ui-font-family": appSettings.uiFontFamily,
+            "--code-font-family": appSettings.codeFontFamily,
+            "--code-font-size": `${appSettings.codeFontSize}px`
+          } as React.CSSProperties
+        }
+      >
+        <div className="drag-strip" id="titlebar" data-tauri-drag-region />
+        <TitlebarExpandControls {...sidebarToggleProps} />
+        {shouldLoadGitHubPanelData ? (
+          <Suspense fallback={null}>
+            <GitHubPanelData
+              activeWorkspace={activeWorkspace}
+              gitPanelMode={gitPanelMode}
+              shouldLoadDiffs={shouldLoadDiffs}
+              diffSource={diffSource}
+              selectedPullRequestNumber={selectedPullRequest?.number ?? null}
+              onIssuesChange={handleGitIssuesChange}
+              onPullRequestsChange={handleGitPullRequestsChange}
+              onPullRequestDiffsChange={handleGitPullRequestDiffsChange}
+              onPullRequestCommentsChange={handleGitPullRequestCommentsChange}
+            />
+          </Suspense>
+        ) : null}
+        <AppLayout
+          isPhone={isPhone}
+          isTablet={isTablet}
+          sidebarWidth={sidebarColumnWidth}
+          sidebarCollapsed={sidebarCollapsed}
+          onSidebarOpenChange={(open) => {
+            if (open) {
+              expandSidebar();
+            } else {
+              collapseSidebar();
+            }
+          }}
+          showHome={showHome}
+          showGitDetail={showGitDetail}
+          activeTab={activeTab}
+          tabletTab={tabletTab}
+          centerMode={centerMode}
+          hasActivePlan={hasActivePlan}
+          activeWorkspace={Boolean(activeWorkspace)}
+          sidebarNode={sidebarNode}
+          messagesNode={mainMessagesNode}
+          composerNode={composerNode}
+          approvalToastsNode={approvalToastsNode}
+          updateToastNode={updateToastNode}
+          errorToastsNode={errorToastsNode}
+          homeNode={homeNode}
+          mainHeaderNode={mainHeaderNode}
+          desktopTopbarLeftNode={desktopTopbarLeftNodeWithToggle}
+          tabletNavNode={tabletNavNode}
+          tabBarNode={tabBarNode}
+          gitDiffPanelNode={gitDiffPanelNode}
+          gitDiffViewerNode={gitDiffViewerNode}
+          planPanelNode={planPanelNode}
+          debugPanelNode={debugPanelNode}
+          debugPanelFullNode={debugPanelFullNode}
+          terminalDockNode={terminalDockNode}
+          compactEmptyCodexNode={compactEmptyCodexNode}
+          compactEmptyGitNode={compactEmptyGitNode}
+          compactGitBackNode={compactGitBackNode}
+          onSidebarResizeStart={onSidebarResizeStart}
+          onRightPanelResizeStart={onRightPanelResizeStart}
+          onPlanPanelResizeStart={onPlanPanelResizeStart}
+        />
+        <AppModals
+          renamePrompt={renamePrompt}
+          onRenamePromptChange={handleRenamePromptChange}
+          onRenamePromptCancel={handleRenamePromptCancel}
+          onRenamePromptConfirm={handleRenamePromptConfirm}
+          worktreePrompt={worktreePrompt}
+          onWorktreePromptChange={updateWorktreeBranch}
+          onWorktreeSetupScriptChange={updateWorktreeSetupScript}
+          onWorktreePromptCancel={cancelWorktreePrompt}
+          onWorktreePromptConfirm={confirmWorktreePrompt}
+          clonePrompt={clonePrompt}
+          onClonePromptCopyNameChange={updateCloneCopyName}
+          onClonePromptChooseCopiesFolder={chooseCloneCopiesFolder}
+          onClonePromptUseSuggestedFolder={useSuggestedCloneCopiesFolder}
+          onClonePromptClearCopiesFolder={clearCloneCopiesFolder}
+          onClonePromptCancel={cancelClonePrompt}
+          onClonePromptConfirm={confirmClonePrompt}
+          settingsOpen={settingsOpen}
+          settingsSection={settingsSection ?? undefined}
+          onCloseSettings={closeSettings}
+          SettingsViewComponent={SettingsView}
+          settingsProps={{
+            workspaceGroups,
+            groupedWorkspaces,
+            ungroupedLabel,
+            onMoveWorkspace: handleMoveWorkspace,
+            onDeleteWorkspace: (workspaceId) => {
+              void removeWorkspace(workspaceId);
+            },
+            onCreateWorkspaceGroup: createWorkspaceGroup,
+            onRenameWorkspaceGroup: renameWorkspaceGroup,
+            onMoveWorkspaceGroup: moveWorkspaceGroup,
+            onDeleteWorkspaceGroup: deleteWorkspaceGroup,
+            onAssignWorkspaceGroup: assignWorkspaceGroup,
+            reduceTransparency,
+            onToggleTransparency: setReduceTransparency,
+            appSettings,
+            openAppIconById,
+            onUpdateAppSettings: async (next) => {
+              await queueSaveSettings(next);
+            },
+            onRunDoctor: doctor,
+            onUpdateWorkspaceCodexBin: async (id, codexBin) => {
+              await updateWorkspaceCodexBin(id, codexBin);
+            },
+            onUpdateWorkspaceSettings: async (id, settings) => {
+              await updateWorkspaceSettings(id, settings);
+            },
+            scaleShortcutTitle,
+            scaleShortcutText,
+            onTestNotificationSound: handleTestNotificationSound,
+            dictationModelStatus: dictationModel.status,
+            onDownloadDictationModel: dictationModel.download,
+            onCancelDictationDownload: dictationModel.cancel,
+            onRemoveDictationModel: dictationModel.remove,
+          }}
+        />
+      </div>
+    </I18nProvider>
   );
 }
 
