@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n";
 import { Home } from "./Home";
 
-const baseProps = {
+type HomeProps = ComponentProps<typeof Home>;
+
+const baseProps: HomeProps = {
   onOpenProject: vi.fn(),
   onAddWorkspace: vi.fn(),
   latestAgentRuns: [],
@@ -21,25 +25,29 @@ const baseProps = {
 };
 
 describe("Home", () => {
+  const renderHome = (props: Partial<HomeProps> = {}) =>
+    render(
+      <I18nProvider language="en">
+        <Home {...baseProps} {...props} />
+      </I18nProvider>,
+    );
+
   it("renders latest agent runs and lets you open a thread", () => {
     const onSelectThread = vi.fn();
-    render(
-      <Home
-        {...baseProps}
-        latestAgentRuns={[
-          {
-            message: "Ship the dashboard refresh",
-            timestamp: Date.now(),
-            projectName: "CodexMonitor",
-            groupName: "Frontend",
-            workspaceId: "workspace-1",
-            threadId: "thread-1",
-            isProcessing: true,
-          },
-        ]}
-        onSelectThread={onSelectThread}
-      />,
-    );
+    renderHome({
+      latestAgentRuns: [
+        {
+          message: "Ship the dashboard refresh",
+          timestamp: Date.now(),
+          projectName: "CodexMonitor",
+          groupName: "Frontend",
+          workspaceId: "workspace-1",
+          threadId: "thread-1",
+          isProcessing: true,
+        },
+      ],
+      onSelectThread,
+    });
 
     expect(screen.getByText("Latest agents")).toBeTruthy();
     expect(screen.getByText("CodexMonitor")).toBeTruthy();
@@ -56,7 +64,7 @@ describe("Home", () => {
   });
 
   it("shows the empty state when there are no latest runs", () => {
-    render(<Home {...baseProps} />);
+    renderHome();
 
     expect(screen.getByText("No agent activity yet")).toBeTruthy();
     expect(
@@ -65,38 +73,35 @@ describe("Home", () => {
   });
 
   it("renders usage cards in time mode", () => {
-    render(
-      <Home
-        {...baseProps}
-        usageMetric="time"
-        localUsageSnapshot={{
-          updatedAt: Date.now(),
-          days: [
-            {
-              day: "2026-01-20",
-              inputTokens: 10,
-              cachedInputTokens: 0,
-              outputTokens: 5,
-              totalTokens: 15,
-              agentTimeMs: 120000,
-              agentRuns: 2,
-            },
-          ],
-          totals: {
-            last7DaysTokens: 15,
-            last30DaysTokens: 15,
-            averageDailyTokens: 15,
-            cacheHitRatePercent: 0,
-            peakDay: "2026-01-20",
-            peakDayTokens: 15,
+    renderHome({
+      usageMetric: "time",
+      localUsageSnapshot: {
+        updatedAt: Date.now(),
+        days: [
+          {
+            day: "2026-01-20",
+            inputTokens: 10,
+            cachedInputTokens: 0,
+            outputTokens: 5,
+            totalTokens: 15,
+            agentTimeMs: 120000,
+            agentRuns: 2,
           },
-          topModels: [],
-        }}
-      />,
-    );
+        ],
+        totals: {
+          last7DaysTokens: 15,
+          last30DaysTokens: 15,
+          averageDailyTokens: 15,
+          cacheHitRatePercent: 0,
+          peakDay: "2026-01-20",
+          peakDayTokens: 15,
+        },
+        topModels: [],
+      },
+    });
 
     expect(screen.getAllByText("agent time").length).toBeGreaterThan(0);
-    expect(screen.getByText("Runs")).toBeTruthy();
+    expect(screen.getAllByText("Runs").length).toBeGreaterThan(0);
     expect(screen.getByText("Peak day")).toBeTruthy();
   });
 });
