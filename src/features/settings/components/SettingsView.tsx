@@ -1056,15 +1056,16 @@ export function SettingsView({
         aria-labelledby="settings-title"
       >
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <div className="absolute inset-0 flex items-start justify-center overflow-y-auto p-6">
-          <div className="relative z-10 w-full max-w-6xl overflow-hidden rounded-xl border bg-background shadow-xl">
+        <div className="absolute inset-0 flex items-start justify-center overflow-hidden p-6">
+          <div className="relative z-10 flex h-[calc(100vh-3rem)] w-full max-w-6xl flex-col overflow-hidden rounded-xl border bg-background shadow-xl">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h2 id="settings-title" className="text-lg font-semibold">
                 {t("settings.title")}
               </h2>
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
+                className="text-muted-foreground hover:text-foreground"
                 onClick={onClose}
                 aria-label={t("settings.close")}
               >
@@ -1074,9 +1075,9 @@ export function SettingsView({
             <Tabs
               value={activeSection}
               onValueChange={(value) => setActiveSection(value as CodexSection)}
-              className="flex min-h-[640px]"
+              className="flex min-h-0 flex-1"
             >
-              <TabsList className="h-full w-60 flex-col items-stretch gap-1 rounded-none border-r bg-muted/30 p-2 text-sm">
+              <TabsList className="h-full w-60 flex-col items-stretch gap-1 overflow-y-auto rounded-none border-r bg-muted/30 p-2 text-sm">
                 <TabsTrigger value="projects" className="justify-start gap-2">
                   <LayoutGrid className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.projects")}</span>
@@ -1110,7 +1111,7 @@ export function SettingsView({
                   <span>{t("settings.nav.experimental")}</span>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6">
                 <TabsContent value="projects" className="mt-0 space-y-6">
                   <Card>
                     <CardHeader>
@@ -1223,6 +1224,7 @@ export function SettingsView({
                                       type="button"
                                       variant="ghost"
                                       size="icon-sm"
+                                      className="text-muted-foreground hover:text-foreground"
                                       onClick={() => {
                                         void onMoveWorkspaceGroup(group.id, "up");
                                       }}
@@ -1235,6 +1237,7 @@ export function SettingsView({
                                       type="button"
                                       variant="ghost"
                                       size="icon-sm"
+                                      className="text-muted-foreground hover:text-foreground"
                                       onClick={() => {
                                         void onMoveWorkspaceGroup(group.id, "down");
                                       }}
@@ -1247,6 +1250,7 @@ export function SettingsView({
                                       type="button"
                                       variant="ghost"
                                       size="icon-sm"
+                                      className="text-muted-foreground hover:text-foreground"
                                       onClick={() => {
                                         void handleDeleteGroup(group);
                                       }}
@@ -1328,6 +1332,7 @@ export function SettingsView({
                                           type="button"
                                           variant="ghost"
                                           size="icon-sm"
+                                          className="text-muted-foreground hover:text-foreground"
                                           onClick={() => onMoveWorkspace(workspace.id, "up")}
                                           disabled={index === 0}
                                           aria-label={t("settings.projects.project.moveUp")}
@@ -1338,6 +1343,7 @@ export function SettingsView({
                                           type="button"
                                           variant="ghost"
                                           size="icon-sm"
+                                          className="text-muted-foreground hover:text-foreground"
                                           onClick={() => onMoveWorkspace(workspace.id, "down")}
                                           disabled={index === group.workspaces.length - 1}
                                           aria-label={t("settings.projects.project.moveDown")}
@@ -1348,6 +1354,7 @@ export function SettingsView({
                                           type="button"
                                           variant="ghost"
                                           size="icon-sm"
+                                          className="text-muted-foreground hover:text-foreground"
                                           onClick={() => onDeleteWorkspace(workspace.id)}
                                           aria-label={t("settings.projects.project.delete")}
                                         >
@@ -2899,6 +2906,7 @@ export function SettingsView({
                                         type="button"
                                         variant="ghost"
                                         size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground"
                                         onClick={() => handleMoveOpenApp(index, "up")}
                                         disabled={index === 0}
                                         aria-label={t("settings.openApps.moveUp")}
@@ -2909,6 +2917,7 @@ export function SettingsView({
                                         type="button"
                                         variant="ghost"
                                         size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground"
                                         onClick={() => handleMoveOpenApp(index, "down")}
                                         disabled={index === openAppDrafts.length - 1}
                                         aria-label={t("settings.openApps.moveDown")}
@@ -2919,6 +2928,7 @@ export function SettingsView({
                                         type="button"
                                         variant="ghost"
                                         size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground"
                                         onClick={() => handleDeleteOpenApp(index)}
                                         disabled={openAppDrafts.length <= 1}
                                         aria-label={t("settings.openApps.remove")}
@@ -3397,7 +3407,7 @@ export function SettingsView({
                         actions: "flex flex-wrap items-center gap-2",
                         meta: "text-xs text-muted-foreground",
                         iconButton:
-                          "inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-accent",
+                          "inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:h-4 [&_svg]:w-4",
                         error: "text-sm text-destructive",
                         textarea:
                           "mt-2 min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm",
@@ -3433,7 +3443,7 @@ export function SettingsView({
                         actions: "flex flex-wrap items-center gap-2",
                         meta: "text-xs text-muted-foreground",
                         iconButton:
-                          "inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-accent",
+                          "inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:h-4 [&_svg]:w-4",
                         error: "text-sm text-destructive",
                         textarea:
                           "mt-2 min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm",
