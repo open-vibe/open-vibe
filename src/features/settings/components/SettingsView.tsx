@@ -385,6 +385,9 @@ export function SettingsView({
   const [codexArgsDraft, setCodexArgsDraft] = useState(appSettings.codexArgs ?? "");
   const [remoteHostDraft, setRemoteHostDraft] = useState(appSettings.remoteBackendHost);
   const [remoteTokenDraft, setRemoteTokenDraft] = useState(appSettings.remoteBackendToken ?? "");
+  const [yunyiTokenDraft, setYunyiTokenDraft] = useState(
+    appSettings.experimentalYunyiToken,
+  );
   const [scaleDraft, setScaleDraft] = useState(
     `${Math.round(clampUiScale(appSettings.uiScale) * 100)}%`,
   );
@@ -561,6 +564,10 @@ export function SettingsView({
   }, [appSettings.remoteBackendToken]);
 
   useEffect(() => {
+    setYunyiTokenDraft(appSettings.experimentalYunyiToken);
+  }, [appSettings.experimentalYunyiToken]);
+
+  useEffect(() => {
     setScaleDraft(`${Math.round(clampUiScale(appSettings.uiScale) * 100)}%`);
   }, [appSettings.uiScale]);
 
@@ -719,6 +726,18 @@ export function SettingsView({
     await onUpdateAppSettings({
       ...appSettings,
       remoteBackendToken: nextToken,
+    });
+  };
+
+  const handleCommitYunyiToken = async () => {
+    const nextToken = yunyiTokenDraft.trim();
+    setYunyiTokenDraft(nextToken);
+    if (nextToken === appSettings.experimentalYunyiToken) {
+      return;
+    }
+    await onUpdateAppSettings({
+      ...appSettings,
+      experimentalYunyiToken: nextToken,
     });
   };
 
@@ -3608,6 +3627,52 @@ export function SettingsView({
                           }
                         />
                       </div>
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-yunyi">
+                            {t("settings.experimental.yunyi.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.yunyi.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-yunyi"
+                          checked={appSettings.experimentalYunyiEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              experimentalYunyiEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      {appSettings.experimentalYunyiEnabled && (
+                        <div className="space-y-2 rounded-md border border-border/60 p-3">
+                          <Label htmlFor="experimental-yunyi-token">
+                            {t("settings.experimental.yunyi.token.label")}
+                          </Label>
+                          <Input
+                            id="experimental-yunyi-token"
+                            type="password"
+                            value={yunyiTokenDraft}
+                            placeholder={t("settings.experimental.yunyi.token.placeholder")}
+                            onChange={(event) => setYunyiTokenDraft(event.target.value)}
+                            onBlur={() => {
+                              void handleCommitYunyiToken();
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void handleCommitYunyiToken();
+                              }
+                            }}
+                          />
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.yunyi.token.help")}
+                          </div>
+                        </div>
+                      )}
                       </div>
                     </SettingsSection>
                   </div>

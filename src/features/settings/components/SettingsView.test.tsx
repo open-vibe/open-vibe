@@ -58,6 +58,8 @@ const baseSettings: AppSettings = {
   experimentalCollaborationModesEnabled: false,
   experimentalSteerEnabled: false,
   experimentalUnifiedExecEnabled: false,
+  experimentalYunyiEnabled: false,
+  experimentalYunyiToken: "",
   dictationEnabled: false,
   dictationModelId: "base",
   dictationPreferredLanguage: null,
@@ -454,5 +456,49 @@ describe("SettingsView Shortcuts", () => {
     });
 
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("SettingsView Experimental", () => {
+  it("shows Yunyi token input when enabled", async () => {
+    render(
+      <I18nProvider language="en">
+        <SettingsView
+          workspaceGroups={[]}
+          groupedWorkspaces={[]}
+          ungroupedLabel="Ungrouped"
+          onClose={vi.fn()}
+          onMoveWorkspace={vi.fn()}
+          onDeleteWorkspace={vi.fn()}
+          onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          reduceTransparency={false}
+          onToggleTransparency={vi.fn()}
+          appSettings={{
+            ...baseSettings,
+            experimentalYunyiEnabled: true,
+            experimentalYunyiToken: "",
+          }}
+          openAppIconById={{}}
+          onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
+          onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+          onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
+          scaleShortcutTitle="Scale shortcut"
+          scaleShortcutText="Use Command +/-"
+          onTestNotificationSound={vi.fn()}
+          dictationModelStatus={null}
+          onDownloadDictationModel={vi.fn()}
+          onCancelDictationDownload={vi.fn()}
+          onRemoveDictationModel={vi.fn()}
+          initialSection="experimental"
+        />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByLabelText("Yunyi API token")).toBeTruthy();
   });
 });

@@ -32,6 +32,7 @@ import { useThreadRows } from "../hooks/useThreadRows";
 import { getUsageLabels } from "../utils/usageLabels";
 import { formatRelativeTimeShort } from "../../../utils/time";
 import { useI18n } from "../../../i18n";
+import { YunyiQuotaCard } from "./YunyiQuotaCard";
 
 const COLLAPSED_GROUPS_STORAGE_KEY = "codexmonitor.collapsedGroups";
 const UNGROUPED_COLLAPSE_ID = "__ungrouped__";
@@ -62,6 +63,8 @@ type SidebarProps = {
   activeWorkspaceId: string | null;
   activeThreadId: string | null;
   accountRateLimits: RateLimitSnapshot | null;
+  experimentalYunyiEnabled: boolean;
+  experimentalYunyiToken: string;
   onOpenSettings: () => void;
   onOpenDebug: () => void;
   showDebugButton: boolean;
@@ -108,6 +111,8 @@ export function Sidebar({
   activeWorkspaceId,
   activeThreadId,
   accountRateLimits,
+  experimentalYunyiEnabled,
+  experimentalYunyiToken,
   onOpenSettings,
   onOpenDebug,
   showDebugButton,
@@ -585,6 +590,16 @@ export function Sidebar({
                   creditsLabel={creditsLabel}
                   showWeekly={showWeekly}
                 />
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+          {experimentalYunyiEnabled && (
+            <SidebarGroup className="mt-2 px-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+              <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                {t("sidebar.yunyi.title")}
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="px-2 pb-2">
+                <YunyiQuotaCard token={experimentalYunyiToken} />
               </SidebarGroupContent>
             </SidebarGroup>
           )}

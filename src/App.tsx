@@ -1532,6 +1532,8 @@ function MainApp() {
     activeThreadId,
     activeItems,
     activeRateLimits,
+    experimentalYunyiEnabled: appSettings.experimentalYunyiEnabled,
+    experimentalYunyiToken: appSettings.experimentalYunyiToken,
     codeBlockCopyUseModifier: appSettings.composerCodeBlockCopyUseModifier,
     openAppTargets: appSettings.openAppTargets,
     openAppIconById,

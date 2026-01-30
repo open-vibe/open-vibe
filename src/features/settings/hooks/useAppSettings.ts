@@ -57,6 +57,8 @@ const defaultSettings: AppSettings = {
   experimentalCollaborationModesEnabled: false,
   experimentalSteerEnabled: false,
   experimentalUnifiedExecEnabled: false,
+  experimentalYunyiEnabled: false,
+  experimentalYunyiToken: "",
   dictationEnabled: false,
   dictationModelId: "base",
   dictationPreferredLanguage: null,
@@ -112,6 +114,7 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       DEFAULT_CODE_FONT_FAMILY,
     ),
     codeFontSize: clampCodeFontSize(settings.codeFontSize),
+    experimentalYunyiToken: settings.experimentalYunyiToken?.trim() ?? "",
     openAppTargets: normalizedTargets,
     selectedOpenAppId,
   };
