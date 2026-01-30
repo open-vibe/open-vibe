@@ -366,8 +366,8 @@ export function SettingsView({
       })),
     [t],
   );
+  const platform = useMemo(() => getPlatformKind(), []);
   const fileManagerLabel = useMemo(() => {
-    const platform = getPlatformKind();
     if (platform === "macos") {
       return t("settings.platform.finder");
     }
@@ -375,7 +375,7 @@ export function SettingsView({
       return t("settings.platform.fileExplorer");
     }
     return t("settings.platform.fileManager");
-  }, [t]);
+  }, [platform, t]);
   const openInFileManagerLabel = useMemo(
     () => t("settings.experimental.openInFileManager", { label: fileManagerLabel }),
     [fileManagerLabel, t],
@@ -1959,6 +1959,11 @@ export function SettingsView({
                       title={t("settings.dictation.title")}
                       description={t("settings.dictation.subtitle")}
                     >
+                      {platform === "windows" && (
+                        <div className="border-l-2 border-border/60 pl-3 text-sm text-muted-foreground">
+                          {t("settings.dictation.windowsNote")}
+                        </div>
+                      )}
                       <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="dictation-enabled">

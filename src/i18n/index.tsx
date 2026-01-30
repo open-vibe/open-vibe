@@ -161,6 +161,8 @@ const en = {
   "settings.dictation.holdKey.label": "Hold-to-dictate key",
   "settings.dictation.holdKey.help":
     "Hold the key to start dictation, release to stop and process.",
+  "settings.dictation.windowsNote":
+    "Windows uses the system speech engine; model settings are ignored.",
   "settings.dictation.holdKey.off": "Off",
   "settings.dictation.holdKey.alt": "Option / Alt",
   "settings.dictation.holdKey.shift": "Shift",
@@ -491,6 +493,7 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.dictation.language.zh": "中文",
   "settings.dictation.holdKey.label": "按住说话按键",
   "settings.dictation.holdKey.help": "按住键开始语音输入，松开后停止并处理。",
+  "settings.dictation.windowsNote": "Windows 使用系统语音引擎，模型设置不会生效。",
   "settings.dictation.holdKey.off": "关闭",
   "settings.dictation.holdKey.alt": "Option / Alt",
   "settings.dictation.holdKey.shift": "Shift",
