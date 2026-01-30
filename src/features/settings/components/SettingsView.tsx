@@ -1107,7 +1107,7 @@ export function SettingsView({
               onValueChange={(value) => setActiveSection(value as CodexSection)}
               className="flex min-h-0 flex-1"
             >
-              <TabsList className="h-full w-60 flex-col items-stretch gap-1 overflow-y-auto rounded-none border-r bg-transparent p-2 text-sm text-muted-foreground">
+              <TabsList className="h-full w-60 flex-col items-stretch justify-start gap-1 overflow-y-auto rounded-none border-r bg-transparent p-2 text-sm text-muted-foreground">
                 <TabsTrigger
                   value="projects"
                   className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
