@@ -21,6 +21,7 @@ import { usePromptHistory } from "../hooks/usePromptHistory";
 import { ComposerInput } from "./ComposerInput";
 import { ComposerMetaBar } from "./ComposerMetaBar";
 import { ComposerQueue } from "./ComposerQueue";
+import { useI18n } from "../../../i18n";
 
 type ComposerProps = {
   onSend: (text: string, images: string[]) => void;
@@ -150,6 +151,8 @@ export function Composer({
   const textareaRef = externalTextareaRef ?? internalRef;
   const editorSettings = editorSettingsProp ?? DEFAULT_EDITOR_SETTINGS;
   const isDictationBusy = dictationState !== "idle";
+  const { t } = useI18n();
+  const dictationUnavailableMessage = t("composer.dictation.unavailable");
   const canSend = text.trim().length > 0 || attachedImages.length > 0;
   const {
     expandFenceOnSpace,
@@ -455,6 +458,7 @@ export function Composer({
         onStop={onStop}
         onSend={handleSend}
         dictationEnabled={dictationEnabled}
+        dictationUnavailableMessage={dictationUnavailableMessage}
         dictationState={dictationState}
         dictationLevel={dictationLevel}
         onToggleDictation={onToggleDictation}

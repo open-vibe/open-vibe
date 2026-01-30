@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClipboardEvent, KeyboardEvent, RefObject } from "react";
 import type { AutocompleteItem } from "../hooks/useComposerAutocomplete";
 import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
@@ -22,6 +22,7 @@ type ComposerInputProps = {
   dictationState?: "idle" | "listening" | "processing";
   dictationLevel?: number;
   dictationEnabled?: boolean;
+  dictationUnavailableMessage?: string | null;
   onToggleDictation?: () => void;
   onOpenDictationSettings?: () => void;
   dictationError?: string | null;
@@ -59,6 +60,7 @@ export function ComposerInput({
   dictationState = "idle",
   dictationLevel = 0,
   dictationEnabled = false,
+  dictationUnavailableMessage = null,
   onToggleDictation,
   onOpenDictationSettings,
   dictationError = null,
@@ -172,9 +174,38 @@ export function ComposerInput({
       : isDictating
         ? "Stop dictation"
         : "Start dictation";
+  const [dictationErrorVisible, setDictationErrorVisible] = useState(false);
+  const [dictationTouched, setDictationTouched] = useState(false);
+  const resolvedDictationError =
+    dictationEnabled || dictationError
+      ? dictationError
+      : dictationUnavailableMessage ?? null;
+
+  useEffect(() => {
+    if (!dictationError) {
+      return;
+    }
+    if (dictationTouched) {
+      setDictationErrorVisible(true);
+    }
+  }, [dictationError, dictationTouched]);
+
+  useEffect(() => {
+    if (!dictationEnabled || dictationError) {
+      return;
+    }
+    setDictationErrorVisible(false);
+  }, [dictationEnabled, dictationError]);
+
   const handleMicClick = () => {
+    setDictationTouched(true);
     if (allowOpenDictationSettings) {
+      setDictationErrorVisible(true);
       onOpenDictationSettings?.();
+      return;
+    }
+    if (!dictationEnabled) {
+      setDictationErrorVisible(true);
       return;
     }
     if (!onToggleDictation || micDisabled) {
@@ -246,13 +277,16 @@ export function ComposerInput({
             level={dictationLevel}
           />
         )}
-        {dictationError && (
+        {dictationErrorVisible && resolvedDictationError && (
           <div className="composer-dictation-error" role="status">
-            <span>{dictationError}</span>
+            <span>{resolvedDictationError}</span>
             <button
               type="button"
               className="ghost composer-dictation-error-dismiss"
-              onClick={onDismissDictationError}
+              onClick={() => {
+                setDictationErrorVisible(false);
+                onDismissDictationError?.();
+              }}
             >
               Dismiss
             </button>
@@ -353,6 +387,12 @@ export function ComposerInput({
         title={micTitle}
       >
         {isDictating ? <Square aria-hidden /> : <Mic aria-hidden />}
+        <span
+          className={`composer-action--mic-indicator${
+            dictationEnabled ? " is-available" : " is-unavailable"
+          }`}
+          aria-hidden
+        />
       </button>
       <button
         className={`composer-action${canStop ? " is-stop" : " is-send"}${

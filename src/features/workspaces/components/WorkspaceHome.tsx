@@ -34,6 +34,7 @@ import { computeDictationInsertion } from "../../../utils/dictation";
 import { getCaretPosition } from "../../../utils/caretPosition";
 import { isComposingEvent } from "../../../utils/keys";
 import { FileEditorCard } from "../../shared/components/FileEditorCard";
+import { useI18n } from "../../../i18n";
 
 type ThreadStatus = {
   isProcessing: boolean;
@@ -155,6 +156,8 @@ export function WorkspaceHome({
   onAgentMdRefresh,
   onAgentMdSave,
 }: WorkspaceHomeProps) {
+  const { t } = useI18n();
+  const dictationUnavailableMessage = t("composer.dictation.unavailable");
   const [showIcon, setShowIcon] = useState(true);
   const [runModeOpen, setRunModeOpen] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
@@ -472,6 +475,7 @@ export function WorkspaceHome({
             dictationState={dictationState}
             dictationLevel={dictationLevel}
             dictationEnabled={dictationEnabled}
+            dictationUnavailableMessage={dictationUnavailableMessage}
             onToggleDictation={onToggleDictation}
             onOpenDictationSettings={onOpenDictationSettings}
             dictationError={dictationError}
