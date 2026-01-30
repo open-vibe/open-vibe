@@ -631,6 +631,7 @@ dependencies = [
  "toml 0.8.2",
  "uuid",
  "whisper-rs",
+ "windows 0.61.3",
 ]
 
 [[package]]
