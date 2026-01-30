@@ -79,8 +79,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                onSelect={(event) => {
-                  event.preventDefault()
+                onSelect={() => {
                   onOpenSettings?.()
                 }}
               >
@@ -89,8 +88,7 @@ export function NavUser({
               </DropdownMenuItem>
               {showDebugButton && (
                 <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault()
+                  onSelect={() => {
                     onOpenDebug?.()
                   }}
                 >
