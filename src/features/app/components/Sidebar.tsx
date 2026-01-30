@@ -31,6 +31,7 @@ import { useSidebarMenus } from "../hooks/useSidebarMenus";
 import { useThreadRows } from "../hooks/useThreadRows";
 import { getUsageLabels } from "../utils/usageLabels";
 import { formatRelativeTimeShort } from "../../../utils/time";
+import { useI18n } from "../../../i18n";
 
 const COLLAPSED_GROUPS_STORAGE_KEY = "codexmonitor.collapsedGroups";
 const UNGROUPED_COLLAPSE_ID = "__ungrouped__";
@@ -138,6 +139,7 @@ export function Sidebar({
   onWorkspaceDragLeave,
   onWorkspaceDrop,
 }: SidebarProps) {
+  const { t } = useI18n();
   const [expandedWorkspaces, setExpandedWorkspaces] = useState(
     new Set<string>(),
   );
@@ -173,13 +175,20 @@ export function Sidebar({
     creditsLabel,
     showWeekly,
   } = getUsageLabels(accountRateLimits);
+  const workspaceCountLabel = useCallback(
+    (count: number) =>
+      count === 1
+        ? t("sidebar.team.workspaceCount.one", { count })
+        : t("sidebar.team.workspaceCount.other", { count }),
+    [t],
+  );
   const teamOptions = useMemo(() => {
     const options = [
       {
         id: ALL_WORKSPACES_ID,
-        name: "All Workspaces",
+        name: t("sidebar.team.allWorkspaces"),
         logo: Layers,
-        plan: `${workspaces.length} workspace${workspaces.length === 1 ? "" : "s"}`,
+        plan: workspaceCountLabel(workspaces.length),
       },
     ];
     groupedWorkspaces.forEach((group) => {
@@ -188,13 +197,11 @@ export function Sidebar({
         id: groupId,
         name: group.name,
         logo: group.id ? FolderKanban : FolderOpen,
-        plan: `${group.workspaces.length} workspace${
-          group.workspaces.length === 1 ? "" : "s"
-        }`,
+        plan: workspaceCountLabel(group.workspaces.length),
       });
     });
     return options;
-  }, [groupedWorkspaces, workspaces.length]);
+  }, [groupedWorkspaces, workspaces.length, t, workspaceCountLabel]);
   const visibleGroups = useMemo(() => {
     if (activeGroupId === ALL_WORKSPACES_ID) {
       return groupedWorkspaces;
@@ -365,15 +372,18 @@ export function Sidebar({
           <SidebarGroup className="px-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={onSelectHome} tooltip="Home">
+                <SidebarMenuButton onClick={onSelectHome} tooltip={t("sidebar.home")}>
                   <Home />
-                  <span>Home</span>
+                  <span>{t("sidebar.home")}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={onAddWorkspace} tooltip="Add workspace">
+                <SidebarMenuButton
+                  onClick={onAddWorkspace}
+                  tooltip={t("sidebar.addWorkspace")}
+                >
                   <Plus />
-                  <span>Add workspace</span>
+                  <span>{t("sidebar.addWorkspace")}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -381,7 +391,7 @@ export function Sidebar({
           {pinnedThreadRows.length > 0 && (
             <SidebarGroup className="px-0">
               <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Pinned
+                {t("sidebar.pinned")}
               </SidebarGroupLabel>
               <SidebarGroupContent className="px-1">
                 <PinnedThreadList
@@ -473,7 +483,7 @@ export function Sidebar({
                                 onAddAgent(entry);
                               }}
                             >
-                              New agent
+                              {t("sidebar.addMenu.newAgent")}
                             </button>
                             <button
                               type="button"
@@ -484,7 +494,7 @@ export function Sidebar({
                                 onAddWorktreeAgent(entry);
                               }}
                             >
-                              New worktree agent
+                              {t("sidebar.addMenu.newWorktreeAgent")}
                             </button>
                             <button
                               type="button"
@@ -495,7 +505,7 @@ export function Sidebar({
                                 onAddCloneAgent(entry);
                               }}
                             >
-                              New clone agent
+                              {t("sidebar.addMenu.newCloneAgent")}
                             </button>
                           </div>,
                           document.body,
@@ -555,7 +565,7 @@ export function Sidebar({
           })}
           {!groupedWorkspaces.length && (
             <div className="px-2 py-4 text-xs text-muted-foreground">
-              Add a workspace to start.
+              {t("sidebar.empty")}
             </div>
           )}
           {(sessionPercent !== null ||
@@ -564,7 +574,7 @@ export function Sidebar({
             showWeekly) && (
             <SidebarGroup className="mt-2 px-0">
               <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Usage
+                {t("sidebar.usage")}
               </SidebarGroupLabel>
               <SidebarGroupContent className="px-1">
                 <SidebarFooter
@@ -583,7 +593,7 @@ export function Sidebar({
           <NavUser
             user={{
               name: "Codex Monitor",
-              email: "Local Workspace",
+              email: t("sidebar.user.localWorkspace"),
               avatar: "",
             }}
             onOpenSettings={onOpenSettings}

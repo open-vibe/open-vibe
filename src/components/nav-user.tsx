@@ -1,4 +1,5 @@
 import { ChevronsUpDown, ScrollText, Settings } from "lucide-react"
+import { useI18n } from "../i18n"
 
 import {
   Avatar,
@@ -37,6 +38,7 @@ export function NavUser({
   showDebugButton?: boolean
 }) {
   const { isMobile } = useSidebar()
+  const { t } = useI18n()
 
   return (
     <SidebarMenu>
@@ -84,7 +86,7 @@ export function NavUser({
                 }}
               >
                 <Settings />
-                Settings
+                {t("sidebar.user.settings")}
               </DropdownMenuItem>
               {showDebugButton && (
                 <DropdownMenuItem
@@ -93,7 +95,7 @@ export function NavUser({
                   }}
                 >
                   <ScrollText />
-                  Debug log
+                  {t("sidebar.user.debugLog")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
