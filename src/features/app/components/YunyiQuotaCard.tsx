@@ -235,7 +235,7 @@ export function YunyiQuotaCard({
           className="summary-icon"
           style={
             {
-              "--accent": "var(--sidebar-primary)",
+              "--accent": "var(--chart-2)",
               "--percent": percent / 100,
             } as React.CSSProperties
           }
@@ -245,7 +245,7 @@ export function YunyiQuotaCard({
         <div className="summary-meta">
           <div className="summary-title">{t("sidebar.yunyi.dailyQuota")}</div>
           <div className="summary-value tabular-nums">{dailyValue}</div>
-          <div className="summary-sub">{billingLabel}</div>
+          {/* <div className="summary-sub">{billingLabel}</div> */}
         </div>
       </div>
       <div className="summary-footer">
