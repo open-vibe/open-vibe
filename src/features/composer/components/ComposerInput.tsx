@@ -199,6 +199,10 @@ export function ComposerInput({
 
   const handleMicClick = () => {
     setDictationTouched(true);
+    if (dictationEnabled) {
+      setDictationErrorVisible(false);
+      onDismissDictationError?.();
+    }
     if (allowOpenDictationSettings) {
       setDictationErrorVisible(true);
       onOpenDictationSettings?.();
