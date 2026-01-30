@@ -1086,8 +1086,8 @@ export function SettingsView({
         aria-labelledby="settings-title"
       >
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <div className="absolute inset-0 flex items-start justify-center overflow-hidden p-6">
-          <div className="relative z-10 flex h-[calc(100vh-3rem)] w-full max-w-6xl flex-col overflow-hidden rounded-xl border bg-background shadow-xl">
+        <div className="absolute inset-0 flex items-start justify-start overflow-hidden p-6">
+          <div className="relative z-10 flex h-[calc(100vh-3rem)] w-full max-w-none flex-col overflow-hidden rounded-xl border bg-background shadow-xl">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h2 id="settings-title" className="text-lg font-semibold">
                 {t("settings.title")}
