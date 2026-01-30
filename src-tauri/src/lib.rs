@@ -11,10 +11,10 @@ mod file_io;
 mod file_ops;
 mod file_policy;
 mod files;
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 #[path = "dictation.rs"]
 mod dictation;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "android", target_os = "ios"))]
 #[path = "dictation_stub.rs"]
 mod dictation;
 mod event_sink;
