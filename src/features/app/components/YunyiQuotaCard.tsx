@@ -222,6 +222,9 @@ export function YunyiQuotaCard({
   const updatedLabel = updatedAt
     ? t("sidebar.yunyi.updatedAt", { time: formatTime(updatedAt) })
     : "--";
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference - (percent / 100) * circumference;
 
   return (
     <div
@@ -231,12 +234,36 @@ export function YunyiQuotaCard({
       )}
     >
       <div className="flex items-center gap-3">
-        <div
-          className="relative flex h-10 w-10 items-center justify-center rounded-full"
-          style={{
-            background: `conic-gradient(var(--sidebar-primary) ${percent}%, var(--sidebar-accent) 0)`,
-          }}
-        >
+        <div className="relative flex h-10 w-10 items-center justify-center">
+          <svg
+            className="absolute inset-0"
+            width={40}
+            height={40}
+            viewBox="0 0 40 40"
+            role="img"
+            aria-label={percentLabel}
+          >
+            <circle
+              cx="20"
+              cy="20"
+              r={radius}
+              fill="transparent"
+              stroke="var(--sidebar-accent)"
+              strokeWidth="4"
+            />
+            <circle
+              cx="20"
+              cy="20"
+              r={radius}
+              fill="transparent"
+              stroke="var(--sidebar-primary)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+            />
+          </svg>
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sidebar text-[10px] font-semibold text-sidebar-foreground">
             {percentLabel}
           </div>
