@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -96,7 +97,7 @@ const createDoctorResult = () => ({
   nodeDetails: null,
 });
 
-const renderDisplaySection = (
+const renderDisplaySection = async (
   options: {
     appSettings?: Partial<AppSettings>;
     reduceTransparency?: boolean;
@@ -135,6 +136,7 @@ const renderDisplaySection = (
     onDownloadDictationModel: vi.fn(),
     onCancelDictationDownload: vi.fn(),
     onRemoveDictationModel: vi.fn(),
+    initialSection: "display",
   };
 
   render(
@@ -142,18 +144,43 @@ const renderDisplaySection = (
       <SettingsView {...props} />
     </I18nProvider>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Display & Sound" }));
+  await screen.findByText("Theme");
 
   return { onUpdateAppSettings, onToggleTransparency };
+};
+
+const findNearestByRole = (
+  labelText: string,
+  role: Parameters<typeof screen.getByRole>[0],
+  name?: string,
+) => {
+  const label = screen.getByText(labelText);
+  let node = label.parentElement as HTMLElement | null;
+  while (node) {
+    const matches = name
+      ? within(node).queryAllByRole(role, { name })
+      : within(node).queryAllByRole(role);
+    if (matches.length === 1) {
+      return matches[0] as HTMLElement;
+    }
+    node = node.parentElement;
+  }
+  throw new Error(`Unable to find ${role} near label: ${labelText}`);
+};
+
+const clickSelectOption = async (labelText: string, optionText: string) => {
+  const trigger = findNearestByRole(labelText, "combobox");
+  fireEvent.click(trigger);
+  const option = await screen.findByRole("option", { name: optionText });
+  fireEvent.click(option);
 };
 
 describe("SettingsView Display", () => {
   it("updates the theme selection", async () => {
     const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
-    renderDisplaySection({ onUpdateAppSettings });
+    await renderDisplaySection({ onUpdateAppSettings });
 
-    const select = screen.getByLabelText("Theme");
-    fireEvent.change(select, { target: { value: "dark" } });
+    await clickSelectOption("Theme", "Dark");
 
     await waitFor(() => {
       expect(onUpdateAppSettings).toHaveBeenCalledWith(
@@ -162,22 +189,11 @@ describe("SettingsView Display", () => {
     });
   });
 
-  it("toggles reduce transparency", () => {
+  it("toggles reduce transparency", async () => {
     const onToggleTransparency = vi.fn();
-    renderDisplaySection({ onToggleTransparency, reduceTransparency: false });
+    await renderDisplaySection({ onToggleTransparency, reduceTransparency: false });
 
-    const row = screen
-      .getByText("Reduce transparency")
-      .closest(".settings-toggle-row") as HTMLElement | null;
-    if (!row) {
-      throw new Error("Expected reduce transparency row");
-    }
-    const toggle = row.querySelector(
-      "button.settings-toggle",
-    ) as HTMLButtonElement | null;
-    if (!toggle) {
-      throw new Error("Expected reduce transparency toggle");
-    }
+    const toggle = findNearestByRole("Reduce transparency", "switch");
     fireEvent.click(toggle);
 
     expect(onToggleTransparency).toHaveBeenCalledWith(true);
@@ -185,7 +201,7 @@ describe("SettingsView Display", () => {
 
   it("commits interface scale on blur and enter with clamping", async () => {
     const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
-    renderDisplaySection({ onUpdateAppSettings });
+    await renderDisplaySection({ onUpdateAppSettings });
 
     const scaleInput = screen.getByLabelText("Interface scale");
 
@@ -210,7 +226,7 @@ describe("SettingsView Display", () => {
 
   it("commits font family changes on blur and enter", async () => {
     const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
-    renderDisplaySection({ onUpdateAppSettings });
+    await renderDisplaySection({ onUpdateAppSettings });
 
     const uiFontInput = screen.getByLabelText("UI font family");
     fireEvent.change(uiFontInput, { target: { value: "Avenir, sans-serif" } });
@@ -237,11 +253,10 @@ describe("SettingsView Display", () => {
 
   it("resets font families to defaults", async () => {
     const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
-    renderDisplaySection({ onUpdateAppSettings });
+    await renderDisplaySection({ onUpdateAppSettings });
 
-    const resetButtons = screen.getAllByRole("button", { name: "Reset" });
-    fireEvent.click(resetButtons[1]);
-    fireEvent.click(resetButtons[2]);
+    fireEvent.click(findNearestByRole("UI font family", "button", "Reset"));
+    fireEvent.click(findNearestByRole("Code font family", "button", "Reset"));
 
     await waitFor(() => {
       expect(onUpdateAppSettings).toHaveBeenCalledWith(
@@ -259,7 +274,7 @@ describe("SettingsView Display", () => {
 
   it("updates code font size from the slider", async () => {
     const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
-    renderDisplaySection({ onUpdateAppSettings });
+    await renderDisplaySection({ onUpdateAppSettings });
 
     const slider = screen.getByLabelText("Code font size");
     fireEvent.change(slider, { target: { value: "14" } });
@@ -273,18 +288,13 @@ describe("SettingsView Display", () => {
 
   it("toggles notification sounds", async () => {
     const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
-    renderDisplaySection({
+    await renderDisplaySection({
       onUpdateAppSettings,
       appSettings: { notificationSoundsEnabled: false },
     });
 
-    const row = screen
-      .getByText("Notification sounds")
-      .closest(".settings-toggle-row") as HTMLElement | null;
-    if (!row) {
-      throw new Error("Expected notification sounds row");
-    }
-    fireEvent.click(within(row).getByRole("button"));
+    const toggle = findNearestByRole("Notification sounds", "switch");
+    fireEvent.click(toggle);
 
     await waitFor(() => {
       expect(onUpdateAppSettings).toHaveBeenCalledWith(
@@ -393,9 +403,11 @@ describe("SettingsView Shortcuts", () => {
       </I18nProvider>,
     );
 
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "w", metaKey: true, bubbles: true }),
-    );
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "w", metaKey: true, bubbles: true }),
+      );
+    });
 
     expect(onClose).toHaveBeenCalled();
   });
@@ -435,7 +447,11 @@ describe("SettingsView Shortcuts", () => {
       </I18nProvider>,
     );
 
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+    });
 
     expect(onClose).toHaveBeenCalled();
   });

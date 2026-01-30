@@ -33,6 +33,21 @@ import { clampUiScale } from "../../../utils/uiScale";
 import { getPlatformKind } from "../../../utils/platform";
 import { getCodexConfigPath } from "../../../services/tauri";
 import { useI18n } from "../../../i18n";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DEFAULT_CODE_FONT_FAMILY,
   DEFAULT_UI_FONT_FAMILY,
@@ -80,6 +95,10 @@ const DICTATION_MODELS = [
     noteKey: "settings.dictation.models.largeV3.note",
   },
 ] as const;
+
+const UNGROUPED_SELECT_VALUE = "__ungrouped__";
+const DICTATION_AUTO_VALUE = "__auto__";
+const DICTATION_HOLD_OFF_VALUE = "__off__";
 
 type ComposerPreset = AppSettings["composerEditorPreset"];
 
@@ -1030,2317 +1049,2516 @@ export function SettingsView({
   };
 
   return (
-    <div className="settings-overlay" role="dialog" aria-modal="true">
-      <div className="settings-backdrop" onClick={onClose} />
-      <div className="settings-window">
-        <div className="settings-titlebar">
-          <div className="settings-title">{t("settings.title")}</div>
-          <button
-            type="button"
-            className="ghost icon-button settings-close"
-            onClick={onClose}
-            aria-label={t("settings.close")}
-          >
-            <X aria-hidden />
-          </button>
-        </div>
-        <div className="settings-body">
-          <aside className="settings-sidebar">
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "projects" ? "active" : ""}`}
-              onClick={() => setActiveSection("projects")}
+      <div
+        className="fixed inset-0 z-50"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+      >
+        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+        <div className="absolute inset-0 flex items-start justify-center overflow-y-auto p-6">
+          <div className="relative z-10 w-full max-w-6xl overflow-hidden rounded-xl border bg-background shadow-xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h2 id="settings-title" className="text-lg font-semibold">
+                {t("settings.title")}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                aria-label={t("settings.close")}
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </Button>
+            </div>
+            <Tabs
+              value={activeSection}
+              onValueChange={(value) => setActiveSection(value as CodexSection)}
+              className="flex min-h-[640px]"
             >
-              <LayoutGrid aria-hidden />
-              {t("settings.nav.projects")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "display" ? "active" : ""}`}
-              onClick={() => setActiveSection("display")}
-            >
-              <SlidersHorizontal aria-hidden />
-              {t("settings.nav.displaySound")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "composer" ? "active" : ""}`}
-              onClick={() => setActiveSection("composer")}
-            >
-              <FileText aria-hidden />
-              {t("settings.nav.composer")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "dictation" ? "active" : ""}`}
-              onClick={() => setActiveSection("dictation")}
-            >
-              <Mic aria-hidden />
-              {t("settings.nav.dictation")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "shortcuts" ? "active" : ""}`}
-              onClick={() => setActiveSection("shortcuts")}
-            >
-              <Keyboard aria-hidden />
-              {t("settings.nav.shortcuts")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "open-apps" ? "active" : ""}`}
-              onClick={() => setActiveSection("open-apps")}
-            >
-              <ExternalLink aria-hidden />
-              {t("settings.nav.openIn")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "codex" ? "active" : ""}`}
-              onClick={() => setActiveSection("codex")}
-            >
-              <TerminalSquare aria-hidden />
-              {t("settings.nav.codex")}
-            </button>
-            <button
-              type="button"
-              className={`settings-nav ${activeSection === "experimental" ? "active" : ""}`}
-              onClick={() => setActiveSection("experimental")}
-            >
-              <FlaskConical aria-hidden />
-              {t("settings.nav.experimental")}
-            </button>
-          </aside>
-          <div className="settings-content">
-            {activeSection === "projects" && (
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.projects.title")}
-                </div>
-                <div className="settings-section-subtitle">
-                  {t("settings.projects.subtitle")}
-                </div>
-                <div className="settings-subsection-title">
-                  {t("settings.projects.groups.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.projects.groups.subtitle")}
-                </div>
-                <div className="settings-groups">
-                  <div className="settings-group-create">
-                    <input
-                      className="settings-input settings-input--compact"
-                      value={newGroupName}
-                      placeholder={t("settings.projects.groupName.placeholder")}
-                      onChange={(event) => setNewGroupName(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && canCreateGroup) {
-                          event.preventDefault();
-                          void handleCreateGroup();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => {
-                        void handleCreateGroup();
-                      }}
-                      disabled={!canCreateGroup}
-                    >
-                      {t("settings.projects.group.add")}
-                    </button>
-                  </div>
-                  {groupError && <div className="settings-group-error">{groupError}</div>}
-                  {workspaceGroups.length > 0 ? (
-                    <div className="settings-group-list">
-                      {workspaceGroups.map((group, index) => (
-                        <div key={group.id} className="settings-group-row">
-                          <div className="settings-group-fields">
-                            <input
-                              className="settings-input settings-input--compact"
-                              value={groupDrafts[group.id] ?? group.name}
-                              onChange={(event) =>
-                                setGroupDrafts((prev) => ({
-                                  ...prev,
-                                  [group.id]: event.target.value,
-                                }))
+              <TabsList className="h-full w-60 flex-col items-stretch gap-1 rounded-none border-r bg-muted/30 p-2 text-sm">
+                <TabsTrigger value="projects" className="justify-start gap-2">
+                  <LayoutGrid className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.projects")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="display" className="justify-start gap-2">
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.displaySound")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="composer" className="justify-start gap-2">
+                  <FileText className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.composer")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="dictation" className="justify-start gap-2">
+                  <Mic className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.dictation")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="shortcuts" className="justify-start gap-2">
+                  <Keyboard className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.shortcuts")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="open-apps" className="justify-start gap-2">
+                  <ExternalLink className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.openIn")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="codex" className="justify-start gap-2">
+                  <TerminalSquare className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.codex")}</span>
+                </TabsTrigger>
+                <TabsTrigger value="experimental" className="justify-start gap-2">
+                  <FlaskConical className="h-4 w-4" aria-hidden />
+                  <span>{t("settings.nav.experimental")}</span>
+                </TabsTrigger>
+              </TabsList>
+              <div className="flex-1 overflow-y-auto p-6">
+                <TabsContent value="projects" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.projects.title")}</CardTitle>
+                      <CardDescription>{t("settings.projects.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.projects.groups.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.projects.groups.subtitle")}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input
+                            className="min-w-[220px] flex-1"
+                            value={newGroupName}
+                            placeholder={t("settings.projects.groupName.placeholder")}
+                            aria-label={t("settings.projects.groupName.placeholder")}
+                            onChange={(event) => setNewGroupName(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" && canCreateGroup) {
+                                event.preventDefault();
+                                void handleCreateGroup();
                               }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              void handleCreateGroup();
+                            }}
+                            disabled={!canCreateGroup}
+                          >
+                            {t("settings.projects.group.add")}
+                          </Button>
+                        </div>
+                        {groupError && (
+                          <div className="text-sm text-destructive">{groupError}</div>
+                        )}
+                        {workspaceGroups.length > 0 ? (
+                          <div className="space-y-3">
+                            {workspaceGroups.map((group, index) => (
+                              <div key={group.id} className="rounded-lg border p-3">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-[220px] space-y-3">
+                                    <Input
+                                      value={groupDrafts[group.id] ?? group.name}
+                                      aria-label={t("settings.projects.groupName.placeholder")}
+                                      onChange={(event) =>
+                                        setGroupDrafts((prev) => ({
+                                          ...prev,
+                                          [group.id]: event.target.value,
+                                        }))
+                                      }
+                                      onBlur={() => {
+                                        void handleRenameGroup(group);
+                                      }}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                          event.preventDefault();
+                                          void handleRenameGroup(group);
+                                        }
+                                      }}
+                                    />
+                                    <div className="space-y-2">
+                                      <div className="text-sm font-medium">
+                                        {t("settings.projects.group.copiesFolder")}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div
+                                          className={cn(
+                                            "flex-1 min-w-[200px] truncate rounded-md border bg-muted/40 px-3 py-2 text-xs",
+                                            !group.copiesFolder && "text-muted-foreground",
+                                          )}
+                                          title={group.copiesFolder ?? ""}
+                                        >
+                                          {group.copiesFolder ??
+                                            t("settings.projects.group.notSet")}
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            void handleChooseGroupCopiesFolder(group);
+                                          }}
+                                        >
+                                          {t("settings.projects.group.choose")}
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            void handleClearGroupCopiesFolder(group);
+                                          }}
+                                          disabled={!group.copiesFolder}
+                                        >
+                                          {t("settings.projects.group.clear")}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      onClick={() => {
+                                        void onMoveWorkspaceGroup(group.id, "up");
+                                      }}
+                                      disabled={index === 0}
+                                      aria-label={t("settings.projects.group.moveUp")}
+                                    >
+                                      <ChevronUp className="h-4 w-4" aria-hidden />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      onClick={() => {
+                                        void onMoveWorkspaceGroup(group.id, "down");
+                                      }}
+                                      disabled={index === workspaceGroups.length - 1}
+                                      aria-label={t("settings.projects.group.moveDown")}
+                                    >
+                                      <ChevronDown className="h-4 w-4" aria-hidden />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      onClick={() => {
+                                        void handleDeleteGroup(group);
+                                      }}
+                                      aria-label={t("settings.projects.group.delete")}
+                                    >
+                                      <Trash2 className="h-4 w-4" aria-hidden />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.projects.group.empty")}
+                          </div>
+                        )}
+                      </div>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.projects.projects.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.projects.projects.subtitle")}
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          {groupedWorkspaces.map((group) => (
+                            <div key={group.id ?? "ungrouped"} className="space-y-2">
+                              <div className="text-xs font-semibold uppercase text-muted-foreground">
+                                {group.name}
+                              </div>
+                              <div className="space-y-2">
+                                {group.workspaces.map((workspace, index) => {
+                                  const groupValue = workspaceGroups.some(
+                                    (entry) => entry.id === workspace.settings.groupId,
+                                  )
+                                    ? workspace.settings.groupId ?? UNGROUPED_SELECT_VALUE
+                                    : UNGROUPED_SELECT_VALUE;
+                                  return (
+                                    <div
+                                      key={workspace.id}
+                                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+                                    >
+                                      <div className="min-w-[220px]">
+                                        <div className="text-sm font-medium">
+                                          {workspace.name}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                          {workspace.path}
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <Select
+                                          value={groupValue}
+                                          onValueChange={(value) => {
+                                            const nextGroupId =
+                                              value === UNGROUPED_SELECT_VALUE ? null : value;
+                                            void onAssignWorkspaceGroup(workspace.id, nextGroupId);
+                                          }}
+                                        >
+                                          <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder={ungroupedLabel} />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value={UNGROUPED_SELECT_VALUE}>
+                                              {ungroupedLabel}
+                                            </SelectItem>
+                                            {workspaceGroups.map((entry) => (
+                                              <SelectItem key={entry.id} value={entry.id}>
+                                                {entry.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => onMoveWorkspace(workspace.id, "up")}
+                                          disabled={index === 0}
+                                          aria-label={t("settings.projects.project.moveUp")}
+                                        >
+                                          <ChevronUp className="h-4 w-4" aria-hidden />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => onMoveWorkspace(workspace.id, "down")}
+                                          disabled={index === group.workspaces.length - 1}
+                                          aria-label={t("settings.projects.project.moveDown")}
+                                        >
+                                          <ChevronDown className="h-4 w-4" aria-hidden />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon-sm"
+                                          onClick={() => onDeleteWorkspace(workspace.id)}
+                                          aria-label={t("settings.projects.project.delete")}
+                                        >
+                                          <Trash2 className="h-4 w-4" aria-hidden />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                          {projects.length === 0 && (
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.projects.project.empty")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="display" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.display.title")}</CardTitle>
+                      <CardDescription>{t("settings.display.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.display.section.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.section.subtitle")}
+                          </div>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="theme-select">
+                              {t("settings.display.theme.label")}
+                            </Label>
+                            <Select
+                              value={appSettings.theme}
+                              onValueChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  theme: value as AppSettings["theme"],
+                                })
+                              }
+                            >
+                              <SelectTrigger id="theme-select">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="system">
+                                  {t("settings.display.theme.system")}
+                                </SelectItem>
+                                <SelectItem value="light">
+                                  {t("settings.display.theme.light")}
+                                </SelectItem>
+                                <SelectItem value="dark">
+                                  {t("settings.display.theme.dark")}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="language-select">
+                              {t("settings.language.label")}
+                            </Label>
+                            <Select
+                              value={appSettings.language}
+                              onValueChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  language: value as AppSettings["language"],
+                                })
+                              }
+                            >
+                              <SelectTrigger id="language-select">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="system">{t("language.system")}</SelectItem>
+                                <SelectItem value="en">{t("language.english")}</SelectItem>
+                                <SelectItem value="zh-CN">{t("language.chinese")}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.language.help")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="reduce-transparency">
+                              {t("settings.display.reduceTransparency.title")}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.display.reduceTransparency.subtitle")}
+                            </div>
+                          </div>
+                          <Switch
+                            id="reduce-transparency"
+                            checked={reduceTransparency}
+                            onCheckedChange={(value) => onToggleTransparency(value)}
+                          />
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="ui-scale">
+                              {t("settings.display.interfaceScale.title")}
+                            </Label>
+                            <div
+                              className="text-sm text-muted-foreground"
+                              title={scaleShortcutTitle}
+                            >
+                              {scaleShortcutText}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                id="ui-scale"
+                                type="text"
+                                inputMode="decimal"
+                                className="w-24"
+                                value={scaleDraft}
+                                aria-label={t("settings.display.interfaceScale.label")}
+                                onChange={(event) => setScaleDraft(event.target.value)}
+                                onBlur={() => {
+                                  void handleCommitScale();
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    void handleCommitScale();
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  void handleResetScale();
+                                }}
+                              >
+                                {t("settings.display.reset")}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="ui-font-family">
+                              {t("settings.display.uiFont.label")}
+                            </Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                id="ui-font-family"
+                                type="text"
+                                value={uiFontDraft}
+                                onChange={(event) => setUiFontDraft(event.target.value)}
+                                onBlur={() => {
+                                  void handleCommitUiFont();
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    void handleCommitUiFont();
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setUiFontDraft(DEFAULT_UI_FONT_FAMILY);
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    uiFontFamily: DEFAULT_UI_FONT_FAMILY,
+                                  });
+                                }}
+                              >
+                                {t("settings.display.reset")}
+                              </Button>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.display.uiFont.help")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="code-font-family">
+                              {t("settings.display.codeFont.label")}
+                            </Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                id="code-font-family"
+                                type="text"
+                                value={codeFontDraft}
+                                onChange={(event) => setCodeFontDraft(event.target.value)}
+                                onBlur={() => {
+                                  void handleCommitCodeFont();
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    void handleCommitCodeFont();
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCodeFontDraft(DEFAULT_CODE_FONT_FAMILY);
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
+                                  });
+                                }}
+                              >
+                                {t("settings.display.reset")}
+                              </Button>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.display.codeFont.help")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="code-font-size">
+                              {t("settings.display.codeFontSize.label")}
+                            </Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <input
+                                id="code-font-size"
+                                type="range"
+                                min={CODE_FONT_SIZE_MIN}
+                                max={CODE_FONT_SIZE_MAX}
+                                step={1}
+                                className="h-2 w-40"
+                                value={codeFontSizeDraft}
+                                onChange={(event) => {
+                                  const nextValue = Number(event.target.value);
+                                  setCodeFontSizeDraft(nextValue);
+                                  void handleCommitCodeFontSize(nextValue);
+                                }}
+                              />
+                              <div className="text-sm text-muted-foreground">
+                                {codeFontSizeDraft}px
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCodeFontSizeDraft(CODE_FONT_SIZE_DEFAULT);
+                                  void handleCommitCodeFontSize(CODE_FONT_SIZE_DEFAULT);
+                                }}
+                              >
+                                {t("settings.display.reset")}
+                              </Button>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.display.codeFontSize.help")}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.display.sounds.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.sounds.subtitle")}
+                          </div>
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="notification-sounds">
+                              {t("settings.display.notificationSounds.title")}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.display.notificationSounds.subtitle")}
+                            </div>
+                          </div>
+                          <Switch
+                            id="notification-sounds"
+                            checked={appSettings.notificationSoundsEnabled}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                notificationSoundsEnabled: value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={onTestNotificationSound}
+                          >
+                            {t("settings.display.testSound")}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="composer" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.composer.title")}</CardTitle>
+                      <CardDescription>{t("settings.composer.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.composer.presets.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.composer.presets.subtitle")}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="composer-preset">
+                            {t("settings.composer.presets.label")}
+                          </Label>
+                          <Select
+                            value={appSettings.composerEditorPreset}
+                            onValueChange={(value) =>
+                              handleComposerPresetChange(value as ComposerPreset)
+                            }
+                          >
+                            <SelectTrigger id="composer-preset">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(composerPresetLabels).map(([preset, label]) => (
+                                <SelectItem key={preset} value={preset}>
+                                  {label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.composer.presets.help")}
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">
+                          {t("settings.composer.codeFences.title")}
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-fence-space">
+                                {t("settings.composer.codeFences.expandSpace.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.codeFences.expandSpace.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-fence-space"
+                              checked={appSettings.composerFenceExpandOnSpace}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerFenceExpandOnSpace: value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-fence-enter">
+                                {t("settings.composer.codeFences.expandEnter.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.codeFences.expandEnter.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-fence-enter"
+                              checked={appSettings.composerFenceExpandOnEnter}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerFenceExpandOnEnter: value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-fence-language">
+                                {t("settings.composer.codeFences.languageTags.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.codeFences.languageTags.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-fence-language"
+                              checked={appSettings.composerFenceLanguageTags}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerFenceLanguageTags: value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-fence-wrap">
+                                {t("settings.composer.codeFences.wrapSelection.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.codeFences.wrapSelection.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-fence-wrap"
+                              checked={appSettings.composerFenceWrapSelection}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerFenceWrapSelection: value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-fence-copy">
+                                {t("settings.composer.codeFences.copyWithoutFences.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.codeFences.copyWithoutFences.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-fence-copy"
+                              checked={appSettings.composerCodeBlockCopyUseModifier}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerCodeBlockCopyUseModifier: value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">
+                          {t("settings.composer.pasting.title")}
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-paste-multiline">
+                                {t("settings.composer.pasting.autoWrapMultiline.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.pasting.autoWrapMultiline.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-paste-multiline"
+                              checked={appSettings.composerFenceAutoWrapPasteMultiline}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerFenceAutoWrapPasteMultiline: value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="composer-paste-codelike">
+                                {t("settings.composer.pasting.autoWrapCodeLike.title")}
+                              </Label>
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.composer.pasting.autoWrapCodeLike.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              id="composer-paste-codelike"
+                              checked={appSettings.composerFenceAutoWrapPasteCodeLike}
+                              onCheckedChange={(value) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  composerFenceAutoWrapPasteCodeLike: value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">
+                          {t("settings.composer.lists.title")}
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-list-continuation">
+                              {t("settings.composer.lists.continue.title")}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.composer.lists.continue.subtitle")}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-list-continuation"
+                            checked={appSettings.composerListContinuation}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerListContinuation: value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="dictation" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.dictation.title")}</CardTitle>
+                      <CardDescription>{t("settings.dictation.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="dictation-enabled">
+                            {t("settings.dictation.enable.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.dictation.enable.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="dictation-enabled"
+                          checked={appSettings.dictationEnabled}
+                          onCheckedChange={(value) => {
+                            const nextEnabled = value;
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              dictationEnabled: nextEnabled,
+                            });
+                            if (
+                              !nextEnabled &&
+                              dictationModelStatus?.state === "downloading" &&
+                              onCancelDictationDownload
+                            ) {
+                              onCancelDictationDownload();
+                            }
+                            if (
+                              nextEnabled &&
+                              dictationModelStatus?.state === "missing" &&
+                              onDownloadDictationModel
+                            ) {
+                              onDownloadDictationModel();
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="dictation-model">
+                            {t("settings.dictation.model.label")}
+                          </Label>
+                          <Select
+                            value={appSettings.dictationModelId}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                dictationModelId: value,
+                              })
+                            }
+                          >
+                            <SelectTrigger id="dictation-model">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dictationModels.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  {model.label} ({model.size})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.dictation.modelHelp", {
+                              note: selectedDictationModel.note,
+                              size: selectedDictationModel.size,
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dictation-language">
+                            {t("settings.dictation.language.label")}
+                          </Label>
+                          <Select
+                            value={appSettings.dictationPreferredLanguage ?? DICTATION_AUTO_VALUE}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                dictationPreferredLanguage:
+                                  value === DICTATION_AUTO_VALUE ? null : value,
+                              })
+                            }
+                          >
+                            <SelectTrigger id="dictation-language">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={DICTATION_AUTO_VALUE}>
+                                {t("settings.dictation.language.auto")}
+                              </SelectItem>
+                              <SelectItem value="en">
+                                {t("settings.dictation.language.en")}
+                              </SelectItem>
+                              <SelectItem value="es">
+                                {t("settings.dictation.language.es")}
+                              </SelectItem>
+                              <SelectItem value="fr">
+                                {t("settings.dictation.language.fr")}
+                              </SelectItem>
+                              <SelectItem value="de">
+                                {t("settings.dictation.language.de")}
+                              </SelectItem>
+                              <SelectItem value="it">
+                                {t("settings.dictation.language.it")}
+                              </SelectItem>
+                              <SelectItem value="pt">
+                                {t("settings.dictation.language.pt")}
+                              </SelectItem>
+                              <SelectItem value="nl">
+                                {t("settings.dictation.language.nl")}
+                              </SelectItem>
+                              <SelectItem value="sv">
+                                {t("settings.dictation.language.sv")}
+                              </SelectItem>
+                              <SelectItem value="no">
+                                {t("settings.dictation.language.no")}
+                              </SelectItem>
+                              <SelectItem value="da">
+                                {t("settings.dictation.language.da")}
+                              </SelectItem>
+                              <SelectItem value="fi">
+                                {t("settings.dictation.language.fi")}
+                              </SelectItem>
+                              <SelectItem value="pl">
+                                {t("settings.dictation.language.pl")}
+                              </SelectItem>
+                              <SelectItem value="tr">
+                                {t("settings.dictation.language.tr")}
+                              </SelectItem>
+                              <SelectItem value="ru">
+                                {t("settings.dictation.language.ru")}
+                              </SelectItem>
+                              <SelectItem value="uk">
+                                {t("settings.dictation.language.uk")}
+                              </SelectItem>
+                              <SelectItem value="ja">
+                                {t("settings.dictation.language.ja")}
+                              </SelectItem>
+                              <SelectItem value="ko">
+                                {t("settings.dictation.language.ko")}
+                              </SelectItem>
+                              <SelectItem value="zh">
+                                {t("settings.dictation.language.zh")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.dictation.language.help")}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dictation-hold-key">
+                            {t("settings.dictation.holdKey.label")}
+                          </Label>
+                          <Select
+                            value={appSettings.dictationHoldKey ?? DICTATION_HOLD_OFF_VALUE}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                dictationHoldKey:
+                                  value === DICTATION_HOLD_OFF_VALUE ? null : value,
+                              })
+                            }
+                          >
+                            <SelectTrigger id="dictation-hold-key">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={DICTATION_HOLD_OFF_VALUE}>
+                                {t("settings.dictation.holdKey.off")}
+                              </SelectItem>
+                              <SelectItem value="alt">
+                                {t("settings.dictation.holdKey.alt")}
+                              </SelectItem>
+                              <SelectItem value="shift">
+                                {t("settings.dictation.holdKey.shift")}
+                              </SelectItem>
+                              <SelectItem value="control">
+                                {t("settings.dictation.holdKey.control")}
+                              </SelectItem>
+                              <SelectItem value="meta">
+                                {t("settings.dictation.holdKey.meta")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.dictation.holdKey.help")}
+                          </div>
+                        </div>
+                      </div>
+                      {dictationModelStatus && (
+                        <div className="space-y-2 rounded-lg border p-3">
+                          <div className="text-sm font-medium">
+                            {t("settings.dictation.status.label", {
+                              label: selectedDictationModel.label,
+                            })}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {dictationModelStatus.state === "ready" &&
+                              t("settings.dictation.status.ready")}
+                            {dictationModelStatus.state === "missing" &&
+                              t("settings.dictation.status.missing")}
+                            {dictationModelStatus.state === "downloading" &&
+                              t("settings.dictation.status.downloading")}
+                            {dictationModelStatus.state === "error" &&
+                              (dictationModelStatus.error ??
+                                t("settings.dictation.status.error"))}
+                          </div>
+                          {dictationProgress && (
+                            <div className="space-y-1">
+                              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full bg-primary"
+                                  style={{
+                                    width: dictationProgress.totalBytes
+                                      ? `${Math.min(
+                                          100,
+                                          (dictationProgress.downloadedBytes /
+                                            dictationProgress.totalBytes) *
+                                            100,
+                                        )}%`
+                                      : "0%",
+                                  }}
+                                />
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatDownloadSize(dictationProgress.downloadedBytes)}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {dictationModelStatus.state === "missing" && (
+                              <Button
+                                type="button"
+                                onClick={onDownloadDictationModel}
+                                disabled={!onDownloadDictationModel}
+                              >
+                                {t("settings.action.downloadModel")}
+                              </Button>
+                            )}
+                            {dictationModelStatus.state === "downloading" && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={onCancelDictationDownload}
+                                disabled={!onCancelDictationDownload}
+                              >
+                                {t("settings.action.cancelDownload")}
+                              </Button>
+                            )}
+                            {dictationReady && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={onRemoveDictationModel}
+                                disabled={!onRemoveDictationModel}
+                              >
+                                {t("settings.action.removeModel")}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="shortcuts" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.shortcuts.title")}</CardTitle>
+                      <CardDescription>{t("settings.shortcuts.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.shortcuts.file.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.shortcuts.file.subtitle")}
+                          </div>
+                        </div>
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.newAgent")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.newAgent)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "newAgentShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => void updateShortcut("newAgentShortcut", null)}
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+n"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.newWorktreeAgent")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.newWorktreeAgent)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "newWorktreeAgentShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("newWorktreeAgentShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+n"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.newCloneAgent")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.newCloneAgent)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "newCloneAgentShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("newCloneAgentShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+alt+n"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.archiveThread")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.archiveThread)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "archiveThreadShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("archiveThreadShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+ctrl+a"),
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.shortcuts.composer.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.shortcuts.composer.subtitle")}
+                          </div>
+                        </div>
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.cycleModel")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.model)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "composerModelShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("composerModelShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.pressToSet", {
+                                value: formatShortcut("cmd+shift+m"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.cycleAccess")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.access)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "composerAccessShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("composerAccessShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+a"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.cycleReasoning")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.reasoning)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "composerReasoningShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("composerReasoningShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+r"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.cycleCollaboration")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.collaboration)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "composerCollaborationShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("composerCollaborationShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("shift+tab"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.stopRun")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.interrupt)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "interruptShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("interruptShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut(getDefaultInterruptShortcut()),
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.shortcuts.panels.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.shortcuts.panels.subtitle")}
+                          </div>
+                        </div>
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.panels.projects")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.projectsSidebar)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(
+                                    event,
+                                    "toggleProjectsSidebarShortcut",
+                                  )
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut(
+                                    "toggleProjectsSidebarShortcut",
+                                    null,
+                                  )
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+p"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.panels.git")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.gitSidebar)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(
+                                    event,
+                                    "toggleGitSidebarShortcut",
+                                  )
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("toggleGitSidebarShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+g"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.panels.debug")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.debugPanel)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(
+                                    event,
+                                    "toggleDebugPanelShortcut",
+                                  )
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("toggleDebugPanelShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+d"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.panels.terminal")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.terminal)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(
+                                    event,
+                                    "toggleTerminalShortcut",
+                                  )
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("toggleTerminalShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+t"),
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.shortcuts.navigation.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.shortcuts.navigation.subtitle")}
+                          </div>
+                        </div>
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.navigation.nextAgent")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.cycleAgentNext)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "cycleAgentNextShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("cycleAgentNextShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+ctrl+down"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.navigation.prevAgent")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.cycleAgentPrev)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(event, "cycleAgentPrevShortcut")
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("cycleAgentPrevShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+ctrl+up"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.navigation.nextWorkspace")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.cycleWorkspaceNext)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(
+                                    event,
+                                    "cycleWorkspaceNextShortcut",
+                                  )
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("cycleWorkspaceNextShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+down"),
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>{t("settings.shortcuts.navigation.prevWorkspace")}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                className="w-56"
+                                value={formatShortcut(shortcutDrafts.cycleWorkspacePrev)}
+                                onKeyDown={(event) =>
+                                  handleShortcutKeyDown(
+                                    event,
+                                    "cycleWorkspacePrevShortcut",
+                                  )
+                                }
+                                placeholder={t("settings.shortcuts.placeholder")}
+                                readOnly
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  void updateShortcut("cycleWorkspacePrevShortcut", null)
+                                }
+                              >
+                                {t("settings.action.clear")}
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.shortcuts.default", {
+                                value: formatShortcut("cmd+shift+up"),
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="open-apps" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.openApps.title")}</CardTitle>
+                      <CardDescription>{t("settings.openApps.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-3">
+                        {openAppDrafts.map((target, index) => {
+                          const iconSrc =
+                            getKnownOpenAppIcon(target.id) ??
+                            openAppIconById[target.id] ??
+                            GENERIC_APP_ICON;
+                          return (
+                            <div key={target.id} className="rounded-lg border p-3">
+                              <div className="flex flex-wrap items-start gap-3">
+                                <div
+                                  className="flex h-9 w-9 items-center justify-center rounded-md border bg-muted/40"
+                                  aria-hidden
+                                >
+                                  <img src={iconSrc} alt="" width={18} height={18} />
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`open-app-label-${target.id}`}>
+                                        {t("settings.openApps.label")}
+                                      </Label>
+                                      <Input
+                                        id={`open-app-label-${target.id}`}
+                                        value={target.label}
+                                        placeholder={t("settings.openApps.label")}
+                                        onChange={(event) =>
+                                          handleOpenAppDraftChange(index, {
+                                            label: event.target.value,
+                                          })
+                                        }
+                                        onBlur={() => {
+                                          void handleCommitOpenApps(openAppDrafts);
+                                        }}
+                                        aria-label={t("settings.openApps.aria.label", {
+                                          index: index + 1,
+                                        })}
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`open-app-kind-${target.id}`}>
+                                        {t("settings.openApps.type")}
+                                      </Label>
+                                      <Select
+                                        value={target.kind}
+                                        onValueChange={(value) =>
+                                          handleOpenAppKindChange(
+                                            index,
+                                            value as OpenAppTarget["kind"],
+                                          )
+                                        }
+                                      >
+                                        <SelectTrigger id={`open-app-kind-${target.id}`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="app">
+                                            {t("settings.openApps.type.app")}
+                                          </SelectItem>
+                                          <SelectItem value="command">
+                                            {t("settings.openApps.type.command")}
+                                          </SelectItem>
+                                          <SelectItem value="finder">{fileManagerLabel}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    {target.kind === "app" && (
+                                      <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor={`open-app-appname-${target.id}`}>
+                                          {t("settings.openApps.appName")}
+                                        </Label>
+                                        <Input
+                                          id={`open-app-appname-${target.id}`}
+                                          value={target.appName ?? ""}
+                                          placeholder={t("settings.openApps.appName")}
+                                          onChange={(event) =>
+                                            handleOpenAppDraftChange(index, {
+                                              appName: event.target.value,
+                                            })
+                                          }
+                                          onBlur={() => {
+                                            void handleCommitOpenApps(openAppDrafts);
+                                          }}
+                                          aria-label={t("settings.openApps.aria.appName", {
+                                            index: index + 1,
+                                          })}
+                                        />
+                                      </div>
+                                    )}
+                                    {target.kind === "command" && (
+                                      <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor={`open-app-command-${target.id}`}>
+                                          {t("settings.openApps.command")}
+                                        </Label>
+                                        <Input
+                                          id={`open-app-command-${target.id}`}
+                                          value={target.command ?? ""}
+                                          placeholder={t("settings.openApps.command")}
+                                          onChange={(event) =>
+                                            handleOpenAppDraftChange(index, {
+                                              command: event.target.value,
+                                            })
+                                          }
+                                          onBlur={() => {
+                                            void handleCommitOpenApps(openAppDrafts);
+                                          }}
+                                          aria-label={t("settings.openApps.aria.command", {
+                                            index: index + 1,
+                                          })}
+                                        />
+                                      </div>
+                                    )}
+                                    {target.kind !== "finder" && (
+                                      <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor={`open-app-args-${target.id}`}>
+                                          {t("settings.openApps.args")}
+                                        </Label>
+                                        <Input
+                                          id={`open-app-args-${target.id}`}
+                                          value={target.argsText}
+                                          placeholder={t("settings.openApps.args")}
+                                          onChange={(event) =>
+                                            handleOpenAppDraftChange(index, {
+                                              argsText: event.target.value,
+                                            })
+                                          }
+                                          onBlur={() => {
+                                            void handleCommitOpenApps(openAppDrafts);
+                                          }}
+                                          aria-label={t("settings.openApps.aria.args", {
+                                            index: index + 1,
+                                          })}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <label className="flex items-center gap-2 text-sm">
+                                      <input
+                                        type="radio"
+                                        className="h-4 w-4"
+                                        name="open-app-default"
+                                        checked={target.id === openAppSelectedId}
+                                        onChange={() => handleSelectOpenAppDefault(target.id)}
+                                      />
+                                      {t("settings.openApps.default")}
+                                    </label>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => handleMoveOpenApp(index, "up")}
+                                        disabled={index === 0}
+                                        aria-label={t("settings.openApps.moveUp")}
+                                      >
+                                        <ChevronUp className="h-4 w-4" aria-hidden />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => handleMoveOpenApp(index, "down")}
+                                        disabled={index === openAppDrafts.length - 1}
+                                        aria-label={t("settings.openApps.moveDown")}
+                                      >
+                                        <ChevronDown className="h-4 w-4" aria-hidden />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() => handleDeleteOpenApp(index)}
+                                        disabled={openAppDrafts.length <= 1}
+                                        aria-label={t("settings.openApps.remove")}
+                                        title={t("settings.openApps.remove")}
+                                      >
+                                        <Trash2 className="h-4 w-4" aria-hidden />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <Button type="button" variant="outline" onClick={handleAddOpenApp}>
+                          {t("settings.action.addApp")}
+                        </Button>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.openApps.help")}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="codex" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.codex.title")}</CardTitle>
+                      <CardDescription>{t("settings.codex.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="codex-path">{t("settings.codex.path.label")}</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input
+                            id="codex-path"
+                            value={codexPathDraft}
+                            placeholder="codex"
+                            onChange={(event) => setCodexPathDraft(event.target.value)}
+                          />
+                          <Button type="button" variant="outline" onClick={handleBrowseCodex}>
+                            {t("settings.action.browse")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setCodexPathDraft("")}
+                          >
+                            {t("settings.action.usePath")}
+                          </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.codex.path.help")}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="codex-args">{t("settings.codex.args.label")}</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input
+                            id="codex-args"
+                            value={codexArgsDraft}
+                            placeholder="--profile personal"
+                            onChange={(event) => setCodexArgsDraft(event.target.value)}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setCodexArgsDraft("")}
+                          >
+                            {t("settings.action.clear")}
+                          </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.codex.args.help")}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {codexDirty && (
+                          <Button
+                            type="button"
+                            onClick={handleSaveCodexSettings}
+                            disabled={isSavingSettings}
+                          >
+                            {isSavingSettings
+                              ? t("settings.action.saving")
+                              : t("settings.action.save")}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleRunDoctor}
+                          disabled={doctorState.status === "running"}
+                        >
+                          <Stethoscope className="h-4 w-4" aria-hidden />
+                          {doctorState.status === "running"
+                            ? t("settings.action.running")
+                            : t("settings.action.runDoctor")}
+                        </Button>
+                      </div>
+                      {doctorState.result && (
+                        <div
+                          className={cn(
+                            "rounded-lg border p-3 text-sm",
+                            doctorState.result.ok
+                              ? "border-emerald-500/40 bg-emerald-50/40"
+                              : "border-destructive/40 bg-destructive/10",
+                          )}
+                        >
+                          <div className="font-medium">
+                            {doctorState.result.ok
+                              ? t("settings.codex.doctor.okTitle")
+                              : t("settings.codex.doctor.errorTitle")}
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm">
+                            <div>
+                              {t("settings.codex.doctor.version", {
+                                value:
+                                  doctorState.result.version ??
+                                  t("settings.codex.doctor.unknown"),
+                              })}
+                            </div>
+                            <div>
+                              {t("settings.codex.doctor.appServer", {
+                                value: doctorState.result.appServerOk
+                                  ? t("settings.codex.doctor.ok")
+                                  : t("settings.codex.doctor.failed"),
+                              })}
+                            </div>
+                            <div>
+                              {t("settings.codex.doctor.node", {
+                                value: doctorState.result.nodeOk
+                                  ? t("settings.codex.doctor.okWithVersion", {
+                                      version:
+                                        doctorState.result.nodeVersion ??
+                                        t("settings.codex.doctor.unknown"),
+                                    })
+                                  : t("settings.codex.doctor.missing"),
+                              })}
+                            </div>
+                            {doctorState.result.details && (
+                              <div>{doctorState.result.details}</div>
+                            )}
+                            {doctorState.result.nodeDetails && (
+                              <div>{doctorState.result.nodeDetails}</div>
+                            )}
+                            {doctorState.result.path && (
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.codex.doctor.path", {
+                                  value: doctorState.result.path,
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.codex.workspaceOverrides.title")}</CardTitle>
+                      <CardDescription>
+                        {t("settings.codex.workspaceOverrides.subtitle")}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-3">
+                        {projects.map((workspace) => (
+                          <div key={workspace.id} className="rounded-lg border p-3">
+                            <div className="space-y-3">
+                              <div>
+                                <div className="text-sm font-medium">{workspace.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {workspace.path}
+                                </div>
+                              </div>
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`override-bin-${workspace.id}`}>
+                                    {t("settings.codex.workspaceOverrides.binLabel")}
+                                  </Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      id={`override-bin-${workspace.id}`}
+                                      value={codexBinOverrideDrafts[workspace.id] ?? ""}
+                                      placeholder={t(
+                                        "settings.codex.workspaceOverrides.binPlaceholder",
+                                      )}
+                                      onChange={(event) =>
+                                        setCodexBinOverrideDrafts((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: event.target.value,
+                                        }))
+                                      }
+                                      onBlur={async () => {
+                                        const draft = codexBinOverrideDrafts[workspace.id] ?? "";
+                                        const nextValue = normalizeOverrideValue(draft);
+                                        if (nextValue === (workspace.codex_bin ?? null)) {
+                                          return;
+                                        }
+                                        await onUpdateWorkspaceCodexBin(workspace.id, nextValue);
+                                      }}
+                                      aria-label={t(
+                                        "settings.codex.workspaceOverrides.binAria",
+                                        { name: workspace.name },
+                                      )}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={async () => {
+                                        setCodexBinOverrideDrafts((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: "",
+                                        }));
+                                        await onUpdateWorkspaceCodexBin(workspace.id, null);
+                                      }}
+                                    >
+                                      {t("settings.action.clear")}
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`override-home-${workspace.id}`}>
+                                    {t("settings.codex.workspaceOverrides.homeLabel")}
+                                  </Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      id={`override-home-${workspace.id}`}
+                                      value={codexHomeOverrideDrafts[workspace.id] ?? ""}
+                                      placeholder={t(
+                                        "settings.codex.workspaceOverrides.homePlaceholder",
+                                      )}
+                                      onChange={(event) =>
+                                        setCodexHomeOverrideDrafts((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: event.target.value,
+                                        }))
+                                      }
+                                      onBlur={async () => {
+                                        const draft = codexHomeOverrideDrafts[workspace.id] ?? "";
+                                        const nextValue = normalizeOverrideValue(draft);
+                                        if (nextValue === (workspace.settings.codexHome ?? null)) {
+                                          return;
+                                        }
+                                        await onUpdateWorkspaceSettings(workspace.id, {
+                                          codexHome: nextValue,
+                                        });
+                                      }}
+                                      aria-label={t(
+                                        "settings.codex.workspaceOverrides.homeAria",
+                                        { name: workspace.name },
+                                      )}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={async () => {
+                                        setCodexHomeOverrideDrafts((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: "",
+                                        }));
+                                        await onUpdateWorkspaceSettings(workspace.id, {
+                                          codexHome: null,
+                                        });
+                                      }}
+                                    >
+                                      {t("settings.action.clear")}
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                  <Label htmlFor={`override-args-${workspace.id}`}>
+                                    {t("settings.codex.workspaceOverrides.argsLabel")}
+                                  </Label>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      id={`override-args-${workspace.id}`}
+                                      value={codexArgsOverrideDrafts[workspace.id] ?? ""}
+                                      placeholder={t(
+                                        "settings.codex.workspaceOverrides.argsPlaceholder",
+                                      )}
+                                      onChange={(event) =>
+                                        setCodexArgsOverrideDrafts((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: event.target.value,
+                                        }))
+                                      }
+                                      onBlur={async () => {
+                                        const draft = codexArgsOverrideDrafts[workspace.id] ?? "";
+                                        const nextValue = normalizeOverrideValue(draft);
+                                        if (nextValue === (workspace.settings.codexArgs ?? null)) {
+                                          return;
+                                        }
+                                        await onUpdateWorkspaceSettings(workspace.id, {
+                                          codexArgs: nextValue,
+                                        });
+                                      }}
+                                      aria-label={t(
+                                        "settings.codex.workspaceOverrides.argsAria",
+                                        { name: workspace.name },
+                                      )}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={async () => {
+                                        setCodexArgsOverrideDrafts((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: "",
+                                        }));
+                                        await onUpdateWorkspaceSettings(workspace.id, {
+                                          codexArgs: null,
+                                        });
+                                      }}
+                                    >
+                                      {t("settings.action.clear")}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {projects.length === 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.projects.project.empty")}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.codex.access.title")}</CardTitle>
+                      <CardDescription>{t("settings.codex.access.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="default-access">
+                            {t("settings.codex.defaultAccess")}
+                          </Label>
+                          <Select
+                            value={appSettings.defaultAccessMode}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                defaultAccessMode: value as AppSettings["defaultAccessMode"],
+                              })
+                            }
+                          >
+                            <SelectTrigger id="default-access">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="read-only">
+                                {t("settings.codex.access.readOnly")}
+                              </SelectItem>
+                              <SelectItem value="current">
+                                {t("settings.codex.access.onRequest")}
+                              </SelectItem>
+                              <SelectItem value="full-access">
+                                {t("settings.codex.access.full")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="backend-mode">
+                            {t("settings.codex.backendMode")}
+                          </Label>
+                          <Select
+                            value={appSettings.backendMode}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                backendMode: value as AppSettings["backendMode"],
+                              })
+                            }
+                          >
+                            <SelectTrigger id="backend-mode">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="local">
+                                {t("settings.codex.backend.local")}
+                              </SelectItem>
+                              <SelectItem value="remote">
+                                {t("settings.codex.backend.remote")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.codex.backend.help")}
+                          </div>
+                        </div>
+                      </div>
+                      {appSettings.backendMode === "remote" && (
+                        <div className="space-y-2 rounded-lg border p-3">
+                          <div className="text-sm font-medium">
+                            {t("settings.codex.remote.title")}
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <Input
+                              value={remoteHostDraft}
+                              placeholder="127.0.0.1:4732"
+                              onChange={(event) => setRemoteHostDraft(event.target.value)}
                               onBlur={() => {
-                                void handleRenameGroup(group);
+                                void handleCommitRemoteHost();
                               }}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter") {
                                   event.preventDefault();
-                                  void handleRenameGroup(group);
+                                  void handleCommitRemoteHost();
                                 }
                               }}
+                              aria-label={t("settings.codex.remote.hostAria")}
                             />
-                            <div className="settings-group-copies">
-                              <div className="settings-group-copies-label">
-                                {t("settings.projects.group.copiesFolder")}
-                              </div>
-                              <div className="settings-group-copies-row">
-                                <div
-                                  className={`settings-group-copies-path${
-                                    group.copiesFolder ? "" : " empty"
-                                  }`}
-                                  title={group.copiesFolder ?? ""}
-                                >
-                                  {group.copiesFolder ?? t("settings.projects.group.notSet")}
-                                </div>
-                                <button
-                                  type="button"
-                                  className="ghost settings-button-compact"
-                                  onClick={() => {
-                                    void handleChooseGroupCopiesFolder(group);
-                                  }}
-                                >
-                                  {t("settings.projects.group.choose")}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="ghost settings-button-compact"
-                                  onClick={() => {
-                                    void handleClearGroupCopiesFolder(group);
-                                  }}
-                                  disabled={!group.copiesFolder}
-                                >
-                                  {t("settings.projects.group.clear")}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="settings-group-actions">
-                            <button
-                              type="button"
-                              className="ghost icon-button"
-                              onClick={() => {
-                                void onMoveWorkspaceGroup(group.id, "up");
-                              }}
-                              disabled={index === 0}
-                              aria-label={t("settings.projects.group.moveUp")}
-                            >
-                              <ChevronUp aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost icon-button"
-                              onClick={() => {
-                                void onMoveWorkspaceGroup(group.id, "down");
-                              }}
-                              disabled={index === workspaceGroups.length - 1}
-                              aria-label={t("settings.projects.group.moveDown")}
-                            >
-                              <ChevronDown aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost icon-button"
-                              onClick={() => {
-                                void handleDeleteGroup(group);
-                              }}
-                              aria-label={t("settings.projects.group.delete")}
-                            >
-                              <Trash2 aria-hidden />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="settings-empty">
-                      {t("settings.projects.group.empty")}
-                    </div>
-                  )}
-                </div>
-                <div className="settings-subsection-title">
-                  {t("settings.projects.projects.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.projects.projects.subtitle")}
-                </div>
-                <div className="settings-projects">
-                  {groupedWorkspaces.map((group) => (
-                    <div key={group.id ?? "ungrouped"} className="settings-project-group">
-                      <div className="settings-project-group-label">{group.name}</div>
-                      {group.workspaces.map((workspace, index) => {
-                        const groupValue =
-                          workspaceGroups.some(
-                            (entry) => entry.id === workspace.settings.groupId,
-                          )
-                            ? workspace.settings.groupId ?? ""
-                            : "";
-                        return (
-                          <div key={workspace.id} className="settings-project-row">
-                            <div className="settings-project-info">
-                              <div className="settings-project-name">{workspace.name}</div>
-                              <div className="settings-project-path">{workspace.path}</div>
-                            </div>
-                            <div className="settings-project-actions">
-                              <select
-                                className="settings-select settings-select--compact"
-                                value={groupValue}
-                                onChange={(event) => {
-                                  const nextGroupId = event.target.value || null;
-                                  void onAssignWorkspaceGroup(
-                                    workspace.id,
-                                    nextGroupId,
-                                  );
-                                }}
-                              >
-                                <option value="">{ungroupedLabel}</option>
-                                {workspaceGroups.map((entry) => (
-                                  <option key={entry.id} value={entry.id}>
-                                    {entry.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="button"
-                              className="ghost icon-button"
-                              onClick={() => onMoveWorkspace(workspace.id, "up")}
-                              disabled={index === 0}
-                              aria-label={t("settings.projects.project.moveUp")}
-                            >
-                                <ChevronUp aria-hidden />
-                              </button>
-                              <button
-                                type="button"
-                              className="ghost icon-button"
-                              onClick={() => onMoveWorkspace(workspace.id, "down")}
-                              disabled={index === group.workspaces.length - 1}
-                              aria-label={t("settings.projects.project.moveDown")}
-                            >
-                                <ChevronDown aria-hidden />
-                              </button>
-                              <button
-                                type="button"
-                              className="ghost icon-button"
-                              onClick={() => onDeleteWorkspace(workspace.id)}
-                              aria-label={t("settings.projects.project.delete")}
-                            >
-                                <Trash2 aria-hidden />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                  {projects.length === 0 && (
-                    <div className="settings-empty">
-                      {t("settings.projects.project.empty")}
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-            {activeSection === "display" && (
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.display.title")}
-                </div>
-                <div className="settings-section-subtitle">
-                  {t("settings.display.subtitle")}
-                </div>
-                <div className="settings-subsection-title">
-                  {t("settings.display.section.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.display.section.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="theme-select">
-                    {t("settings.display.theme.label")}
-                  </label>
-                  <select
-                    id="theme-select"
-                    className="settings-select"
-                    value={appSettings.theme}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        theme: event.target.value as AppSettings["theme"],
-                      })
-                    }
-                  >
-                    <option value="system">{t("settings.display.theme.system")}</option>
-                    <option value="light">{t("settings.display.theme.light")}</option>
-                    <option value="dark">{t("settings.display.theme.dark")}</option>
-                  </select>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="language-select">
-                    {t("settings.language.label")}
-                  </label>
-                  <select
-                    id="language-select"
-                    className="settings-select"
-                    value={appSettings.language}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        language: event.target.value as AppSettings["language"],
-                      })
-                    }
-                  >
-                    <option value="system">{t("language.system")}</option>
-                    <option value="en">{t("language.english")}</option>
-                    <option value="zh-CN">{t("language.chinese")}</option>
-                  </select>
-                  <div className="settings-help">{t("settings.language.help")}</div>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.display.reduceTransparency.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.display.reduceTransparency.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${reduceTransparency ? "on" : ""}`}
-                    onClick={() => onToggleTransparency(!reduceTransparency)}
-                    aria-pressed={reduceTransparency}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row settings-scale-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.display.interfaceScale.title")}
-                    </div>
-                    <div
-                      className="settings-toggle-subtitle"
-                      title={scaleShortcutTitle}
-                    >
-                      {scaleShortcutText}
-                    </div>
-                  </div>
-                  <div className="settings-scale-controls">
-                    <input
-                      id="ui-scale"
-                      type="text"
-                      inputMode="decimal"
-                      className="settings-input settings-input--scale"
-                      value={scaleDraft}
-                      aria-label={t("settings.display.interfaceScale.label")}
-                      onChange={(event) => setScaleDraft(event.target.value)}
-                      onBlur={() => {
-                        void handleCommitScale();
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void handleCommitScale();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-scale-reset"
-                      onClick={() => {
-                        void handleResetScale();
-                      }}
-                    >
-                      {t("settings.display.reset")}
-                    </button>
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="ui-font-family">
-                    {t("settings.display.uiFont.label")}
-                  </label>
-                  <div className="settings-field-row">
-                    <input
-                      id="ui-font-family"
-                      type="text"
-                      className="settings-input"
-                      value={uiFontDraft}
-                      onChange={(event) => setUiFontDraft(event.target.value)}
-                      onBlur={() => {
-                        void handleCommitUiFont();
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void handleCommitUiFont();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => {
-                        setUiFontDraft(DEFAULT_UI_FONT_FAMILY);
-                        void onUpdateAppSettings({
-                          ...appSettings,
-                          uiFontFamily: DEFAULT_UI_FONT_FAMILY,
-                        });
-                      }}
-                    >
-                      {t("settings.display.reset")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.display.uiFont.help")}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="code-font-family">
-                    {t("settings.display.codeFont.label")}
-                  </label>
-                  <div className="settings-field-row">
-                    <input
-                      id="code-font-family"
-                      type="text"
-                      className="settings-input"
-                      value={codeFontDraft}
-                      onChange={(event) => setCodeFontDraft(event.target.value)}
-                      onBlur={() => {
-                        void handleCommitCodeFont();
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void handleCommitCodeFont();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => {
-                        setCodeFontDraft(DEFAULT_CODE_FONT_FAMILY);
-                        void onUpdateAppSettings({
-                          ...appSettings,
-                          codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
-                        });
-                      }}
-                    >
-                      {t("settings.display.reset")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.display.codeFont.help")}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="code-font-size">
-                    {t("settings.display.codeFontSize.label")}
-                  </label>
-                  <div className="settings-field-row">
-                    <input
-                      id="code-font-size"
-                      type="range"
-                      min={CODE_FONT_SIZE_MIN}
-                      max={CODE_FONT_SIZE_MAX}
-                      step={1}
-                      className="settings-input settings-input--range"
-                      value={codeFontSizeDraft}
-                      onChange={(event) => {
-                        const nextValue = Number(event.target.value);
-                        setCodeFontSizeDraft(nextValue);
-                        void handleCommitCodeFontSize(nextValue);
-                      }}
-                    />
-                    <div className="settings-scale-value">{codeFontSizeDraft}px</div>
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => {
-                        setCodeFontSizeDraft(CODE_FONT_SIZE_DEFAULT);
-                        void handleCommitCodeFontSize(CODE_FONT_SIZE_DEFAULT);
-                      }}
-                    >
-                      {t("settings.display.reset")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.display.codeFontSize.help")}
-                  </div>
-                </div>
-                <div className="settings-subsection-title">
-                  {t("settings.display.sounds.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.display.sounds.subtitle")}
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.display.notificationSounds.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.display.notificationSounds.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.notificationSoundsEnabled ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        notificationSoundsEnabled: !appSettings.notificationSoundsEnabled,
-                      })
-                    }
-                    aria-pressed={appSettings.notificationSoundsEnabled}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-sound-actions">
-                  <button
-                    type="button"
-                    className="ghost settings-button-compact"
-                    onClick={onTestNotificationSound}
-                  >
-                    {t("settings.display.testSound")}
-                  </button>
-                </div>
-              </section>
-            )}
-            {activeSection === "composer" && (
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.composer.title")}
-                </div>
-                <div className="settings-section-subtitle">
-                  {t("settings.composer.subtitle")}
-                </div>
-                <div className="settings-subsection-title">
-                  {t("settings.composer.presets.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.composer.presets.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="composer-preset">
-                    {t("settings.composer.presets.label")}
-                  </label>
-                  <select
-                    id="composer-preset"
-                    className="settings-select"
-                    value={appSettings.composerEditorPreset}
-                    onChange={(event) =>
-                      handleComposerPresetChange(
-                        event.target.value as ComposerPreset,
-                      )
-                    }
-                  >
-                    {Object.entries(composerPresetLabels).map(([preset, label]) => (
-                      <option key={preset} value={preset}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="settings-help">
-                    {t("settings.composer.presets.help")}
-                  </div>
-                </div>
-                <div className="settings-divider" />
-                <div className="settings-subsection-title">
-                  {t("settings.composer.codeFences.title")}
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.codeFences.expandSpace.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.codeFences.expandSpace.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerFenceExpandOnSpace ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerFenceExpandOnSpace: !appSettings.composerFenceExpandOnSpace,
-                      })
-                    }
-                    aria-pressed={appSettings.composerFenceExpandOnSpace}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.codeFences.expandEnter.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.codeFences.expandEnter.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerFenceExpandOnEnter ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerFenceExpandOnEnter: !appSettings.composerFenceExpandOnEnter,
-                      })
-                    }
-                    aria-pressed={appSettings.composerFenceExpandOnEnter}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.codeFences.languageTags.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.codeFences.languageTags.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerFenceLanguageTags ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerFenceLanguageTags: !appSettings.composerFenceLanguageTags,
-                      })
-                    }
-                    aria-pressed={appSettings.composerFenceLanguageTags}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.codeFences.wrapSelection.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.codeFences.wrapSelection.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerFenceWrapSelection ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerFenceWrapSelection: !appSettings.composerFenceWrapSelection,
-                      })
-                    }
-                    aria-pressed={appSettings.composerFenceWrapSelection}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.codeFences.copyWithoutFences.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.codeFences.copyWithoutFences.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerCodeBlockCopyUseModifier ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerCodeBlockCopyUseModifier:
-                          !appSettings.composerCodeBlockCopyUseModifier,
-                      })
-                    }
-                    aria-pressed={appSettings.composerCodeBlockCopyUseModifier}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-divider" />
-                <div className="settings-subsection-title">
-                  {t("settings.composer.pasting.title")}
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.pasting.autoWrapMultiline.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.pasting.autoWrapMultiline.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerFenceAutoWrapPasteMultiline ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerFenceAutoWrapPasteMultiline:
-                          !appSettings.composerFenceAutoWrapPasteMultiline,
-                      })
-                    }
-                    aria-pressed={appSettings.composerFenceAutoWrapPasteMultiline}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.pasting.autoWrapCodeLike.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.pasting.autoWrapCodeLike.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerFenceAutoWrapPasteCodeLike ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerFenceAutoWrapPasteCodeLike:
-                          !appSettings.composerFenceAutoWrapPasteCodeLike,
-                      })
-                    }
-                    aria-pressed={appSettings.composerFenceAutoWrapPasteCodeLike}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-divider" />
-                <div className="settings-subsection-title">
-                  {t("settings.composer.lists.title")}
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.composer.lists.continue.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.composer.lists.continue.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.composerListContinuation ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        composerListContinuation: !appSettings.composerListContinuation,
-                      })
-                    }
-                    aria-pressed={appSettings.composerListContinuation}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-              </section>
-            )}
-            {activeSection === "dictation" && (
-              <section className="settings-section">
-                <div className="settings-section-title">{t("settings.dictation.title")}</div>
-                <div className="settings-section-subtitle">
-                  {t("settings.dictation.subtitle")}
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.dictation.enable.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.dictation.enable.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.dictationEnabled ? "on" : ""}`}
-                    onClick={() => {
-                      const nextEnabled = !appSettings.dictationEnabled;
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        dictationEnabled: nextEnabled,
-                      });
-                      if (
-                        !nextEnabled &&
-                        dictationModelStatus?.state === "downloading" &&
-                        onCancelDictationDownload
-                      ) {
-                        onCancelDictationDownload();
-                      }
-                      if (
-                        nextEnabled &&
-                        dictationModelStatus?.state === "missing" &&
-                        onDownloadDictationModel
-                      ) {
-                        onDownloadDictationModel();
-                      }
-                    }}
-                    aria-pressed={appSettings.dictationEnabled}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="dictation-model">
-                    {t("settings.dictation.model.label")}
-                  </label>
-                  <select
-                    id="dictation-model"
-                    className="settings-select"
-                    value={appSettings.dictationModelId}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        dictationModelId: event.target.value,
-                      })
-                    }
-                  >
-                    {dictationModels.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.label} ({model.size})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="settings-help">
-                    {t("settings.dictation.modelHelp", {
-                      note: selectedDictationModel.note,
-                      size: selectedDictationModel.size,
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="dictation-language">
-                    {t("settings.dictation.language.label")}
-                  </label>
-                  <select
-                    id="dictation-language"
-                    className="settings-select"
-                    value={appSettings.dictationPreferredLanguage ?? ""}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        dictationPreferredLanguage: event.target.value || null,
-                      })
-                    }
-                  >
-                    <option value="">{t("settings.dictation.language.auto")}</option>
-                    <option value="en">{t("settings.dictation.language.en")}</option>
-                    <option value="es">{t("settings.dictation.language.es")}</option>
-                    <option value="fr">{t("settings.dictation.language.fr")}</option>
-                    <option value="de">{t("settings.dictation.language.de")}</option>
-                    <option value="it">{t("settings.dictation.language.it")}</option>
-                    <option value="pt">{t("settings.dictation.language.pt")}</option>
-                    <option value="nl">{t("settings.dictation.language.nl")}</option>
-                    <option value="sv">{t("settings.dictation.language.sv")}</option>
-                    <option value="no">{t("settings.dictation.language.no")}</option>
-                    <option value="da">{t("settings.dictation.language.da")}</option>
-                    <option value="fi">{t("settings.dictation.language.fi")}</option>
-                    <option value="pl">{t("settings.dictation.language.pl")}</option>
-                    <option value="tr">{t("settings.dictation.language.tr")}</option>
-                    <option value="ru">{t("settings.dictation.language.ru")}</option>
-                    <option value="uk">{t("settings.dictation.language.uk")}</option>
-                    <option value="ja">{t("settings.dictation.language.ja")}</option>
-                    <option value="ko">{t("settings.dictation.language.ko")}</option>
-                    <option value="zh">{t("settings.dictation.language.zh")}</option>
-                  </select>
-                  <div className="settings-help">
-                    {t("settings.dictation.language.help")}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="dictation-hold-key">
-                    {t("settings.dictation.holdKey.label")}
-                  </label>
-                  <select
-                    id="dictation-hold-key"
-                    className="settings-select"
-                    value={appSettings.dictationHoldKey ?? ""}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        dictationHoldKey: event.target.value,
-                      })
-                    }
-                  >
-                    <option value="">{t("settings.dictation.holdKey.off")}</option>
-                    <option value="alt">{t("settings.dictation.holdKey.alt")}</option>
-                    <option value="shift">{t("settings.dictation.holdKey.shift")}</option>
-                    <option value="control">{t("settings.dictation.holdKey.control")}</option>
-                    <option value="meta">{t("settings.dictation.holdKey.meta")}</option>
-                  </select>
-                  <div className="settings-help">
-                    {t("settings.dictation.holdKey.help")}
-                  </div>
-                </div>
-                {dictationModelStatus && (
-                  <div className="settings-field">
-                    <div className="settings-field-label">
-                      {t("settings.dictation.status.label", {
-                        label: selectedDictationModel.label,
-                      })}
-                    </div>
-                    <div className="settings-help">
-                      {dictationModelStatus.state === "ready" &&
-                        t("settings.dictation.status.ready")}
-                      {dictationModelStatus.state === "missing" &&
-                        t("settings.dictation.status.missing")}
-                      {dictationModelStatus.state === "downloading" &&
-                        t("settings.dictation.status.downloading")}
-                      {dictationModelStatus.state === "error" &&
-                        (dictationModelStatus.error ?? t("settings.dictation.status.error"))}
-                    </div>
-                    {dictationProgress && (
-                      <div className="settings-download-progress">
-                        <div className="settings-download-bar">
-                          <div
-                            className="settings-download-fill"
-                            style={{
-                              width: dictationProgress.totalBytes
-                                ? `${Math.min(
-                                    100,
-                                    (dictationProgress.downloadedBytes /
-                                      dictationProgress.totalBytes) *
-                                      100,
-                                  )}%`
-                                : "0%",
-                            }}
-                          />
-                        </div>
-                        <div className="settings-download-meta">
-                          {formatDownloadSize(dictationProgress.downloadedBytes)}
-                        </div>
-                      </div>
-                    )}
-                    <div className="settings-field-actions">
-                      {dictationModelStatus.state === "missing" && (
-                        <button
-                          type="button"
-                          className="primary"
-                          onClick={onDownloadDictationModel}
-                          disabled={!onDownloadDictationModel}
-                        >
-                          {t("settings.action.downloadModel")}
-                        </button>
-                      )}
-                      {dictationModelStatus.state === "downloading" && (
-                        <button
-                          type="button"
-                          className="ghost settings-button-compact"
-                          onClick={onCancelDictationDownload}
-                          disabled={!onCancelDictationDownload}
-                        >
-                          {t("settings.action.cancelDownload")}
-                        </button>
-                      )}
-                      {dictationReady && (
-                        <button
-                          type="button"
-                          className="ghost settings-button-compact"
-                          onClick={onRemoveDictationModel}
-                          disabled={!onRemoveDictationModel}
-                        >
-                          {t("settings.action.removeModel")}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </section>
-            )}
-            {activeSection === "shortcuts" && (
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.shortcuts.title")}
-                </div>
-                <div className="settings-section-subtitle">
-                  {t("settings.shortcuts.subtitle")}
-                </div>
-                <div className="settings-subsection-title">
-                  {t("settings.shortcuts.file.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.shortcuts.file.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.newAgent")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.newAgent)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "newAgentShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("newAgentShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+n"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.newWorktreeAgent")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.newWorktreeAgent)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "newWorktreeAgentShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("newWorktreeAgentShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+n"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.newCloneAgent")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.newCloneAgent)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "newCloneAgentShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("newCloneAgentShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+alt+n"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.archiveThread")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.archiveThread)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "archiveThreadShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("archiveThreadShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+ctrl+a"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-divider" />
-                <div className="settings-subsection-title">
-                  {t("settings.shortcuts.composer.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.shortcuts.composer.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.cycleModel")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.model)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "composerModelShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("composerModelShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.pressToSet", {
-                      value: formatShortcut("cmd+shift+m"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.cycleAccess")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.access)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "composerAccessShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("composerAccessShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+a"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.cycleReasoning")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.reasoning)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "composerReasoningShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("composerReasoningShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+r"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.cycleCollaboration")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.collaboration)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "composerCollaborationShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("composerCollaborationShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("shift+tab"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.stopRun")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.interrupt)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "interruptShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("interruptShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut(getDefaultInterruptShortcut()),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-divider" />
-                <div className="settings-subsection-title">
-                  {t("settings.shortcuts.panels.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.shortcuts.panels.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.panels.projects")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.projectsSidebar)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "toggleProjectsSidebarShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("toggleProjectsSidebarShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+p"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.panels.git")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.gitSidebar)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "toggleGitSidebarShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("toggleGitSidebarShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+g"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.panels.debug")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.debugPanel)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "toggleDebugPanelShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("toggleDebugPanelShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+d"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.panels.terminal")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.terminal)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "toggleTerminalShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("toggleTerminalShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+t"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-divider" />
-                <div className="settings-subsection-title">
-                  {t("settings.shortcuts.navigation.title")}
-                </div>
-                <div className="settings-subsection-subtitle">
-                  {t("settings.shortcuts.navigation.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.navigation.nextAgent")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.cycleAgentNext)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "cycleAgentNextShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("cycleAgentNextShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+ctrl+down"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.navigation.prevAgent")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.cycleAgentPrev)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "cycleAgentPrevShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("cycleAgentPrevShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+ctrl+up"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.navigation.nextWorkspace")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.cycleWorkspaceNext)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "cycleWorkspaceNextShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("cycleWorkspaceNextShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+down"),
-                    })}
-                  </div>
-                </div>
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.shortcuts.navigation.prevWorkspace")}
-                  </div>
-                  <div className="settings-field-row">
-                    <input
-                      className="settings-input settings-input--shortcut"
-                      value={formatShortcut(shortcutDrafts.cycleWorkspacePrev)}
-                      onKeyDown={(event) =>
-                        handleShortcutKeyDown(event, "cycleWorkspacePrevShortcut")
-                      }
-                      placeholder={t("settings.shortcuts.placeholder")}
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      className="ghost settings-button-compact"
-                      onClick={() => void updateShortcut("cycleWorkspacePrevShortcut", null)}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.shortcuts.default", {
-                      value: formatShortcut("cmd+shift+up"),
-                    })}
-                  </div>
-                </div>
-              </section>
-            )}
-            {activeSection === "open-apps" && (
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.openApps.title")}
-                </div>
-                <div className="settings-section-subtitle">
-                  {t("settings.openApps.subtitle")}
-                </div>
-                <div className="settings-open-apps">
-                  {openAppDrafts.map((target, index) => {
-                    const iconSrc =
-                      getKnownOpenAppIcon(target.id) ??
-                      openAppIconById[target.id] ??
-                      GENERIC_APP_ICON;
-                    return (
-                      <div key={target.id} className="settings-open-app-row">
-                        <div className="settings-open-app-icon-wrap" aria-hidden>
-                          <img
-                            className="settings-open-app-icon"
-                            src={iconSrc}
-                            alt=""
-                            width={18}
-                            height={18}
-                          />
-                        </div>
-                        <div className="settings-open-app-fields">
-                          <label className="settings-open-app-field settings-open-app-field--label">
-                            <span className="settings-visually-hidden">
-                              {t("settings.openApps.label")}
-                            </span>
-                            <input
-                              className="settings-input settings-input--compact settings-open-app-input settings-open-app-input--label"
-                              value={target.label}
-                              placeholder={t("settings.openApps.label")}
-                              onChange={(event) =>
-                                handleOpenAppDraftChange(index, {
-                                  label: event.target.value,
-                                })
-                              }
+                            <Input
+                              type="password"
+                              value={remoteTokenDraft}
+                              placeholder={t("settings.codex.remote.tokenPlaceholder")}
+                              onChange={(event) => setRemoteTokenDraft(event.target.value)}
                               onBlur={() => {
-                                void handleCommitOpenApps(openAppDrafts);
+                                void handleCommitRemoteToken();
                               }}
-                              aria-label={t("settings.openApps.aria.label", {
-                                index: index + 1,
-                              })}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  void handleCommitRemoteToken();
+                                }
+                              }}
+                              aria-label={t("settings.codex.remote.tokenAria")}
                             />
-                          </label>
-                          <label className="settings-open-app-field settings-open-app-field--type">
-                            <span className="settings-visually-hidden">
-                              {t("settings.openApps.type")}
-                            </span>
-                            <select
-                              className="settings-select settings-select--compact settings-open-app-kind"
-                              value={target.kind}
-                              onChange={(event) =>
-                                handleOpenAppKindChange(
-                                  index,
-                                  event.target.value as OpenAppTarget["kind"],
-                                )
-                              }
-                              aria-label={t("settings.openApps.aria.type", {
-                                index: index + 1,
-                              })}
-                            >
-                              <option value="app">{t("settings.openApps.type.app")}</option>
-                              <option value="command">
-                                {t("settings.openApps.type.command")}
-                              </option>
-                              <option value="finder">{fileManagerLabel}</option>
-                            </select>
-                          </label>
-                          {target.kind === "app" && (
-                            <label className="settings-open-app-field settings-open-app-field--appname">
-                              <span className="settings-visually-hidden">
-                                {t("settings.openApps.appName")}
-                              </span>
-                              <input
-                                className="settings-input settings-input--compact settings-open-app-input settings-open-app-input--appname"
-                                value={target.appName ?? ""}
-                                placeholder={t("settings.openApps.appName")}
-                                onChange={(event) =>
-                                  handleOpenAppDraftChange(index, {
-                                    appName: event.target.value,
-                                  })
-                                }
-                                onBlur={() => {
-                                  void handleCommitOpenApps(openAppDrafts);
-                                }}
-                                aria-label={t("settings.openApps.aria.appName", {
-                                  index: index + 1,
-                                })}
-                              />
-                            </label>
-                          )}
-                          {target.kind === "command" && (
-                            <label className="settings-open-app-field settings-open-app-field--command">
-                              <span className="settings-visually-hidden">
-                                {t("settings.openApps.command")}
-                              </span>
-                              <input
-                                className="settings-input settings-input--compact settings-open-app-input settings-open-app-input--command"
-                                value={target.command ?? ""}
-                                placeholder={t("settings.openApps.command")}
-                                onChange={(event) =>
-                                  handleOpenAppDraftChange(index, {
-                                    command: event.target.value,
-                                  })
-                                }
-                                onBlur={() => {
-                                  void handleCommitOpenApps(openAppDrafts);
-                                }}
-                                aria-label={t("settings.openApps.aria.command", {
-                                  index: index + 1,
-                                })}
-                              />
-                            </label>
-                          )}
-                          {target.kind !== "finder" && (
-                            <label className="settings-open-app-field settings-open-app-field--args">
-                              <span className="settings-visually-hidden">
-                                {t("settings.openApps.args")}
-                              </span>
-                              <input
-                                className="settings-input settings-input--compact settings-open-app-input settings-open-app-input--args"
-                                value={target.argsText}
-                                placeholder={t("settings.openApps.args")}
-                                onChange={(event) =>
-                                  handleOpenAppDraftChange(index, {
-                                    argsText: event.target.value,
-                                  })
-                                }
-                                onBlur={() => {
-                                  void handleCommitOpenApps(openAppDrafts);
-                                }}
-                                aria-label={t("settings.openApps.aria.args", {
-                                  index: index + 1,
-                                })}
-                              />
-                            </label>
-                          )}
-                        </div>
-                        <div className="settings-open-app-actions">
-                          <label className="settings-open-app-default">
-                            <input
-                              type="radio"
-                              name="open-app-default"
-                              checked={target.id === openAppSelectedId}
-                              onChange={() => handleSelectOpenAppDefault(target.id)}
-                            />
-                            {t("settings.openApps.default")}
-                          </label>
-                          <div className="settings-open-app-order">
-                            <button
-                              type="button"
-                              className="ghost icon-button"
-                              onClick={() => handleMoveOpenApp(index, "up")}
-                              disabled={index === 0}
-                              aria-label={t("settings.openApps.moveUp")}
-                            >
-                              <ChevronUp aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost icon-button"
-                              onClick={() => handleMoveOpenApp(index, "down")}
-                              disabled={index === openAppDrafts.length - 1}
-                              aria-label={t("settings.openApps.moveDown")}
-                            >
-                              <ChevronDown aria-hidden />
-                            </button>
                           </div>
-                          <button
-                            type="button"
-                            className="ghost icon-button"
-                            onClick={() => handleDeleteOpenApp(index)}
-                            disabled={openAppDrafts.length <= 1}
-                            aria-label={t("settings.openApps.remove")}
-                            title={t("settings.openApps.remove")}
-                          >
-                            <Trash2 aria-hidden />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="settings-open-app-footer">
-                  <button
-                    type="button"
-                    className="ghost"
-                    onClick={handleAddOpenApp}
-                  >
-                    {t("settings.action.addApp")}
-                  </button>
-                  <div className="settings-help">
-                    {t("settings.openApps.help")}
-                  </div>
-                </div>
-              </section>
-            )}
-            {activeSection === "codex" && (
-              <section className="settings-section">
-                <div className="settings-section-title">{t("settings.codex.title")}</div>
-                <div className="settings-section-subtitle">
-                  {t("settings.codex.subtitle")}
-                </div>
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="codex-path">
-                    {t("settings.codex.path.label")}
-                  </label>
-                  <div className="settings-field-row">
-                    <input
-                      id="codex-path"
-                      className="settings-input"
-                      value={codexPathDraft}
-                      placeholder="codex"
-                      onChange={(event) => setCodexPathDraft(event.target.value)}
-                    />
-                    <button type="button" className="ghost" onClick={handleBrowseCodex}>
-                      {t("settings.action.browse")}
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost"
-                      onClick={() => setCodexPathDraft("")}
-                    >
-                      {t("settings.action.usePath")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.codex.path.help")}
-                  </div>
-                  <label className="settings-field-label" htmlFor="codex-args">
-                    {t("settings.codex.args.label")}
-                  </label>
-                  <div className="settings-field-row">
-                    <input
-                      id="codex-args"
-                      className="settings-input"
-                      value={codexArgsDraft}
-                      placeholder="--profile personal"
-                      onChange={(event) => setCodexArgsDraft(event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="ghost"
-                      onClick={() => setCodexArgsDraft("")}
-                    >
-                      {t("settings.action.clear")}
-                    </button>
-                  </div>
-                  <div className="settings-help">
-                    {t("settings.codex.args.help")}
-                  </div>
-                <div className="settings-field-actions">
-                  {codexDirty && (
-                    <button
-                      type="button"
-                      className="primary"
-                      onClick={handleSaveCodexSettings}
-                      disabled={isSavingSettings}
-                    >
-                      {isSavingSettings
-                        ? t("settings.action.saving")
-                        : t("settings.action.save")}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="ghost settings-button-compact"
-                    onClick={handleRunDoctor}
-                    disabled={doctorState.status === "running"}
-                  >
-                    <Stethoscope aria-hidden />
-                    {doctorState.status === "running"
-                      ? t("settings.action.running")
-                      : t("settings.action.runDoctor")}
-                  </button>
-                </div>
-
-                {doctorState.result && (
-                  <div
-                    className={`settings-doctor ${doctorState.result.ok ? "ok" : "error"}`}
-                  >
-                    <div className="settings-doctor-title">
-                      {doctorState.result.ok
-                        ? t("settings.codex.doctor.okTitle")
-                        : t("settings.codex.doctor.errorTitle")}
-                    </div>
-                    <div className="settings-doctor-body">
-                      <div>
-                        {t("settings.codex.doctor.version", {
-                          value:
-                            doctorState.result.version ??
-                            t("settings.codex.doctor.unknown"),
-                        })}
-                      </div>
-                      <div>
-                        {t("settings.codex.doctor.appServer", {
-                          value: doctorState.result.appServerOk
-                            ? t("settings.codex.doctor.ok")
-                            : t("settings.codex.doctor.failed"),
-                        })}
-                      </div>
-                      <div>
-                        {t("settings.codex.doctor.node", {
-                          value: doctorState.result.nodeOk
-                            ? t("settings.codex.doctor.okWithVersion", {
-                                version:
-                                  doctorState.result.nodeVersion ??
-                                  t("settings.codex.doctor.unknown"),
-                              })
-                            : t("settings.codex.doctor.missing"),
-                        })}
-                      </div>
-                      {doctorState.result.details && (
-                        <div>{doctorState.result.details}</div>
-                      )}
-                      {doctorState.result.nodeDetails && (
-                        <div>{doctorState.result.nodeDetails}</div>
-                      )}
-                      {doctorState.result.path && (
-                        <div className="settings-doctor-path">
-                          {t("settings.codex.doctor.path", {
-                            value: doctorState.result.path,
-                          })}
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.codex.remote.help")}
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </CardContent>
+                  </Card>
+                  <div className="space-y-4">
+                    <FileEditorCard
+                      title={t("settings.codex.fileAgents.title")}
+                      meta={globalAgentsMeta}
+                      error={globalAgentsError}
+                      value={globalAgentsContent}
+                      placeholder={t("settings.codex.fileAgents.placeholder")}
+                      disabled={globalAgentsLoading}
+                      refreshDisabled={globalAgentsRefreshDisabled}
+                      saveDisabled={globalAgentsSaveDisabled}
+                      saveLabel={globalAgentsSaveLabel}
+                      onChange={setGlobalAgentsContent}
+                      onRefresh={() => {
+                        void refreshGlobalAgents();
+                      }}
+                      onSave={() => {
+                        void saveGlobalAgents();
+                      }}
+                      helpText={
+                        <>
+                          {t("settings.codex.fileLocation")} <code>~/.codex/AGENTS.md</code>.
+                        </>
+                      }
+                      classNames={{
+                        container: "rounded-lg border bg-card p-4",
+                        header: "flex flex-wrap items-center justify-between gap-2",
+                        title: "text-sm font-medium",
+                        actions: "flex flex-wrap items-center gap-2",
+                        meta: "text-xs text-muted-foreground",
+                        iconButton:
+                          "inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-accent",
+                        error: "text-sm text-destructive",
+                        textarea:
+                          "mt-2 min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm",
+                        help: "mt-2 text-xs text-muted-foreground",
+                      }}
+                    />
+                    <FileEditorCard
+                      title={t("settings.codex.fileConfig.title")}
+                      meta={globalConfigMeta}
+                      error={globalConfigError}
+                      value={globalConfigContent}
+                      placeholder={t("settings.codex.fileConfig.placeholder")}
+                      disabled={globalConfigLoading}
+                      refreshDisabled={globalConfigRefreshDisabled}
+                      saveDisabled={globalConfigSaveDisabled}
+                      saveLabel={globalConfigSaveLabel}
+                      onChange={setGlobalConfigContent}
+                      onRefresh={() => {
+                        void refreshGlobalConfig();
+                      }}
+                      onSave={() => {
+                        void saveGlobalConfig();
+                      }}
+                      helpText={
+                        <>
+                          {t("settings.codex.fileLocation")} <code>~/.codex/config.toml</code>.
+                        </>
+                      }
+                      classNames={{
+                        container: "rounded-lg border bg-card p-4",
+                        header: "flex flex-wrap items-center justify-between gap-2",
+                        title: "text-sm font-medium",
+                        actions: "flex flex-wrap items-center gap-2",
+                        meta: "text-xs text-muted-foreground",
+                        iconButton:
+                          "inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-accent",
+                        error: "text-sm text-destructive",
+                        textarea:
+                          "mt-2 min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm",
+                        help: "mt-2 text-xs text-muted-foreground",
+                      }}
+                    />
                   </div>
-                )}
+                </TabsContent>
+                <TabsContent value="experimental" className="mt-0 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("settings.experimental.title")}</CardTitle>
+                      <CardDescription>{t("settings.experimental.subtitle")}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {hasCodexHomeOverrides && (
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.experimental.overridesNotice")}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {t("settings.experimental.configFile.title")}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.configFile.subtitle", {
+                              label: fileManagerLabel,
+                            })}
+                          </div>
+                        </div>
+                        <Button type="button" variant="outline" onClick={handleOpenConfig}>
+                          {openInFileManagerLabel}
+                        </Button>
+                      </div>
+                      {openConfigError && (
+                        <div className="text-sm text-destructive">{openConfigError}</div>
+                      )}
+                      <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-collab">
+                            {t("settings.experimental.multiAgent.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.multiAgent.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-collab"
+                          checked={appSettings.experimentalCollabEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              experimentalCollabEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-collab-modes">
+                            {t("settings.experimental.collaborationModes.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.collaborationModes.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-collab-modes"
+                          checked={appSettings.experimentalCollaborationModesEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              experimentalCollaborationModesEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-unified">
+                            {t("settings.experimental.backgroundTerminal.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.backgroundTerminal.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-unified"
+                          checked={appSettings.experimentalUnifiedExecEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              experimentalUnifiedExecEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-steer">
+                            {t("settings.experimental.steer.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.steer.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-steer"
+                          checked={appSettings.experimentalSteerEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              experimentalSteerEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
               </div>
-
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="default-access">
-                    {t("settings.codex.defaultAccess")}
-                  </label>
-                  <select
-                    id="default-access"
-                    className="settings-select"
-                    value={appSettings.defaultAccessMode}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        defaultAccessMode: event.target.value as AppSettings["defaultAccessMode"],
-                      })
-                    }
-                  >
-                    <option value="read-only">
-                      {t("settings.codex.access.readOnly")}
-                    </option>
-                    <option value="current">
-                      {t("settings.codex.access.onRequest")}
-                    </option>
-                    <option value="full-access">
-                      {t("settings.codex.access.full")}
-                    </option>
-                  </select>
-                </div>
-
-                <div className="settings-field">
-                  <label className="settings-field-label" htmlFor="backend-mode">
-                    {t("settings.codex.backendMode")}
-                  </label>
-                  <select
-                    id="backend-mode"
-                    className="settings-select"
-                    value={appSettings.backendMode}
-                    onChange={(event) =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        backendMode: event.target.value as AppSettings["backendMode"],
-                      })
-                    }
-                  >
-                    <option value="local">{t("settings.codex.backend.local")}</option>
-                    <option value="remote">{t("settings.codex.backend.remote")}</option>
-                  </select>
-                  <div className="settings-help">
-                    {t("settings.codex.backend.help")}
-                  </div>
-                </div>
-
-                {appSettings.backendMode === "remote" && (
-                  <div className="settings-field">
-                    <div className="settings-field-label">
-                      {t("settings.codex.remote.title")}
-                    </div>
-                    <div className="settings-field-row">
-                      <input
-                        className="settings-input settings-input--compact"
-                        value={remoteHostDraft}
-                        placeholder="127.0.0.1:4732"
-                        onChange={(event) => setRemoteHostDraft(event.target.value)}
-                        onBlur={() => {
-                          void handleCommitRemoteHost();
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            void handleCommitRemoteHost();
-                          }
-                        }}
-                        aria-label={t("settings.codex.remote.hostAria")}
-                      />
-                      <input
-                        type="password"
-                        className="settings-input settings-input--compact"
-                        value={remoteTokenDraft}
-                        placeholder={t("settings.codex.remote.tokenPlaceholder")}
-                        onChange={(event) => setRemoteTokenDraft(event.target.value)}
-                        onBlur={() => {
-                          void handleCommitRemoteToken();
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            void handleCommitRemoteToken();
-                          }
-                        }}
-                        aria-label={t("settings.codex.remote.tokenAria")}
-                      />
-                    </div>
-                    <div className="settings-help">
-                      {t("settings.codex.remote.help")}
-                    </div>
-                  </div>
-                )}
-
-                <FileEditorCard
-                  title={t("settings.codex.fileAgents.title")}
-                  meta={globalAgentsMeta}
-                  error={globalAgentsError}
-                  value={globalAgentsContent}
-                  placeholder={t("settings.codex.fileAgents.placeholder")}
-                  disabled={globalAgentsLoading}
-                  refreshDisabled={globalAgentsRefreshDisabled}
-                  saveDisabled={globalAgentsSaveDisabled}
-                  saveLabel={globalAgentsSaveLabel}
-                  onChange={setGlobalAgentsContent}
-                  onRefresh={() => {
-                    void refreshGlobalAgents();
-                  }}
-                  onSave={() => {
-                    void saveGlobalAgents();
-                  }}
-                  helpText={
-                    <>
-                      {t("settings.codex.fileLocation")} <code>~/.codex/AGENTS.md</code>.
-                    </>
-                  }
-                  classNames={{
-                    container: "settings-field settings-agents",
-                    header: "settings-agents-header",
-                    title: "settings-field-label",
-                    actions: "settings-agents-actions",
-                    meta: "settings-help settings-help-inline",
-                    iconButton: "ghost settings-icon-button",
-                    error: "settings-agents-error",
-                    textarea: "settings-agents-textarea",
-                    help: "settings-help",
-                  }}
-                />
-
-                <FileEditorCard
-                  title={t("settings.codex.fileConfig.title")}
-                  meta={globalConfigMeta}
-                  error={globalConfigError}
-                  value={globalConfigContent}
-                  placeholder={t("settings.codex.fileConfig.placeholder")}
-                  disabled={globalConfigLoading}
-                  refreshDisabled={globalConfigRefreshDisabled}
-                  saveDisabled={globalConfigSaveDisabled}
-                  saveLabel={globalConfigSaveLabel}
-                  onChange={setGlobalConfigContent}
-                  onRefresh={() => {
-                    void refreshGlobalConfig();
-                  }}
-                  onSave={() => {
-                    void saveGlobalConfig();
-                  }}
-                  helpText={
-                    <>
-                      {t("settings.codex.fileLocation")} <code>~/.codex/config.toml</code>.
-                    </>
-                  }
-                  classNames={{
-                    container: "settings-field settings-agents",
-                    header: "settings-agents-header",
-                    title: "settings-field-label",
-                    actions: "settings-agents-actions",
-                    meta: "settings-help settings-help-inline",
-                    iconButton: "ghost settings-icon-button",
-                    error: "settings-agents-error",
-                    textarea: "settings-agents-textarea",
-                    help: "settings-help",
-                  }}
-                />
-
-                <div className="settings-field">
-                  <div className="settings-field-label">
-                    {t("settings.codex.workspaceOverrides.title")}
-                  </div>
-                  <div className="settings-overrides">
-                    {projects.map((workspace) => (
-                      <div key={workspace.id} className="settings-override-row">
-                        <div className="settings-override-info">
-                          <div className="settings-project-name">{workspace.name}</div>
-                          <div className="settings-project-path">{workspace.path}</div>
-                        </div>
-                        <div className="settings-override-actions">
-                          <div className="settings-override-field">
-                            <input
-                              className="settings-input settings-input--compact"
-                              value={codexBinOverrideDrafts[workspace.id] ?? ""}
-                              placeholder={t("settings.codex.workspaceOverrides.binPlaceholder")}
-                              onChange={(event) =>
-                                setCodexBinOverrideDrafts((prev) => ({
-                                  ...prev,
-                                  [workspace.id]: event.target.value,
-                                }))
-                              }
-                              onBlur={async () => {
-                                const draft = codexBinOverrideDrafts[workspace.id] ?? "";
-                                const nextValue = normalizeOverrideValue(draft);
-                                if (nextValue === (workspace.codex_bin ?? null)) {
-                                  return;
-                                }
-                                await onUpdateWorkspaceCodexBin(workspace.id, nextValue);
-                              }}
-                              aria-label={t("settings.codex.workspaceOverrides.binAria", {
-                                name: workspace.name,
-                              })}
-                            />
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={async () => {
-                                setCodexBinOverrideDrafts((prev) => ({
-                                  ...prev,
-                                  [workspace.id]: "",
-                                }));
-                                await onUpdateWorkspaceCodexBin(workspace.id, null);
-                              }}
-                            >
-                              {t("settings.action.clear")}
-                            </button>
-                          </div>
-                          <div className="settings-override-field">
-                            <input
-                              className="settings-input settings-input--compact"
-                              value={codexHomeOverrideDrafts[workspace.id] ?? ""}
-                              placeholder={t("settings.codex.workspaceOverrides.homePlaceholder")}
-                              onChange={(event) =>
-                                setCodexHomeOverrideDrafts((prev) => ({
-                                  ...prev,
-                                  [workspace.id]: event.target.value,
-                                }))
-                              }
-                              onBlur={async () => {
-                                const draft = codexHomeOverrideDrafts[workspace.id] ?? "";
-                                const nextValue = normalizeOverrideValue(draft);
-                                if (nextValue === (workspace.settings.codexHome ?? null)) {
-                                  return;
-                                }
-                                await onUpdateWorkspaceSettings(workspace.id, {
-                                  codexHome: nextValue,
-                                });
-                              }}
-                              aria-label={t("settings.codex.workspaceOverrides.homeAria", {
-                                name: workspace.name,
-                              })}
-                            />
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={async () => {
-                                setCodexHomeOverrideDrafts((prev) => ({
-                                  ...prev,
-                                  [workspace.id]: "",
-                                }));
-                                await onUpdateWorkspaceSettings(workspace.id, {
-                                  codexHome: null,
-                                });
-                              }}
-                            >
-                              {t("settings.action.clear")}
-                            </button>
-                          </div>
-                          <div className="settings-override-field">
-                            <input
-                              className="settings-input settings-input--compact"
-                              value={codexArgsOverrideDrafts[workspace.id] ?? ""}
-                              placeholder={t("settings.codex.workspaceOverrides.argsPlaceholder")}
-                              onChange={(event) =>
-                                setCodexArgsOverrideDrafts((prev) => ({
-                                  ...prev,
-                                  [workspace.id]: event.target.value,
-                                }))
-                              }
-                              onBlur={async () => {
-                                const draft = codexArgsOverrideDrafts[workspace.id] ?? "";
-                                const nextValue = normalizeOverrideValue(draft);
-                                if (nextValue === (workspace.settings.codexArgs ?? null)) {
-                                  return;
-                                }
-                                await onUpdateWorkspaceSettings(workspace.id, {
-                                  codexArgs: nextValue,
-                                });
-                              }}
-                              aria-label={t("settings.codex.workspaceOverrides.argsAria", {
-                                name: workspace.name,
-                              })}
-                            />
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={async () => {
-                                setCodexArgsOverrideDrafts((prev) => ({
-                                  ...prev,
-                                  [workspace.id]: "",
-                                }));
-                                await onUpdateWorkspaceSettings(workspace.id, {
-                                  codexArgs: null,
-                                });
-                              }}
-                            >
-                              {t("settings.action.clear")}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {projects.length === 0 && (
-                      <div className="settings-empty">
-                        {t("settings.projects.project.empty")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </section>
-            )}
-            {activeSection === "experimental" && (
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.experimental.title")}
-                </div>
-                <div className="settings-section-subtitle">
-                  {t("settings.experimental.subtitle")}
-                </div>
-                {hasCodexHomeOverrides && (
-                  <div className="settings-help">
-                    {t("settings.experimental.overridesNotice")}
-                  </div>
-                )}
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.experimental.configFile.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.experimental.configFile.subtitle", {
-                        label: fileManagerLabel,
-                      })}
-                    </div>
-                  </div>
-                  <button type="button" className="ghost" onClick={handleOpenConfig}>
-                    {openInFileManagerLabel}
-                  </button>
-                </div>
-                {openConfigError && (
-                  <div className="settings-help">{openConfigError}</div>
-                )}
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.experimental.multiAgent.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.experimental.multiAgent.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.experimentalCollabEnabled ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        experimentalCollabEnabled: !appSettings.experimentalCollabEnabled,
-                      })
-                    }
-                    aria-pressed={appSettings.experimentalCollabEnabled}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.experimental.collaborationModes.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.experimental.collaborationModes.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${
-                      appSettings.experimentalCollaborationModesEnabled ? "on" : ""
-                    }`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        experimentalCollaborationModesEnabled:
-                          !appSettings.experimentalCollaborationModesEnabled,
-                      })
-                    }
-                    aria-pressed={appSettings.experimentalCollaborationModesEnabled}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.experimental.backgroundTerminal.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.experimental.backgroundTerminal.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.experimentalUnifiedExecEnabled ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        experimentalUnifiedExecEnabled: !appSettings.experimentalUnifiedExecEnabled,
-                      })
-                    }
-                    aria-pressed={appSettings.experimentalUnifiedExecEnabled}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">
-                      {t("settings.experimental.steer.title")}
-                    </div>
-                    <div className="settings-toggle-subtitle">
-                      {t("settings.experimental.steer.subtitle")}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-toggle ${appSettings.experimentalSteerEnabled ? "on" : ""}`}
-                    onClick={() =>
-                      void onUpdateAppSettings({
-                        ...appSettings,
-                        experimentalSteerEnabled: !appSettings.experimentalSteerEnabled,
-                      })
-                    }
-                    aria-pressed={appSettings.experimentalSteerEnabled}
-                  >
-                    <span className="settings-toggle-knob" />
-                  </button>
-                </div>
-              </section>
-            )}
+            </Tabs>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 }

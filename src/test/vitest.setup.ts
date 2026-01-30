@@ -75,6 +75,10 @@ if (!("requestAnimationFrame" in globalThis)) {
   });
 }
 
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 const hasLocalStorage = "localStorage" in globalThis;
 const existingLocalStorage = hasLocalStorage
   ? (globalThis as { localStorage?: Storage }).localStorage
