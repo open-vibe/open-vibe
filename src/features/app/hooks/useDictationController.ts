@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDictation } from "../../dictation/hooks/useDictation";
 import { useDictationModel } from "../../dictation/hooks/useDictationModel";
 import { useHoldToDictate } from "../../dictation/hooks/useHoldToDictate";
 import type { AppSettings } from "../../../types";
 import { requestDictationPermission } from "../../../services/tauri";
+import { getPlatformKind } from "../../../utils/platform";
 
 type DictationController = {
   dictationModel: ReturnType<typeof useDictationModel>;
@@ -37,13 +38,15 @@ export function useDictationController(appSettings: AppSettings): DictationContr
     clearError: clearDictationError,
     clearHint: clearDictationHint,
   } = useDictation();
-  const dictationReady = dictationModel.status?.state === "ready";
+  const platform = useMemo(() => getPlatformKind(), []);
+  const dictationReady =
+    platform === "windows" || dictationModel.status?.state === "ready";
   const holdDictationKey = (appSettings.dictationHoldKey ?? "").toLowerCase();
   const permissionRequestPendingRef = useRef(false);
   const permissionRequestedRef = useRef(false);
 
   const handleToggleDictation = useCallback(async () => {
-    if (!appSettings.dictationEnabled || !dictationReady) {
+    if (!appSettings.dictationEnabled) {
       return;
     }
     try {
@@ -60,7 +63,6 @@ export function useDictationController(appSettings: AppSettings): DictationContr
   }, [
     appSettings.dictationEnabled,
     appSettings.dictationPreferredLanguage,
-    dictationReady,
     dictationState,
     startDictation,
     stopDictation,

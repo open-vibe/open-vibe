@@ -83,7 +83,17 @@ export function useDictation(): UseDictationResult {
   const start = useCallback(async (preferredLanguage: string | null) => {
     setError(null);
     setHint(null);
-    await startDictation(preferredLanguage);
+    try {
+      await startDictation(preferredLanguage);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "Failed to start dictation.";
+      setError(message);
+    }
   }, []);
 
   const stop = useCallback(async () => {

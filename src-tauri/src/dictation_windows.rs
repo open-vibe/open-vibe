@@ -221,17 +221,27 @@ pub(crate) async fn dictation_start(
         }
     }
 
-    let recognizer = build_recognizer()?;
-    let session = recognizer
-        .ContinuousRecognitionSession()
-        .map_err(format_windows_error)?;
+    let recognizer = match build_recognizer() {
+        Ok(recognizer) => recognizer,
+        Err(message) => {
+            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            return Err(message);
+        }
+    };
+    let session = match recognizer.ContinuousRecognitionSession() {
+        Ok(session) => session,
+        Err(error) => {
+            let message = format_windows_error(error);
+            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            return Err(message);
+        }
+    };
 
     let app_for_results = app.clone();
-    let result_token = session
-        .ResultGenerated(&TypedEventHandler::<
-            _,
-            SpeechContinuousRecognitionResultGeneratedEventArgs,
-        >::new(move |_, args| {
+    let result_token = match session.ResultGenerated(&TypedEventHandler::<
+        _,
+        SpeechContinuousRecognitionResultGeneratedEventArgs,
+    >::new(move |_, args| {
             if let Some(args) = args.as_ref() {
                 let result = args.Result()?;
                 if result.Status()? == SpeechRecognitionResultStatus::Success {
@@ -242,12 +252,18 @@ pub(crate) async fn dictation_start(
                 }
             }
             Ok(())
-        }))
-        .map_err(format_windows_error)?;
+        })) {
+        Ok(token) => token,
+        Err(error) => {
+            let message = format_windows_error(error);
+            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            return Err(message);
+        }
+    };
 
     let app_for_completed = app.clone();
-    let completed_token = session
-        .Completed(&TypedEventHandler::<_, SpeechContinuousRecognitionCompletedEventArgs>::new(
+    let completed_token = match session.Completed(
+        &TypedEventHandler::<_, SpeechContinuousRecognitionCompletedEventArgs>::new(
             move |_, args| {
                 if let Some(args) = args.as_ref() {
                     let status = args.Status()?;
@@ -268,14 +284,25 @@ pub(crate) async fn dictation_start(
                 );
                 Ok(())
             },
-        ))
-        .map_err(format_windows_error)?;
+        ),
+    ) {
+        Ok(token) => token,
+        Err(error) => {
+            let message = format_windows_error(error);
+            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            return Err(message);
+        }
+    };
 
-    session
+    if let Err(error) = session
         .StartAsync()
         .map_err(format_windows_error)?
         .get()
-        .map_err(format_windows_error)?;
+        .map_err(format_windows_error)
+    {
+        emit_event(&app, DictationEvent::Error { message: error.clone() });
+        return Err(error);
+    }
 
     {
         let mut dictation = state.dictation.lock().await;
