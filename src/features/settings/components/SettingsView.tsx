@@ -1107,36 +1107,60 @@ export function SettingsView({
               onValueChange={(value) => setActiveSection(value as CodexSection)}
               className="flex min-h-0 flex-1"
             >
-              <TabsList className="h-full w-60 flex-col items-stretch gap-1 overflow-y-auto rounded-none border-r bg-muted/30 p-2 text-sm">
-                <TabsTrigger value="projects" className="justify-start gap-2">
+              <TabsList className="h-full w-60 flex-col items-stretch gap-1 overflow-y-auto rounded-none border-r bg-transparent p-2 text-sm text-muted-foreground">
+                <TabsTrigger
+                  value="projects"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <LayoutGrid className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.projects")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="display" className="justify-start gap-2">
+                <TabsTrigger
+                  value="display"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <SlidersHorizontal className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.displaySound")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="composer" className="justify-start gap-2">
+                <TabsTrigger
+                  value="composer"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <FileText className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.composer")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="dictation" className="justify-start gap-2">
+                <TabsTrigger
+                  value="dictation"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <Mic className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.dictation")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="shortcuts" className="justify-start gap-2">
+                <TabsTrigger
+                  value="shortcuts"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <Keyboard className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.shortcuts")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="open-apps" className="justify-start gap-2">
+                <TabsTrigger
+                  value="open-apps"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <ExternalLink className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.openIn")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="codex" className="justify-start gap-2">
+                <TabsTrigger
+                  value="codex"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <TerminalSquare className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.codex")}</span>
                 </TabsTrigger>
-                <TabsTrigger value="experimental" className="justify-start gap-2">
+                <TabsTrigger
+                  value="experimental"
+                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+                >
                   <FlaskConical className="h-4 w-4" aria-hidden />
                   <span>{t("settings.nav.experimental")}</span>
                 </TabsTrigger>
@@ -1187,7 +1211,7 @@ export function SettingsView({
                         {workspaceGroups.length > 0 ? (
                           <div className="space-y-3">
                             {workspaceGroups.map((group, index) => (
-                              <div key={group.id} className="rounded-md border p-3">
+                              <div key={group.id} className="rounded-md border border-border/60 p-3">
                                 <div className="flex flex-wrap items-start justify-between gap-4">
                                   <div className="flex-1 min-w-[220px] space-y-3">
                                     <Input
@@ -1216,7 +1240,7 @@ export function SettingsView({
                                       <div className="flex flex-wrap items-center gap-2">
                                         <div
                                           className={cn(
-                                            "flex-1 min-w-[200px] truncate rounded-md border bg-muted/40 px-3 py-2 text-xs",
+                                            "flex-1 min-w-[200px] truncate rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs",
                                             !group.copiesFolder && "text-muted-foreground",
                                           )}
                                           title={group.copiesFolder ?? ""}
@@ -1324,7 +1348,7 @@ export function SettingsView({
                                   return (
                                     <div
                                       key={workspace.id}
-                                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+                                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 p-3"
                                     >
                                       <div className="min-w-[220px]">
                                         <div className="text-sm font-medium">
@@ -1478,7 +1502,7 @@ export function SettingsView({
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                           <div className="space-y-1">
                             <Label htmlFor="reduce-transparency">
                               {t("settings.display.reduceTransparency.title")}
@@ -1493,7 +1517,7 @@ export function SettingsView({
                             onCheckedChange={(value) => onToggleTransparency(value)}
                           />
                         </div>
-                        <div className="rounded-md border p-3">
+                        <div className="rounded-md border border-border/60 p-3">
                           <div className="space-y-2">
                             <Label htmlFor="ui-scale">
                               {t("settings.display.interfaceScale.title")}
@@ -1536,7 +1560,7 @@ export function SettingsView({
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-md border p-3">
+                        <div className="rounded-md border border-border/60 p-3">
                           <div className="space-y-2">
                             <Label htmlFor="ui-font-family">
                               {t("settings.display.uiFont.label")}
@@ -1577,7 +1601,7 @@ export function SettingsView({
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-md border p-3">
+                        <div className="rounded-md border border-border/60 p-3">
                           <div className="space-y-2">
                             <Label htmlFor="code-font-family">
                               {t("settings.display.codeFont.label")}
@@ -1618,7 +1642,7 @@ export function SettingsView({
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-md border p-3">
+                        <div className="rounded-md border border-border/60 p-3">
                           <div className="space-y-2">
                             <Label htmlFor="code-font-size">
                               {t("settings.display.codeFontSize.label")}
@@ -1669,7 +1693,7 @@ export function SettingsView({
                             {t("settings.display.sounds.subtitle")}
                           </div>
                         </div>
-                        <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                           <div className="space-y-1">
                             <Label htmlFor="notification-sounds">
                               {t("settings.display.notificationSounds.title")}
@@ -1750,7 +1774,7 @@ export function SettingsView({
                           {t("settings.composer.codeFences.title")}
                         </div>
                         <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-fence-space">
                                 {t("settings.composer.codeFences.expandSpace.title")}
@@ -1770,7 +1794,7 @@ export function SettingsView({
                               }
                             />
                           </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-fence-enter">
                                 {t("settings.composer.codeFences.expandEnter.title")}
@@ -1790,7 +1814,7 @@ export function SettingsView({
                               }
                             />
                           </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-fence-language">
                                 {t("settings.composer.codeFences.languageTags.title")}
@@ -1810,7 +1834,7 @@ export function SettingsView({
                               }
                             />
                           </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-fence-wrap">
                                 {t("settings.composer.codeFences.wrapSelection.title")}
@@ -1830,7 +1854,7 @@ export function SettingsView({
                               }
                             />
                           </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-fence-copy">
                                 {t("settings.composer.codeFences.copyWithoutFences.title")}
@@ -1858,7 +1882,7 @@ export function SettingsView({
                           {t("settings.composer.pasting.title")}
                         </div>
                         <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-paste-multiline">
                                 {t("settings.composer.pasting.autoWrapMultiline.title")}
@@ -1878,7 +1902,7 @@ export function SettingsView({
                               }
                             />
                           </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                             <div className="space-y-1">
                               <Label htmlFor="composer-paste-codelike">
                                 {t("settings.composer.pasting.autoWrapCodeLike.title")}
@@ -1905,7 +1929,7 @@ export function SettingsView({
                         <div className="text-sm font-medium">
                           {t("settings.composer.lists.title")}
                         </div>
-                        <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                           <div className="space-y-1">
                             <Label htmlFor="composer-list-continuation">
                               {t("settings.composer.lists.continue.title")}
@@ -1935,7 +1959,7 @@ export function SettingsView({
                       title={t("settings.dictation.title")}
                       description={t("settings.dictation.subtitle")}
                     >
-                      <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="dictation-enabled">
                             {t("settings.dictation.enable.title")}
@@ -2124,7 +2148,7 @@ export function SettingsView({
                         </div>
                       </div>
                       {dictationModelStatus && (
-                        <div className="space-y-2 rounded-md border p-3">
+                        <div className="space-y-2 rounded-md border border-border/60 p-3">
                           <div className="text-sm font-medium">
                             {t("settings.dictation.status.label", {
                               label: selectedDictationModel.label,
@@ -2786,10 +2810,10 @@ export function SettingsView({
                             openAppIconById[target.id] ??
                             GENERIC_APP_ICON;
                           return (
-                            <div key={target.id} className="rounded-md border p-3">
+                            <div key={target.id} className="rounded-md border border-border/60 p-3">
                               <div className="flex flex-wrap items-start gap-3">
                                 <div
-                                  className="flex h-9 w-9 items-center justify-center rounded-md border bg-muted/40"
+                                  className="flex h-9 w-9 items-center justify-center rounded-md border border-border/60 bg-muted/20"
                                   aria-hidden
                                 >
                                   <img src={iconSrc} alt="" width={18} height={18} />
@@ -3057,7 +3081,7 @@ export function SettingsView({
                       {doctorState.result && (
                         <div
                           className={cn(
-                            "rounded-md border p-3 text-sm",
+                            "rounded-md border border-border/60 p-3 text-sm",
                             doctorState.result.ok
                               ? "border-emerald-500/40 bg-emerald-50/40"
                               : "border-destructive/40 bg-destructive/10",
@@ -3117,7 +3141,7 @@ export function SettingsView({
                     >
                       <div className="space-y-3">
                         {projects.map((workspace) => (
-                          <div key={workspace.id} className="rounded-md border p-3">
+                          <div key={workspace.id} className="rounded-md border border-border/60 p-3">
                             <div className="space-y-3">
                               <div>
                                 <div className="text-sm font-medium">{workspace.name}</div>
@@ -3349,7 +3373,7 @@ export function SettingsView({
                         </div>
                       </div>
                       {appSettings.backendMode === "remote" && (
-                        <div className="space-y-2 rounded-md border p-3">
+                        <div className="space-y-2 rounded-md border border-border/60 p-3">
                           <div className="text-sm font-medium">
                             {t("settings.codex.remote.title")}
                           </div>
@@ -3417,7 +3441,7 @@ export function SettingsView({
                         </>
                       }
                       classNames={{
-                        container: "rounded-md border bg-card p-4",
+                        container: "rounded-md border border-border/60 p-4",
                         header: "flex flex-wrap items-center justify-between gap-2",
                         title: "text-sm font-medium",
                         actions: "flex flex-wrap items-center gap-2",
@@ -3453,7 +3477,7 @@ export function SettingsView({
                         </>
                       }
                       classNames={{
-                        container: "rounded-md border bg-card p-4",
+                        container: "rounded-md border border-border/60 p-4",
                         header: "flex flex-wrap items-center justify-between gap-2",
                         title: "text-sm font-medium",
                         actions: "flex flex-wrap items-center gap-2",
@@ -3481,7 +3505,7 @@ export function SettingsView({
                           {t("settings.experimental.overridesNotice")}
                         </div>
                       )}
-                      <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <div className="text-sm font-medium">
                             {t("settings.experimental.configFile.title")}
@@ -3499,7 +3523,7 @@ export function SettingsView({
                       {openConfigError && (
                         <div className="text-sm text-destructive">{openConfigError}</div>
                       )}
-                      <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="experimental-collab">
                             {t("settings.experimental.multiAgent.title")}
@@ -3519,7 +3543,7 @@ export function SettingsView({
                           }
                         />
                       </div>
-                      <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="experimental-collab-modes">
                             {t("settings.experimental.collaborationModes.title")}
@@ -3539,7 +3563,7 @@ export function SettingsView({
                           }
                         />
                       </div>
-                      <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="experimental-unified">
                             {t("settings.experimental.backgroundTerminal.title")}
@@ -3559,7 +3583,7 @@ export function SettingsView({
                           }
                         />
                       </div>
-                      <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="experimental-steer">
                             {t("settings.experimental.steer.title")}
@@ -3590,4 +3614,7 @@ export function SettingsView({
       </div>
     );
 }
+
+
+
 
