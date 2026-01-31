@@ -29,6 +29,10 @@ export function useDictation(): UseDictationResult {
   const [hint, setHint] = useState<string | null>(null);
   const hintTimeoutRef = useRef<number | null>(null);
 
+  const isAlreadyActiveMessage = useCallback((message: string) => {
+    return message.toLowerCase().includes("dictation is already active");
+  }, []);
+
   useEffect(() => {
     let active = true;
     const unlisten = subscribeDictationEvents((event: DictationEvent) => {
@@ -54,6 +58,9 @@ export function useDictation(): UseDictationResult {
         return;
       }
       if (event.type === "error") {
+        if (isAlreadyActiveMessage(event.message)) {
+          return;
+        }
         setError(event.message);
         return;
       }
@@ -92,9 +99,12 @@ export function useDictation(): UseDictationResult {
           : typeof error === "string"
             ? error
             : "Failed to start dictation.";
+      if (isAlreadyActiveMessage(message)) {
+        return;
+      }
       setError(message);
     }
-  }, []);
+  }, [isAlreadyActiveMessage]);
 
   const stop = useCallback(async () => {
     await stopDictation();
