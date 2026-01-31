@@ -1426,6 +1426,49 @@ function MainApp() {
   } | null>(null);
   const [topbarOverrides, setTopbarOverrides] =
     useState<ThreadTopbarOverrides | null>(null);
+  const handleComposerOverridesChange = useCallback(
+    (next: typeof composerOverrides) => {
+      setComposerOverrides((prev) => {
+        if (prev === next) {
+          return prev;
+        }
+        if (!prev || !next) {
+          return next;
+        }
+        if (
+          prev.sendLabel === next.sendLabel &&
+          prev.onSend === next.onSend &&
+          prev.onQueue === next.onQueue
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    [],
+  );
+  const handleTopbarOverridesChange = useCallback(
+    (next: ThreadTopbarOverrides | null) => {
+      setTopbarOverrides((prev) => {
+        if (prev === next) {
+          return prev;
+        }
+        if (!prev || !next) {
+          return next;
+        }
+        if (
+          prev.centerMode === next.centerMode &&
+          prev.gitDiffViewStyle === next.gitDiffViewStyle &&
+          prev.onSelectDiffViewStyle === next.onSelectDiffViewStyle &&
+          prev.onExitDiff === next.onExitDiff
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   const {
     handleSelectPullRequest,
@@ -2066,9 +2109,9 @@ function MainApp() {
   const showThreadTabs = !isCompact && threadTabs.length > 0 && !showHome;
   useEffect(() => {
     if (!showThreadTabs) {
-      setTopbarOverrides(null);
+      handleTopbarOverridesChange(null);
     }
-  }, [showThreadTabs]);
+  }, [handleTopbarOverridesChange, showThreadTabs]);
   const threadTabsBarNode = showThreadTabs ? (
     <ThreadTabsBar
       tabs={threadTabs}
@@ -2114,8 +2157,8 @@ function MainApp() {
       onInsertComposerText={handleInsertComposerText}
       updateWorkspaceSettings={updateWorkspaceSettings}
       onError={alertError}
-      onComposerOverridesChange={setComposerOverrides}
-      onTopbarOverridesChange={setTopbarOverrides}
+      onComposerOverridesChange={handleComposerOverridesChange}
+      onTopbarOverridesChange={handleTopbarOverridesChange}
     />
   ) : null;
 
