@@ -10,6 +10,15 @@ type ThreadTabsBarProps = {
   onReorderTab: (tabId: string, targetId: string) => void;
 };
 
+const MAX_TITLE_LENGTH = 20;
+
+const getDisplayTitle = (title: string) => {
+  if (title.length <= MAX_TITLE_LENGTH) {
+    return title;
+  }
+  return `${title.slice(0, MAX_TITLE_LENGTH)}…`;
+};
+
 export function ThreadTabsBar({
   tabs,
   activeTabId,
@@ -26,6 +35,7 @@ export function ThreadTabsBar({
       <div className="thread-tabs-list" role="tablist" aria-orientation="horizontal">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
+          const displayTitle = getDisplayTitle(tab.title);
           return (
             <div
               key={tab.id}
@@ -63,7 +73,7 @@ export function ThreadTabsBar({
                 onClick={() => onSelectTab(tab.id)}
                 data-tauri-drag-region="false"
               >
-                <span className="truncate">{tab.title}</span>
+                <span className="thread-tab-title">{displayTitle}</span>
               </button>
               <span
                 role="button"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GitFileStatus, WorkspaceInfo } from "../../../types";
 import { getGitStatus } from "../../../services/tauri";
+import { isMissingGitRepoError } from "../../../utils/gitErrors";
 
 type GitStatusState = {
   branchName: string;
@@ -28,10 +29,15 @@ export function useGitStatus(
   enabled = true,
 ) {
   const [status, setStatus] = useState<GitStatusState>(emptyStatus);
+  const [skipPolling, setSkipPolling] = useState(false);
   const requestIdRef = useRef(0);
   const workspaceIdRef = useRef<string | null>(activeWorkspace?.id ?? null);
   const cachedStatusRef = useRef<Map<string, GitStatusState>>(new Map());
   const workspaceId = activeWorkspace?.id ?? null;
+  const gitRootSignature = activeWorkspace
+    ? `${activeWorkspace.id}:${activeWorkspace.settings.gitRoot ?? ""}:${activeWorkspace.path}`
+    : null;
+  const prevGitRootSignatureRef = useRef<string | null>(gitRootSignature);
 
   const resolveBranchName = useCallback(
     (incoming: string | undefined, cached: GitStatusState | undefined) => {
@@ -65,6 +71,7 @@ export function useGitStatus(
         ) {
           return;
         }
+        setSkipPolling(false);
         const cached = cachedStatusRef.current.get(workspaceId);
         const resolvedBranchName = resolveBranchName(data.branchName, cached);
         const nextStatus = {
@@ -84,6 +91,9 @@ export function useGitStatus(
           return;
         }
         const message = err instanceof Error ? err.message : String(err);
+        if (isMissingGitRepoError(message)) {
+          setSkipPolling(true);
+        }
         const cached = cachedStatusRef.current.get(workspaceId);
         const nextStatus = cached
           ? { ...cached, error: message }
@@ -96,6 +106,7 @@ export function useGitStatus(
     if (workspaceIdRef.current !== workspaceId) {
       workspaceIdRef.current = workspaceId;
       requestIdRef.current += 1;
+      setSkipPolling(false);
       if (!workspaceId) {
         setStatus(emptyStatus);
         return;
@@ -106,11 +117,21 @@ export function useGitStatus(
   }, [enabled, workspaceId]);
 
   useEffect(() => {
+    if (prevGitRootSignatureRef.current !== gitRootSignature) {
+      prevGitRootSignatureRef.current = gitRootSignature;
+      setSkipPolling(false);
+    }
+  }, [gitRootSignature]);
+
+  useEffect(() => {
     if (!workspaceId) {
       setStatus(emptyStatus);
       return;
     }
     if (!enabled) {
+      return;
+    }
+    if (skipPolling) {
       return;
     }
 
@@ -124,7 +145,7 @@ export function useGitStatus(
     return () => {
       window.clearInterval(interval);
     };
-  }, [enabled, refresh, workspaceId]);
+  }, [enabled, refresh, skipPolling, workspaceId]);
 
   return { status, refresh };
 }

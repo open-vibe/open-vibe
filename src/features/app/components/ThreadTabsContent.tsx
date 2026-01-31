@@ -140,32 +140,36 @@ export function ThreadTabsContent({
     }
   }, [activeThreadTab, onTopbarOverridesChange]);
 
-  if (!tabs.length) {
-    return null;
-  }
+    if (!tabs.length) {
+      return null;
+    }
 
-  return (
-    <>
-      {tabs.map((tab) => {
-        const workspace = workspacesById.get(tab.workspaceId);
-        if (!workspace) {
-          return null;
-        }
-        const parentWorkspace = workspace.parentId
-          ? workspacesById.get(workspace.parentId) ?? null
-          : null;
-        const items = itemsByThread[tab.threadId] ?? [];
-        const plan = planByThread[tab.threadId] ?? null;
-        const threadStatus = threadStatusById[tab.threadId] ?? null;
-        const isActive = tab.id === activeTabId;
-        return (
-          <ThreadTabView
-            key={tab.id}
-            tabId={tab.id}
-            workspace={workspace}
-            parentWorkspace={parentWorkspace}
-            threadId={tab.threadId}
-            isActive={isActive}
+    return (
+      <>
+        {tabs.map((tab) => {
+          const workspace = workspacesById.get(tab.workspaceId);
+          if (!workspace) {
+            return null;
+          }
+          const isActive = tab.id === activeTabId;
+          const shouldRender = isActive || tab.loaded;
+          if (!shouldRender) {
+            return null;
+          }
+          const parentWorkspace = workspace.parentId
+            ? workspacesById.get(workspace.parentId) ?? null
+            : null;
+          const items = itemsByThread[tab.threadId] ?? [];
+          const plan = planByThread[tab.threadId] ?? null;
+          const threadStatus = threadStatusById[tab.threadId] ?? null;
+          return (
+            <ThreadTabView
+              key={tab.id}
+              tabId={tab.id}
+              workspace={workspace}
+              parentWorkspace={parentWorkspace}
+              threadId={tab.threadId}
+              isActive={isActive}
             items={items}
             threadStatus={threadStatus}
             plan={plan}

@@ -14,8 +14,8 @@
 }
 
 .main .messages-full {
-  margin-top: calc(-1 * var(--main-topbar-height));
-  padding-top: calc(12px + var(--main-topbar-height));
+  margin-top: calc(-1 * (var(--main-topbar-height) + var(--thread-tabs-height, 0px)));
+  padding-top: calc(12px + var(--main-topbar-height) + var(--thread-tabs-height, 0px));
 }
 
 .messages-empty {

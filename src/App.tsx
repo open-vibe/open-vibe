@@ -103,6 +103,7 @@ import { ThreadTabsBar } from "./features/app/components/ThreadTabsBar";
 import { ThreadTabsContent } from "./features/app/components/ThreadTabsContent";
 import { useThreadTabs } from "./features/app/hooks/useThreadTabs";
 import type { ThreadTopbarOverrides } from "./features/app/types/threadTabs";
+import { DebugErrorBoundary } from "./features/app/components/DebugErrorBoundary";
 import type {
   AccessMode,
   ComposerEditorSettings,
@@ -169,6 +170,7 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState<
     "projects" | "codex" | "git" | "log"
   >("codex");
+  const [homeView, setHomeView] = useState(true);
   const tabletTab = activeTab === "projects" ? "codex" : activeTab;
   const {
     workspaces,
@@ -663,7 +665,7 @@ function MainApp() {
   );
 
   useEffect(() => {
-    if (!activeThreadTab) {
+    if (!activeThreadTab || homeView) {
       return;
     }
     if (activeWorkspaceId !== activeThreadTab.workspaceId) {
@@ -682,6 +684,7 @@ function MainApp() {
     activeThreadId,
     activeThreadTab,
     activeWorkspaceId,
+    homeView,
     markTabLoaded,
     setActiveThreadId,
     setActiveWorkspaceId,
@@ -711,13 +714,14 @@ function MainApp() {
 
   const openThreadTabForWorkspace = useCallback(
     (workspaceId: string, threadId: string) => {
+      setHomeView(false);
       const fallbackName = `Agent ${threadId.slice(0, 4)}`;
       const threadName =
         threadsByWorkspace[workspaceId]?.find((thread) => thread.id === threadId)
           ?.name ?? fallbackName;
       openThreadTab(workspaceId, threadId, threadName);
     },
-    [openThreadTab, threadsByWorkspace],
+    [openThreadTab, setHomeView, threadsByWorkspace],
   );
 
   useAutoExitEmptyDiff({
@@ -998,8 +1002,8 @@ function MainApp() {
   const hasActivePlan = Boolean(
     activePlan && (activePlan.steps.length > 0 || activePlan.explanation)
   );
-  const showHome = !activeWorkspace;
-  const showWorkspaceHome = Boolean(activeWorkspace && !activeThreadId);
+  const showHome = homeView;
+  const showWorkspaceHome = Boolean(!showHome && activeWorkspace && !activeThreadId);
   const [usageMetric, setUsageMetric] = useState<"tokens" | "time">("tokens");
   const [usageWorkspaceId, setUsageWorkspaceId] = useState<string | null>(null);
   const usageWorkspaceOptions = useMemo(
@@ -1713,11 +1717,13 @@ function MainApp() {
     onAddWorkspace: handleAddWorkspace,
     onSelectHome: () => {
       resetPullRequestSelection();
+      setHomeView(true);
       selectHome();
     },
     onSelectWorkspace: (workspaceId) => {
       exitDiffView();
       resetPullRequestSelection();
+      setHomeView(false);
       selectWorkspace(workspaceId);
       setActiveThreadId(null, workspaceId);
     },
@@ -1742,6 +1748,7 @@ function MainApp() {
     onSelectThread: (workspaceId, threadId) => {
       exitDiffView();
       resetPullRequestSelection();
+      setHomeView(false);
       selectWorkspace(workspaceId);
       openThreadTabForWorkspace(workspaceId, threadId);
     },
@@ -2116,7 +2123,10 @@ function MainApp() {
     <ThreadTabsBar
       tabs={threadTabs}
       activeTabId={activeThreadTabId}
-      onSelectTab={setActiveThreadTabId}
+      onSelectTab={(tabId) => {
+        setHomeView(false);
+        setActiveThreadTabId(tabId);
+      }}
       onCloseTab={closeThreadTab}
       onReorderTab={reorderThreadTabs}
     />
@@ -2163,9 +2173,7 @@ function MainApp() {
   ) : null;
 
   const threadTabsHeight = showThreadTabs ? "36px" : "0px";
-  const mainTopbarHeight = showThreadTabs
-    ? `calc(64px + ${threadTabsHeight})`
-    : "64px";
+  const mainTopbarHeight = "64px";
 
   return (
     <I18nProvider language={appSettings.language}>
@@ -2318,12 +2326,18 @@ function App() {
   const windowLabel = useWindowLabel();
   if (windowLabel === "about") {
     return (
-      <Suspense fallback={null}>
-        <AboutView />
-      </Suspense>
+      <DebugErrorBoundary>
+        <Suspense fallback={null}>
+          <AboutView />
+        </Suspense>
+      </DebugErrorBoundary>
     );
   }
-  return <MainApp />;
+  return (
+    <DebugErrorBoundary>
+      <MainApp />
+    </DebugErrorBoundary>
+  );
 }
 
 export default App;

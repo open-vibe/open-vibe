@@ -97,13 +97,14 @@ export function DesktopLayout({
       />
 
       <SidebarInset className="main">
+        {threadTabsBarNode}
         {updateToastNode}
         {errorToastsNode}
         {showHome && homeNode}
 
         {showWorkspace && (
           <>
-            <MainTopbar leftNode={topbarLeftNode} tabsNode={threadTabsBarNode} />
+            <MainTopbar leftNode={topbarLeftNode} />
             {approvalToastsNode}
             {threadTabsNode ?? (
               <>

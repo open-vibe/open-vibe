@@ -7,7 +7,7 @@
   border-top: 1px solid var(--border-subtle);
   background: var(--surface-composer);
   grid-column: 1;
-  grid-row: 3;
+  grid-row: 4;
 }
 
 .composer-queue {

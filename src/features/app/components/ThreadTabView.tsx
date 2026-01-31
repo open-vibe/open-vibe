@@ -481,14 +481,33 @@ export function ThreadTabView({
     queueMessage,
   });
 
+  const composerSendRef = useRef(handleComposerSend);
+  const composerQueueRef = useRef(handleComposerQueue);
+  const stableComposerSend = useCallback(
+    (text: string, images: string[]) => composerSendRef.current(text, images),
+    [],
+  );
+  const stableComposerQueue = useCallback(
+    (text: string, images: string[]) => composerQueueRef.current(text, images),
+    [],
+  );
+
+  useEffect(() => {
+    composerSendRef.current = handleComposerSend;
+  }, [handleComposerSend]);
+
+  useEffect(() => {
+    composerQueueRef.current = handleComposerQueue;
+  }, [handleComposerQueue]);
+
   useEffect(() => {
     if (!onComposerOverridesChange || !isActive) {
       return;
     }
     const nextOverrides = {
       sendLabel: composerSendLabel,
-      onSend: handleComposerSend,
-      onQueue: handleComposerQueue,
+      onSend: stableComposerSend,
+      onQueue: stableComposerQueue,
     };
     const prev = lastComposerOverridesRef.current;
     if (
@@ -503,10 +522,10 @@ export function ThreadTabView({
     onComposerOverridesChange(nextOverrides);
   }, [
     composerSendLabel,
-    handleComposerQueue,
-    handleComposerSend,
     isActive,
     onComposerOverridesChange,
+    stableComposerQueue,
+    stableComposerSend,
   ]);
 
   useEffect(() => {
@@ -700,91 +719,87 @@ export function ThreadTabView({
       className={cn("thread-tab-view", !isActive && "is-hidden")}
       data-tab-id={tabId}
     >
-      {isActive ? (
-        <>
-          {shouldLoadGitHubPanelData ? (
-            <Suspense fallback={null}>
-              <GitHubPanelData
-                activeWorkspace={workspace}
-                gitPanelMode={gitPanelMode}
-                shouldLoadDiffs={shouldLoadDiffs}
-                diffSource={diffSource}
-                selectedPullRequestNumber={selectedPullRequest?.number ?? null}
-                onIssuesChange={handleGitIssuesChange}
-                onPullRequestsChange={handleGitPullRequestsChange}
-                onPullRequestDiffsChange={handleGitPullRequestDiffsChange}
-                onPullRequestCommentsChange={handleGitPullRequestCommentsChange}
-              />
-            </Suspense>
-          ) : null}
-          <div className="content">
-            <div
-              className={`content-layer ${centerMode === "diff" ? "is-active" : "is-hidden"}`}
-              aria-hidden={centerMode !== "diff"}
-              ref={diffLayerRef}
-            >
-              <GitDiffViewer
-                diffs={activeDiffs}
-                selectedPath={selectedDiffPath}
-                scrollRequestId={diffScrollRequestId}
-                isLoading={activeDiffLoading}
-                error={activeDiffError}
-                diffStyle={gitDiffViewStyle}
-                pullRequest={diffSource === "pr" ? selectedPullRequest : null}
-                pullRequestComments={
-                  diffSource === "pr" ? gitPullRequestComments : []
-                }
-                pullRequestCommentsLoading={gitPullRequestCommentsLoading}
-                pullRequestCommentsError={gitPullRequestCommentsError}
-                onActivePathChange={handleActiveDiffPath}
-              />
-            </div>
-            <div
-              className={`content-layer ${centerMode === "chat" ? "is-active" : "is-hidden"}`}
-              aria-hidden={centerMode !== "chat"}
-              ref={chatLayerRef}
-            >
-              <Messages
-                items={items}
-                threadId={threadId}
-                workspaceId={workspace.id}
-                workspacePath={workspace.path}
-                openTargets={openAppTargets}
-                selectedOpenAppId={selectedOpenAppId}
-                codeBlockCopyUseModifier={codeBlockCopyUseModifier}
-                userInputRequests={userInputRequests}
-                onUserInputSubmit={onUserInputSubmit}
-                isThinking={threadStatus?.isProcessing ?? false}
-                processingStartedAt={threadStatus?.processingStartedAt ?? null}
-                lastDurationMs={threadStatus?.lastDurationMs ?? null}
-              />
-            </div>
-          </div>
-          <div
-            className="right-panel-resizer"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize right panel"
-            onMouseDown={onRightPanelResizeStart}
+      {shouldLoadGitHubPanelData ? (
+        <Suspense fallback={null}>
+          <GitHubPanelData
+            activeWorkspace={workspace}
+            gitPanelMode={gitPanelMode}
+            shouldLoadDiffs={shouldLoadDiffs}
+            diffSource={diffSource}
+            selectedPullRequestNumber={selectedPullRequest?.number ?? null}
+            onIssuesChange={handleGitIssuesChange}
+            onPullRequestsChange={handleGitPullRequestsChange}
+            onPullRequestDiffsChange={handleGitPullRequestDiffsChange}
+            onPullRequestCommentsChange={handleGitPullRequestCommentsChange}
           />
-          <div className={`right-panel ${hasActivePlan ? "" : "plan-collapsed"}`}>
-            <div className="right-panel-top">{gitDiffPanelNode}</div>
-            <div
-              className="right-panel-divider"
-              role="separator"
-              aria-orientation="horizontal"
-              aria-label="Resize plan panel"
-              onMouseDown={onPlanPanelResizeStart}
-            />
-            <div className="right-panel-bottom">
-              <PlanPanel
-                plan={plan}
-                isProcessing={threadStatus?.isProcessing ?? false}
-              />
-            </div>
-          </div>
-        </>
+        </Suspense>
       ) : null}
+      <div className="content">
+        <div
+          className={`content-layer ${centerMode === "diff" ? "is-active" : "is-hidden"}`}
+          aria-hidden={centerMode !== "diff"}
+          ref={diffLayerRef}
+        >
+          <GitDiffViewer
+            diffs={activeDiffs}
+            selectedPath={selectedDiffPath}
+            scrollRequestId={diffScrollRequestId}
+            isLoading={activeDiffLoading}
+            error={activeDiffError}
+            diffStyle={gitDiffViewStyle}
+            pullRequest={diffSource === "pr" ? selectedPullRequest : null}
+            pullRequestComments={
+              diffSource === "pr" ? gitPullRequestComments : []
+            }
+            pullRequestCommentsLoading={gitPullRequestCommentsLoading}
+            pullRequestCommentsError={gitPullRequestCommentsError}
+            onActivePathChange={handleActiveDiffPath}
+          />
+        </div>
+        <div
+          className={`content-layer ${centerMode === "chat" ? "is-active" : "is-hidden"}`}
+          aria-hidden={centerMode !== "chat"}
+          ref={chatLayerRef}
+        >
+          <Messages
+            items={items}
+            threadId={threadId}
+            workspaceId={workspace.id}
+            workspacePath={workspace.path}
+            openTargets={openAppTargets}
+            selectedOpenAppId={selectedOpenAppId}
+            codeBlockCopyUseModifier={codeBlockCopyUseModifier}
+            userInputRequests={userInputRequests}
+            onUserInputSubmit={onUserInputSubmit}
+            isThinking={threadStatus?.isProcessing ?? false}
+            processingStartedAt={threadStatus?.processingStartedAt ?? null}
+            lastDurationMs={threadStatus?.lastDurationMs ?? null}
+          />
+        </div>
+      </div>
+      <div
+        className="right-panel-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize right panel"
+        onMouseDown={onRightPanelResizeStart}
+      />
+      <div className={`right-panel ${hasActivePlan ? "" : "plan-collapsed"}`}>
+        <div className="right-panel-top">{gitDiffPanelNode}</div>
+        <div
+          className="right-panel-divider"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize plan panel"
+          onMouseDown={onPlanPanelResizeStart}
+        />
+        <div className="right-panel-bottom">
+          <PlanPanel
+            plan={plan}
+            isProcessing={threadStatus?.isProcessing ?? false}
+          />
+        </div>
+      </div>
     </div>
   );
 }

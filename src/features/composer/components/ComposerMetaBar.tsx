@@ -15,11 +15,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { AccessMode, ThreadTokenUsage } from "../../../types";
 import { formatCollaborationModeLabel } from "../../../utils/collaborationModes";
 import { useI18n } from "../../../i18n";
@@ -237,38 +232,34 @@ export function ComposerMetaBar({
       </DropdownMenu>
 
       <div className="ml-auto">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="relative grid size-5 place-items-center rounded-full"
-              aria-label={
-                contextFreePercent === null
-                  ? t("composer.contextFreeUnknown")
-                  : t("composer.contextFree", {
-                      percent: Math.round(contextFreePercent),
-                    })
-              }
-              style={
-                {
-                  "--context-free": contextFreePercent ?? 0,
-                  background:
-                    "radial-gradient(circle, hsl(var(--background)) 54%, transparent 56%), conic-gradient(from 180deg, hsl(calc(120deg * var(--context-free) / 100) 80% 55%) calc(var(--context-free) * 1%), hsl(var(--border)) 0)",
-                } as CSSProperties
-              }
-            >
-              <span className="text-[6px] font-semibold text-muted-foreground">
-                ●
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {contextFreePercent === null
+        <div
+          className="relative grid size-5 place-items-center rounded-full"
+          aria-label={
+            contextFreePercent === null
               ? t("composer.contextFreeUnknown")
               : t("composer.contextFree", {
                   percent: Math.round(contextFreePercent),
-                })}
-          </TooltipContent>
-        </Tooltip>
+                })
+          }
+          title={
+            contextFreePercent === null
+              ? t("composer.contextFreeUnknown")
+              : t("composer.contextFree", {
+                  percent: Math.round(contextFreePercent),
+                })
+          }
+          style={
+            {
+              "--context-free": contextFreePercent ?? 0,
+              background:
+                "radial-gradient(circle, hsl(var(--background)) 54%, transparent 56%), conic-gradient(from 180deg, hsl(calc(120deg * var(--context-free) / 100) 80% 55%) calc(var(--context-free) * 1%), hsl(var(--border)) 0)",
+            } as CSSProperties
+          }
+        >
+          <span className="text-[6px] font-semibold text-muted-foreground">
+            ●
+          </span>
+        </div>
       </div>
     </div>
   );

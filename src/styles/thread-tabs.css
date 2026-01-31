@@ -11,9 +11,15 @@
   align-items: center;
   width: 100%;
   gap: 8px;
-  padding: 6px 12px 4px;
-  border-top: 1px solid var(--border-subtle);
+  padding: 6px 12px;
+  min-height: var(--thread-tabs-height, 36px);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-topbar);
+  position: relative;
+  z-index: 4;
   -webkit-app-region: no-drag;
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
 
 .thread-tabs-list {
@@ -24,6 +30,8 @@
   border-radius: 0;
   background: transparent;
   padding: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .thread-tab-item {
@@ -33,6 +41,7 @@
   max-width: 200px;
   border-bottom: 2px solid transparent;
   color: hsl(var(--muted-foreground));
+  min-width: 0;
 }
 
 .thread-tab-item.is-active {
@@ -51,11 +60,20 @@
   font-weight: 500;
   color: inherit;
   cursor: pointer;
+  min-width: 0;
+  max-width: 160px;
+  flex: 1 1 auto;
 }
 
 .thread-tab-button:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+.thread-tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .thread-tab-close {
@@ -68,6 +86,7 @@
   opacity: 0;
   transition: opacity 120ms ease;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .thread-tab-item:hover .thread-tab-close,
