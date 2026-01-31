@@ -1,6 +1,5 @@
 import { X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ThreadTab } from "../hooks/useThreadTabs";
 
@@ -68,12 +67,13 @@ export function ThreadTabsBar({
               title={tab.title}
             >
               <span className="truncate">{tab.title}</span>
-              <Button
-                asChild
-                variant="ghost"
-                size="icon-xs"
+              <span
+                role="button"
+                aria-label={`Close ${tab.title}`}
+                tabIndex={-1}
+                data-tauri-drag-region="false"
                 className={cn(
-                  "ml-auto h-5 w-5 rounded-sm p-0",
+                  "ml-auto inline-flex h-5 w-5 items-center justify-center rounded-sm",
                   "opacity-0 transition-opacity group-hover:opacity-100",
                   "group-data-[state=active]/thread-tab:opacity-100",
                 )}
@@ -82,13 +82,13 @@ export function ThreadTabsBar({
                   event.stopPropagation();
                   onCloseTab(tab.id);
                 }}
-                aria-label={`Close ${tab.title}`}
-                data-tauri-drag-region="false"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
               >
-                <span role="button" aria-hidden={false}>
-                  <X className="h-3 w-3" />
-                </span>
-              </Button>
+                <X className="h-3 w-3" />
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>
