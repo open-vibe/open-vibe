@@ -148,6 +148,8 @@ export function ThreadTabView({
 }: ThreadTabViewProps) {
   const diffLayerRef = useRef<HTMLDivElement | null>(null);
   const chatLayerRef = useRef<HTMLDivElement | null>(null);
+  const lastComposerOverridesRef = useRef<ComposerOverrides | null>(null);
+  const lastTopbarOverridesRef = useRef<ThreadTopbarOverrides | null>(null);
   const isWorktreeWorkspace = workspace.kind === "worktree";
   const worktreeApplyTitle = parentWorkspace?.name
     ? `Apply changes to ${parentWorkspace.name}`
@@ -483,23 +485,52 @@ export function ThreadTabView({
     if (!onComposerOverridesChange || !isActive) {
       return;
     }
-    onComposerOverridesChange({
+    const nextOverrides = {
       sendLabel: composerSendLabel,
       onSend: handleComposerSend,
       onQueue: handleComposerQueue,
-    });
-  }, [composerSendLabel, handleComposerQueue, handleComposerSend, isActive, onComposerOverridesChange]);
+    };
+    const prev = lastComposerOverridesRef.current;
+    if (
+      prev &&
+      prev.sendLabel === nextOverrides.sendLabel &&
+      prev.onSend === nextOverrides.onSend &&
+      prev.onQueue === nextOverrides.onQueue
+    ) {
+      return;
+    }
+    lastComposerOverridesRef.current = nextOverrides;
+    onComposerOverridesChange(nextOverrides);
+  }, [
+    composerSendLabel,
+    handleComposerQueue,
+    handleComposerSend,
+    isActive,
+    onComposerOverridesChange,
+  ]);
 
   useEffect(() => {
     if (!onTopbarOverridesChange || !isActive) {
       return;
     }
-    onTopbarOverridesChange({
+    const nextOverrides = {
       centerMode,
       gitDiffViewStyle,
       onSelectDiffViewStyle: setGitDiffViewStyle,
       onExitDiff: handleExitDiff,
-    });
+    };
+    const prev = lastTopbarOverridesRef.current;
+    if (
+      prev &&
+      prev.centerMode === nextOverrides.centerMode &&
+      prev.gitDiffViewStyle === nextOverrides.gitDiffViewStyle &&
+      prev.onSelectDiffViewStyle === nextOverrides.onSelectDiffViewStyle &&
+      prev.onExitDiff === nextOverrides.onExitDiff
+    ) {
+      return;
+    }
+    lastTopbarOverridesRef.current = nextOverrides;
+    onTopbarOverridesChange(nextOverrides);
   }, [
     centerMode,
     gitDiffViewStyle,
