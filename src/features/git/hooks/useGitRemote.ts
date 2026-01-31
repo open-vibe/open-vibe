@@ -12,13 +12,13 @@ const emptyState: GitRemoteState = {
   error: null,
 };
 
-export function useGitRemote(activeWorkspace: WorkspaceInfo | null) {
+export function useGitRemote(activeWorkspace: WorkspaceInfo | null, enabled = true) {
   const [state, setState] = useState<GitRemoteState>(emptyState);
   const workspaceIdRef = useRef<string | null>(activeWorkspace?.id ?? null);
 
   useEffect(() => {
     const workspaceId = activeWorkspace?.id ?? null;
-    if (!workspaceId) {
+    if (!enabled || !workspaceId) {
       setState(emptyState);
       return;
     }
@@ -47,7 +47,7 @@ export function useGitRemote(activeWorkspace: WorkspaceInfo | null) {
     return () => {
       isActive = false;
     };
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, enabled]);
 
   return state;
 }

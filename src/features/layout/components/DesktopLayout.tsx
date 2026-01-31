@@ -11,6 +11,8 @@ type DesktopLayoutProps = {
   showHome: boolean;
   showWorkspace: boolean;
   topbarLeftNode: ReactNode;
+  threadTabsBarNode?: ReactNode;
+  threadTabsNode?: ReactNode;
   centerMode: "chat" | "diff";
   messagesNode: ReactNode;
   gitDiffViewerNode: ReactNode;
@@ -34,6 +36,8 @@ export function DesktopLayout({
   showHome,
   showWorkspace,
   topbarLeftNode,
+  threadTabsBarNode,
+  threadTabsNode,
   centerMode,
   messagesNode,
   gitDiffViewerNode,
@@ -99,43 +103,47 @@ export function DesktopLayout({
 
         {showWorkspace && (
           <>
-            <MainTopbar leftNode={topbarLeftNode} />
+            <MainTopbar leftNode={topbarLeftNode} tabsNode={threadTabsBarNode} />
             {approvalToastsNode}
-            <div className="content">
-              <div
-                className={`content-layer ${centerMode === "diff" ? "is-active" : "is-hidden"}`}
-                aria-hidden={centerMode !== "diff"}
-                ref={diffLayerRef}
-              >
-                {gitDiffViewerNode}
-              </div>
-              <div
-                className={`content-layer ${centerMode === "chat" ? "is-active" : "is-hidden"}`}
-                aria-hidden={centerMode !== "chat"}
-                ref={chatLayerRef}
-              >
-                {messagesNode}
-              </div>
-            </div>
+            {threadTabsNode ?? (
+              <>
+                <div className="content">
+                  <div
+                    className={`content-layer ${centerMode === "diff" ? "is-active" : "is-hidden"}`}
+                    aria-hidden={centerMode !== "diff"}
+                    ref={diffLayerRef}
+                  >
+                    {gitDiffViewerNode}
+                  </div>
+                  <div
+                    className={`content-layer ${centerMode === "chat" ? "is-active" : "is-hidden"}`}
+                    aria-hidden={centerMode !== "chat"}
+                    ref={chatLayerRef}
+                  >
+                    {messagesNode}
+                  </div>
+                </div>
 
-            <div
-              className="right-panel-resizer"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize right panel"
-              onMouseDown={onRightPanelResizeStart}
-            />
-            <div className={`right-panel ${hasActivePlan ? "" : "plan-collapsed"}`}>
-              <div className="right-panel-top">{gitDiffPanelNode}</div>
-              <div
-                className="right-panel-divider"
-                role="separator"
-                aria-orientation="horizontal"
-                aria-label="Resize plan panel"
-                onMouseDown={onPlanPanelResizeStart}
-              />
-              <div className="right-panel-bottom">{planPanelNode}</div>
-            </div>
+                <div
+                  className="right-panel-resizer"
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize right panel"
+                  onMouseDown={onRightPanelResizeStart}
+                />
+                <div className={`right-panel ${hasActivePlan ? "" : "plan-collapsed"}`}>
+                  <div className="right-panel-top">{gitDiffPanelNode}</div>
+                  <div
+                    className="right-panel-divider"
+                    role="separator"
+                    aria-orientation="horizontal"
+                    aria-label="Resize plan panel"
+                    onMouseDown={onPlanPanelResizeStart}
+                  />
+                  <div className="right-panel-bottom">{planPanelNode}</div>
+                </div>
+              </>
+            )}
 
             {composerNode}
             {terminalDockNode}

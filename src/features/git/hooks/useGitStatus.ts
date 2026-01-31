@@ -23,7 +23,10 @@ const emptyStatus: GitStatusState = {
 };
 
 const REFRESH_INTERVAL_MS = 3000;
-export function useGitStatus(activeWorkspace: WorkspaceInfo | null) {
+export function useGitStatus(
+  activeWorkspace: WorkspaceInfo | null,
+  enabled = true,
+) {
   const [status, setStatus] = useState<GitStatusState>(emptyStatus);
   const requestIdRef = useRef(0);
   const workspaceIdRef = useRef<string | null>(activeWorkspace?.id ?? null);
@@ -47,6 +50,9 @@ export function useGitStatus(activeWorkspace: WorkspaceInfo | null) {
   const refresh = useCallback(() => {
     if (!workspaceId) {
       setStatus(emptyStatus);
+      return;
+    }
+    if (!enabled) {
       return;
     }
     const requestId = requestIdRef.current + 1;
@@ -84,7 +90,7 @@ export function useGitStatus(activeWorkspace: WorkspaceInfo | null) {
           : { ...emptyStatus, branchName: "unknown", error: message };
         setStatus(nextStatus);
       });
-  }, [resolveBranchName, workspaceId]);
+  }, [enabled, resolveBranchName, workspaceId]);
 
   useEffect(() => {
     if (workspaceIdRef.current !== workspaceId) {
@@ -97,11 +103,14 @@ export function useGitStatus(activeWorkspace: WorkspaceInfo | null) {
       const cached = cachedStatusRef.current.get(workspaceId);
       setStatus(cached ?? emptyStatus);
     }
-  }, [workspaceId]);
+  }, [enabled, workspaceId]);
 
   useEffect(() => {
     if (!workspaceId) {
       setStatus(emptyStatus);
+      return;
+    }
+    if (!enabled) {
       return;
     }
 
@@ -115,7 +124,7 @@ export function useGitStatus(activeWorkspace: WorkspaceInfo | null) {
     return () => {
       window.clearInterval(interval);
     };
-  }, [refresh, workspaceId]);
+  }, [enabled, refresh, workspaceId]);
 
   return { status, refresh };
 }

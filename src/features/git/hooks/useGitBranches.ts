@@ -9,9 +9,14 @@ import {
 type UseGitBranchesOptions = {
   activeWorkspace: WorkspaceInfo | null;
   onDebug?: (entry: DebugEntry) => void;
+  enabled?: boolean;
 };
 
-export function useGitBranches({ activeWorkspace, onDebug }: UseGitBranchesOptions) {
+export function useGitBranches({
+  activeWorkspace,
+  onDebug,
+  enabled = true,
+}: UseGitBranchesOptions) {
   const [branches, setBranches] = useState<BranchInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const lastFetchedWorkspaceId = useRef<string | null>(null);
@@ -21,7 +26,7 @@ export function useGitBranches({ activeWorkspace, onDebug }: UseGitBranchesOptio
   const isConnected = Boolean(activeWorkspace?.connected);
 
   const refreshBranches = useCallback(async () => {
-    if (!workspaceId || !isConnected) {
+    if (!enabled || !workspaceId || !isConnected) {
       setBranches([]);
       return;
     }
@@ -67,17 +72,17 @@ export function useGitBranches({ activeWorkspace, onDebug }: UseGitBranchesOptio
     } finally {
       inFlight.current = false;
     }
-  }, [isConnected, onDebug, workspaceId]);
+  }, [enabled, isConnected, onDebug, workspaceId]);
 
   useEffect(() => {
-    if (!workspaceId || !isConnected) {
+    if (!enabled || !workspaceId || !isConnected) {
       return;
     }
     if (lastFetchedWorkspaceId.current === workspaceId && branches.length > 0) {
       return;
     }
     refreshBranches();
-  }, [branches.length, isConnected, refreshBranches, workspaceId]);
+  }, [branches.length, enabled, isConnected, refreshBranches, workspaceId]);
 
   const recentBranches = useMemo(
     () => branches.slice().sort((a, b) => b.lastCommit - a.lastCommit),
@@ -86,7 +91,7 @@ export function useGitBranches({ activeWorkspace, onDebug }: UseGitBranchesOptio
 
   const checkoutBranch = useCallback(
     async (name: string) => {
-      if (!workspaceId || !name) {
+      if (!enabled || !workspaceId || !name) {
         return;
       }
       onDebug?.({
@@ -99,12 +104,12 @@ export function useGitBranches({ activeWorkspace, onDebug }: UseGitBranchesOptio
       await checkoutGitBranch(workspaceId, name);
       void refreshBranches();
     },
-    [onDebug, refreshBranches, workspaceId],
+    [enabled, onDebug, refreshBranches, workspaceId],
   );
 
   const createBranch = useCallback(
     async (name: string) => {
-      if (!workspaceId || !name) {
+      if (!enabled || !workspaceId || !name) {
         return;
       }
       onDebug?.({
@@ -117,7 +122,7 @@ export function useGitBranches({ activeWorkspace, onDebug }: UseGitBranchesOptio
       await createGitBranch(workspaceId, name);
       void refreshBranches();
     },
-    [onDebug, refreshBranches, workspaceId],
+    [enabled, onDebug, refreshBranches, workspaceId],
   );
 
   return {

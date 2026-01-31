@@ -12,7 +12,7 @@ type GitRepoScanState = {
 
 const DEFAULT_DEPTH = 2;
 
-export function useGitRepoScan(activeWorkspace: WorkspaceInfo | null) {
+export function useGitRepoScan(activeWorkspace: WorkspaceInfo | null, enabled = true) {
   const [state, setState] = useState<GitRepoScanState>({
     repos: [],
     isLoading: false,
@@ -24,7 +24,7 @@ export function useGitRepoScan(activeWorkspace: WorkspaceInfo | null) {
   const workspaceIdRef = useRef<string | null>(activeWorkspace?.id ?? null);
 
   const scan = useCallback(async () => {
-    if (!activeWorkspace) {
+    if (!enabled || !activeWorkspace) {
       setState((prev) => ({ ...prev, repos: [], isLoading: false }));
       return;
     }
@@ -65,7 +65,7 @@ export function useGitRepoScan(activeWorkspace: WorkspaceInfo | null) {
         error: error instanceof Error ? error.message : String(error),
       }));
     }
-  }, [activeWorkspace, state.depth]);
+  }, [activeWorkspace, enabled, state.depth]);
 
   const setDepth = useCallback((depth: number) => {
     const clamped = Math.min(6, Math.max(1, depth));
@@ -82,6 +82,9 @@ export function useGitRepoScan(activeWorkspace: WorkspaceInfo | null) {
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const workspaceId = activeWorkspace?.id ?? null;
     if (workspaceIdRef.current !== workspaceId) {
       workspaceIdRef.current = workspaceId;
@@ -94,7 +97,7 @@ export function useGitRepoScan(activeWorkspace: WorkspaceInfo | null) {
         hasScanned: false,
       });
     }
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, enabled]);
 
   return {
     repos: state.repos,

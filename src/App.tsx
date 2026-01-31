@@ -28,6 +28,7 @@ import "./styles/compact-base.css";
 import "./styles/compact-phone.css";
 import "./styles/compact-tablet.css";
 import "./styles/yunyi-card.css";
+import "./styles/thread-tabs.css";
 import successSoundUrl from "./assets/success-notification.mp3";
 import errorSoundUrl from "./assets/error-notification.mp3";
 import { AppLayout } from "./features/app/components/AppLayout";
@@ -98,6 +99,10 @@ import { WorkspaceHome } from "./features/workspaces/components/WorkspaceHome";
 import { useWorkspaceHome } from "./features/workspaces/hooks/useWorkspaceHome";
 import { useWorkspaceAgentMd } from "./features/workspaces/hooks/useWorkspaceAgentMd";
 import { pickWorkspacePath } from "./services/tauri";
+import { ThreadTabsBar } from "./features/app/components/ThreadTabsBar";
+import { ThreadTabsContent } from "./features/app/components/ThreadTabsContent";
+import { useThreadTabs } from "./features/app/hooks/useThreadTabs";
+import type { ThreadTopbarOverrides } from "./features/app/types/threadTabs";
 import type {
   AccessMode,
   ComposerEditorSettings,
@@ -587,6 +592,7 @@ function MainApp() {
     setActiveThreadId,
     activeThreadId,
     activeItems,
+    itemsByThread,
     approvals,
     userInputRequests,
     threadsByWorkspace,
@@ -634,6 +640,85 @@ function MainApp() {
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId ?? null;
   }, [activeThreadId]);
+
+  const {
+    tabs: threadTabs,
+    activeTabId: activeThreadTabId,
+    setActiveTab: setActiveThreadTabId,
+    openTab: openThreadTab,
+    closeTab: closeThreadTab,
+    markTabLoaded,
+    reorderTabs: reorderThreadTabs,
+  } = useThreadTabs({
+    workspaces,
+    threadsByWorkspace,
+  });
+
+  const activeThreadTab = useMemo(
+    () =>
+      activeThreadTabId
+        ? threadTabs.find((tab) => tab.id === activeThreadTabId) ?? null
+        : null,
+    [activeThreadTabId, threadTabs],
+  );
+
+  useEffect(() => {
+    if (!activeThreadTab) {
+      return;
+    }
+    if (activeWorkspaceId !== activeThreadTab.workspaceId) {
+      setActiveWorkspaceId(activeThreadTab.workspaceId);
+    }
+    if (
+      activeThreadId !== activeThreadTab.threadId ||
+      activeWorkspaceId !== activeThreadTab.workspaceId
+    ) {
+      setActiveThreadId(activeThreadTab.threadId, activeThreadTab.workspaceId);
+    }
+    if (!activeThreadTab.loaded) {
+      markTabLoaded(activeThreadTab.id);
+    }
+  }, [
+    activeThreadId,
+    activeThreadTab,
+    activeWorkspaceId,
+    markTabLoaded,
+    setActiveThreadId,
+    setActiveWorkspaceId,
+  ]);
+
+  useEffect(() => {
+    if (!activeWorkspaceId || !activeThreadId) {
+      return;
+    }
+    const tabId = `${activeWorkspaceId}:${activeThreadId}`;
+    if (threadTabs.some((tab) => tab.id === tabId)) {
+      return;
+    }
+    const fallbackName = `Agent ${activeThreadId.slice(0, 4)}`;
+    const threadName =
+      threadsByWorkspace[activeWorkspaceId]?.find(
+        (thread) => thread.id === activeThreadId,
+      )?.name ?? fallbackName;
+    openThreadTab(activeWorkspaceId, activeThreadId, threadName);
+  }, [
+    activeThreadId,
+    activeWorkspaceId,
+    openThreadTab,
+    threadTabs,
+    threadsByWorkspace,
+  ]);
+
+  const openThreadTabForWorkspace = useCallback(
+    (workspaceId: string, threadId: string) => {
+      const fallbackName = `Agent ${threadId.slice(0, 4)}`;
+      const threadName =
+        threadsByWorkspace[workspaceId]?.find((thread) => thread.id === threadId)
+          ?.name ?? fallbackName;
+      openThreadTab(workspaceId, threadId, threadName);
+    },
+    [openThreadTab, threadsByWorkspace],
+  );
 
   useAutoExitEmptyDiff({
     centerMode,
@@ -1334,12 +1419,20 @@ function MainApp() {
     },
   });
 
+  const [composerOverrides, setComposerOverrides] = useState<{
+    sendLabel?: string;
+    onSend: (text: string, images: string[]) => void | Promise<void>;
+    onQueue: (text: string, images: string[]) => void | Promise<void>;
+  } | null>(null);
+  const [topbarOverrides, setTopbarOverrides] =
+    useState<ThreadTopbarOverrides | null>(null);
+
   const {
     handleSelectPullRequest,
     resetPullRequestSelection,
-    composerSendLabel,
-    handleComposerSend,
-    handleComposerQueue,
+    composerSendLabel: pullRequestSendLabel,
+    handleComposerSend: pullRequestSend,
+    handleComposerQueue: pullRequestQueue,
   } = usePullRequestComposer({
     activeWorkspace,
     selectedPullRequest,
@@ -1363,12 +1456,25 @@ function MainApp() {
     queueMessage,
   });
 
+  const effectiveComposerSendLabel = isCompact
+    ? pullRequestSendLabel
+    : composerOverrides?.sendLabel;
+  const effectiveComposerSend = isCompact
+    ? pullRequestSend
+    : composerOverrides?.onSend ?? handleSend;
+  const effectiveComposerQueue = isCompact
+    ? pullRequestQueue
+    : composerOverrides?.onQueue ?? queueMessage;
+  const composerSendLabel = effectiveComposerSendLabel;
+  const handleComposerSend = effectiveComposerSend;
+  const handleComposerQueue = effectiveComposerQueue;
+
   const handleSelectWorkspaceInstance = useCallback(
     (workspaceId: string, threadId: string) => {
       exitDiffView();
       resetPullRequestSelection();
       selectWorkspace(workspaceId);
-      setActiveThreadId(threadId, workspaceId);
+      openThreadTabForWorkspace(workspaceId, threadId);
       if (isCompact) {
         setActiveTab("codex");
       }
@@ -1379,9 +1485,21 @@ function MainApp() {
       resetPullRequestSelection,
       selectWorkspace,
       setActiveTab,
-      setActiveThreadId,
+      openThreadTabForWorkspace,
     ],
   );
+
+  const handleExitDiff = useCallback(() => {
+    setCenterMode("chat");
+    setSelectedDiffPath(null);
+  }, [setCenterMode, setSelectedDiffPath]);
+
+  const effectiveCenterMode = topbarOverrides?.centerMode ?? centerMode;
+  const effectiveGitDiffViewStyle =
+    topbarOverrides?.gitDiffViewStyle ?? gitDiffViewStyle;
+  const effectiveSelectDiffViewStyle =
+    topbarOverrides?.onSelectDiffViewStyle ?? setGitDiffViewStyle;
+  const effectiveExitDiff = topbarOverrides?.onExitDiff ?? handleExitDiff;
 
   const orderValue = (entry: WorkspaceInfo) =>
     typeof entry.settings.sortOrder === "number"
@@ -1582,10 +1700,11 @@ function MainApp() {
       exitDiffView();
       resetPullRequestSelection();
       selectWorkspace(workspaceId);
-      setActiveThreadId(threadId, workspaceId);
+      openThreadTabForWorkspace(workspaceId, threadId);
     },
     onDeleteThread: (workspaceId, threadId) => {
       removeThread(workspaceId, threadId);
+      closeThreadTab(`${workspaceId}:${threadId}`);
       clearDraftForThread(threadId);
       removeImagesForThread(threadId);
     },
@@ -1640,7 +1759,7 @@ function MainApp() {
     onSelectHomeThread: (workspaceId, threadId) => {
       exitDiffView();
       selectWorkspace(workspaceId);
-      setActiveThreadId(threadId, workspaceId);
+      openThreadTabForWorkspace(workspaceId, threadId);
       if (isCompact) {
         setActiveTab("codex");
       }
@@ -1669,9 +1788,9 @@ function MainApp() {
     onSaveLaunchScript: launchScriptState.onSaveLaunchScript,
     mainHeaderActionsNode: (
       <MainHeaderActions
-        centerMode={centerMode}
-        gitDiffViewStyle={gitDiffViewStyle}
-        onSelectDiffViewStyle={setGitDiffViewStyle}
+        centerMode={effectiveCenterMode}
+        gitDiffViewStyle={effectiveGitDiffViewStyle}
+        onSelectDiffViewStyle={effectiveSelectDiffViewStyle}
         isCompact={isCompact}
         rightPanelCollapsed={rightPanelCollapsed}
         sidebarToggleProps={sidebarToggleProps}
@@ -1680,17 +1799,14 @@ function MainApp() {
     filePanelMode,
     onFilePanelModeChange: setFilePanelMode,
     fileTreeLoading: isFilesLoading,
-    centerMode,
-    onExitDiff: () => {
-      setCenterMode("chat");
-      setSelectedDiffPath(null);
-    },
+    centerMode: effectiveCenterMode,
+    onExitDiff: effectiveExitDiff,
     activeTab,
     onSelectTab: setActiveTab,
     tabletNavTab: tabletTab,
     gitPanelMode,
     onGitPanelModeChange: handleGitPanelModeChange,
-    gitDiffViewStyle,
+    gitDiffViewStyle: effectiveGitDiffViewStyle,
     worktreeApplyLabel: "apply",
     worktreeApplyTitle: activeParentWorkspace?.name
       ? `Apply changes to ${activeParentWorkspace.name}`
@@ -1947,6 +2063,67 @@ function MainApp() {
     desktopTopbarLeftNode
   );
 
+  const showThreadTabs = !isCompact && threadTabs.length > 0 && !showHome;
+  useEffect(() => {
+    if (!showThreadTabs) {
+      setTopbarOverrides(null);
+    }
+  }, [showThreadTabs]);
+  const threadTabsBarNode = showThreadTabs ? (
+    <ThreadTabsBar
+      tabs={threadTabs}
+      activeTabId={activeThreadTabId}
+      onSelectTab={setActiveThreadTabId}
+      onCloseTab={closeThreadTab}
+      onReorderTab={reorderThreadTabs}
+    />
+  ) : null;
+
+  const threadTabsNode = showThreadTabs ? (
+    <ThreadTabsContent
+      tabs={threadTabs}
+      activeTabId={activeThreadTabId}
+      workspacesById={workspacesById}
+      itemsByThread={itemsByThread}
+      threadStatusById={threadStatusById}
+      planByThread={planByThread}
+      userInputRequests={userInputRequests}
+      codeBlockCopyUseModifier={appSettings.composerCodeBlockCopyUseModifier}
+      openAppTargets={appSettings.openAppTargets}
+      openAppIconById={openAppIconById}
+      selectedOpenAppId={appSettings.selectedOpenAppId}
+      onSelectOpenAppId={handleSelectOpenAppId}
+      onUserInputSubmit={handleUserInputSubmit}
+      onDebug={addDebugEntry}
+      isCompact={isCompact}
+      isTablet={isTablet}
+      activeTab={activeTab}
+      tabletTab={tabletTab}
+      setActiveTab={setActiveTab}
+      onRightPanelResizeStart={onRightPanelResizeStart}
+      onPlanPanelResizeStart={onPlanPanelResizeStart}
+      connectWorkspace={connectWorkspace}
+      startThreadForWorkspace={startThreadForWorkspace}
+      sendUserMessageToThread={sendUserMessageToThread}
+      handleSend={handleSend}
+      queueMessage={queueMessage}
+      clearActiveImages={clearActiveImages}
+      setPrefillDraft={setPrefillDraft}
+      onSendPromptToNewAgent={handleSendPromptToNewAgent}
+      onSendPrompt={handleSendPrompt}
+      onInsertComposerText={handleInsertComposerText}
+      updateWorkspaceSettings={updateWorkspaceSettings}
+      onError={alertError}
+      onComposerOverridesChange={setComposerOverrides}
+      onTopbarOverridesChange={setTopbarOverrides}
+    />
+  ) : null;
+
+  const threadTabsHeight = showThreadTabs ? "36px" : "0px";
+  const mainTopbarHeight = showThreadTabs
+    ? `calc(64px + ${threadTabsHeight})`
+    : "64px";
+
   return (
     <I18nProvider language={appSettings.language}>
       <div
@@ -1962,6 +2139,8 @@ function MainApp() {
             "--plan-panel-height": `${planPanelHeight}px`,
             "--terminal-panel-height": `${terminalPanelHeight}px`,
             "--debug-panel-height": `${debugPanelHeight}px`,
+            "--thread-tabs-height": threadTabsHeight,
+            "--main-topbar-height": mainTopbarHeight,
             "--ui-font-family": appSettings.uiFontFamily,
             "--code-font-family": appSettings.codeFontFamily,
             "--code-font-size": `${appSettings.codeFontSize}px`
@@ -2013,6 +2192,8 @@ function MainApp() {
           homeNode={homeNode}
           mainHeaderNode={mainHeaderNode}
           desktopTopbarLeftNode={desktopTopbarLeftNodeWithToggle}
+          threadTabsBarNode={threadTabsBarNode}
+          threadTabsNode={threadTabsNode}
           tabletNavNode={tabletNavNode}
           tabBarNode={tabBarNode}
           gitDiffPanelNode={gitDiffPanelNode}

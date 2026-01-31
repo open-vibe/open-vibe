@@ -254,6 +254,7 @@ export function useThreads({
     activeThreadId,
     setActiveThreadId,
     activeItems,
+    itemsByThread: state.itemsByThread,
     approvals: state.approvals,
     userInputRequests: state.userInputRequests,
     threadsByWorkspace: state.threadsByWorkspace,

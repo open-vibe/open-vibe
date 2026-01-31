@@ -309,7 +309,41 @@
   min-height: var(--main-topbar-height);
 }
 
+.main-topbar.has-tabs {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+}
+
+.main-topbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  min-height: 64px;
+  width: 100%;
+}
+
+.main-topbar-tabs {
+  width: 100%;
+  background: var(--surface-topbar);
+  -webkit-app-region: no-drag;
+}
+
 .app.sidebar-collapsed .main-topbar {
+  padding-left: calc(
+    var(--main-panel-padding)
+    + var(--titlebar-inset-left, 0px)
+    + var(--titlebar-toggle-size, 28px)
+    + var(--titlebar-toggle-title-offset, -6px)
+  );
+}
+
+.app.sidebar-collapsed .main-topbar.has-tabs {
+  padding-left: 0;
+}
+
+.app.sidebar-collapsed .main-topbar.has-tabs .main-topbar-row {
   padding-left: calc(
     var(--main-panel-padding)
     + var(--titlebar-inset-left, 0px)
@@ -327,6 +361,19 @@
   );
 }
 
+.app.layout-compact.sidebar-collapsed .main-topbar.has-tabs {
+  padding-left: 0;
+}
+
+.app.layout-compact.sidebar-collapsed .main-topbar.has-tabs .main-topbar-row {
+  padding-left: calc(
+    var(--topbar-compact-padding, 16px)
+    + var(--titlebar-inset-left, 0px)
+    + var(--titlebar-toggle-size, 28px)
+    + var(--titlebar-toggle-title-offset, -6px)
+  );
+}
+
 .app.layout-compact.right-panel-collapsed .main-topbar {
   padding-right: calc(
     var(--topbar-compact-padding, 16px)
@@ -335,7 +382,31 @@
   );
 }
 
+.app.layout-compact.right-panel-collapsed .main-topbar.has-tabs {
+  padding-right: 0;
+}
+
+.app.layout-compact.right-panel-collapsed .main-topbar.has-tabs .main-topbar-row {
+  padding-right: calc(
+    var(--topbar-compact-padding, 16px)
+    + var(--titlebar-toggle-size, 28px)
+    + var(--titlebar-toggle-side-gap, 12px)
+  );
+}
+
 .app.right-panel-collapsed .main-topbar {
+  padding-right: calc(
+    var(--main-panel-padding)
+    + var(--titlebar-toggle-size, 28px)
+    + var(--titlebar-toggle-side-gap, 12px)
+  );
+}
+
+.app.right-panel-collapsed .main-topbar.has-tabs {
+  padding-right: 0;
+}
+
+.app.right-panel-collapsed .main-topbar.has-tabs .main-topbar-row {
   padding-right: calc(
     var(--main-panel-padding)
     + var(--titlebar-toggle-size, 28px)

@@ -15,6 +15,7 @@ export function useGitPanelController({
   prDiffs,
   prDiffsLoading,
   prDiffsError,
+  enabled = true,
 }: {
   activeWorkspace: WorkspaceInfo | null;
   isCompact: boolean;
@@ -25,6 +26,7 @@ export function useGitPanelController({
   prDiffs: GitHubPullRequestDiff[];
   prDiffsLoading: boolean;
   prDiffsError: string | null;
+  enabled?: boolean;
 }) {
   const [centerMode, setCenterMode] = useState<"chat" | "diff">("chat");
   const [selectedDiffPath, setSelectedDiffPath] = useState<string | null>(null);
@@ -48,8 +50,10 @@ export function useGitPanelController({
     "local",
   );
 
+  const isEnabled = enabled !== false;
   const { status: gitStatus, refresh: refreshGitStatus } = useGitStatus(
     activeWorkspace,
+    isEnabled,
   );
   const gitStatusRefreshTimeoutRef = useRef<number | null>(null);
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspace?.id ?? null);
@@ -97,8 +101,9 @@ export function useGitPanelController({
     activeWorkspace && !preloadedWorkspaceIdsRef.current.has(activeWorkspace.id),
   );
   const shouldLoadDiffs =
-    Boolean(activeWorkspace) && (diffUiVisible || shouldPreloadDiffs);
-  const shouldLoadGitLog = gitPanelMode === "log" && Boolean(activeWorkspace);
+    isEnabled && Boolean(activeWorkspace) && (diffUiVisible || shouldPreloadDiffs);
+  const shouldLoadGitLog =
+    isEnabled && gitPanelMode === "log" && Boolean(activeWorkspace);
 
   const {
     diffs: gitDiffs,
@@ -143,7 +148,7 @@ export function useGitPanelController({
   } = useGitCommitDiffs(
     activeWorkspace,
     selectedCommitSha,
-    shouldLoadDiffs && diffSource === "commit",
+    isEnabled && shouldLoadDiffs && diffSource === "commit",
   );
 
   const activeDiffs =

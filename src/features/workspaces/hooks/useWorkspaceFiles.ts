@@ -5,11 +5,13 @@ import { getWorkspaceFiles } from "../../../services/tauri";
 type UseWorkspaceFilesOptions = {
   activeWorkspace: WorkspaceInfo | null;
   onDebug?: (entry: DebugEntry) => void;
+  enabled?: boolean;
 };
 
 export function useWorkspaceFiles({
   activeWorkspace,
   onDebug,
+  enabled = true,
 }: UseWorkspaceFilesOptions) {
   const [files, setFiles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +23,7 @@ export function useWorkspaceFiles({
   const isConnected = Boolean(activeWorkspace?.connected);
 
   const refreshFiles = useCallback(async () => {
-    if (!workspaceId || !isConnected) {
+    if (!enabled || !workspaceId || !isConnected) {
       return;
     }
     if (inFlight.current === workspaceId) {
@@ -64,27 +66,35 @@ export function useWorkspaceFiles({
         setIsLoading(false);
       }
     }
-  }, [isConnected, onDebug, workspaceId]);
-
-  useEffect(() => {
-    setFiles([]);
-    lastFetchedWorkspaceId.current = null;
-    inFlight.current = null;
-    setIsLoading(Boolean(workspaceId && isConnected));
-  }, [isConnected, workspaceId]);
+  }, [enabled, isConnected, onDebug, workspaceId]);
 
   useEffect(() => {
     if (!workspaceId || !isConnected) {
+      setFiles([]);
+      lastFetchedWorkspaceId.current = null;
+      inFlight.current = null;
+      setIsLoading(false);
+      return;
+    }
+    if (!enabled) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(Boolean(workspaceId && isConnected));
+  }, [enabled, isConnected, workspaceId]);
+
+  useEffect(() => {
+    if (!enabled || !workspaceId || !isConnected) {
       return;
     }
     if (lastFetchedWorkspaceId.current === workspaceId && files.length > 0) {
       return;
     }
     refreshFiles();
-  }, [files.length, isConnected, refreshFiles, workspaceId]);
+  }, [enabled, files.length, isConnected, refreshFiles, workspaceId]);
 
   useEffect(() => {
-    if (!workspaceId || !isConnected) {
+    if (!enabled || !workspaceId || !isConnected) {
       return;
     }
 
@@ -95,7 +105,7 @@ export function useWorkspaceFiles({
     return () => {
       window.clearInterval(interval);
     };
-  }, [isConnected, refreshFiles, workspaceId]);
+  }, [enabled, isConnected, refreshFiles, workspaceId]);
 
   const fileOptions = useMemo(() => files.filter(Boolean), [files]);
 

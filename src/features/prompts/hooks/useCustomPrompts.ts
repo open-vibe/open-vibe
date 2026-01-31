@@ -13,9 +13,14 @@ import {
 type UseCustomPromptsOptions = {
   activeWorkspace: WorkspaceInfo | null;
   onDebug?: (entry: DebugEntry) => void;
+  enabled?: boolean;
 };
 
-export function useCustomPrompts({ activeWorkspace, onDebug }: UseCustomPromptsOptions) {
+export function useCustomPrompts({
+  activeWorkspace,
+  onDebug,
+  enabled = true,
+}: UseCustomPromptsOptions) {
   const [prompts, setPrompts] = useState<CustomPromptOption[]>([]);
   const lastFetchedWorkspaceId = useRef<string | null>(null);
   const inFlight = useRef(false);
@@ -38,7 +43,7 @@ export function useCustomPrompts({ activeWorkspace, onDebug }: UseCustomPromptsO
   );
 
   const refreshPrompts = useCallback(async () => {
-    if (!workspaceId || !isConnected) {
+    if (!enabled || !workspaceId || !isConnected) {
       return;
     }
     if (inFlight.current) {
@@ -101,17 +106,17 @@ export function useCustomPrompts({ activeWorkspace, onDebug }: UseCustomPromptsO
     } finally {
       inFlight.current = false;
     }
-  }, [isConnected, logPromptError, onDebug, workspaceId]);
+  }, [enabled, isConnected, logPromptError, onDebug, workspaceId]);
 
   useEffect(() => {
-    if (!workspaceId || !isConnected) {
+    if (!enabled || !workspaceId || !isConnected) {
       return;
     }
     if (lastFetchedWorkspaceId.current === workspaceId) {
       return;
     }
     refreshPrompts();
-  }, [isConnected, refreshPrompts, workspaceId]);
+  }, [enabled, isConnected, refreshPrompts, workspaceId]);
 
   const promptOptions = useMemo(
     () => prompts.filter((prompt) => prompt.name),

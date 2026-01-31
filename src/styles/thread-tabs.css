@@ -1,0 +1,27 @@
+.thread-tab-view {
+  display: contents;
+}
+
+.thread-tab-view.is-hidden {
+  display: none;
+}
+
+.thread-tabs-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  padding: 6px 12px 4px;
+  border-top: 1px solid var(--border-subtle);
+  -webkit-app-region: no-drag;
+}
+
+.thread-tabs-list {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  gap: 4px;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
