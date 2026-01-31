@@ -607,7 +607,7 @@ export function Sidebar({
         <ShadcnSidebarFooter className="px-2 pb-3">
           <NavUser
             user={{
-              name: "Codex Monitor",
+              name: "OpenVibe",
               email: t("sidebar.user.localWorkspace"),
               avatar: "",
             }}

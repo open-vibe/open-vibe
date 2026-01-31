@@ -2,7 +2,7 @@
   "app": {
     "windows": [
       {
-        "title": "CodexMonitor",
+        "title": "OpenVibe",
         "width": 1200,
         "height": 700,
         "minWidth": 360,

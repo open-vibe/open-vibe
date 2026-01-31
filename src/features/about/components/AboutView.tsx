@@ -33,9 +33,9 @@ export function AboutView() {
           <img
             className="about-icon"
             src="/app-icon.png"
-            alt="Codex Monitor icon"
+            alt="OpenVibe icon"
           />
-          <div className="about-title">Codex Monitor</div>
+          <div className="about-title">OpenVibe</div>
         </div>
         <div className="about-version">
           {version ? `Version ${version}` : "Version —"}

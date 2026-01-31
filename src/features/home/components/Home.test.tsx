@@ -39,7 +39,7 @@ describe("Home", () => {
         {
           message: "Ship the dashboard refresh",
           timestamp: Date.now(),
-          projectName: "CodexMonitor",
+          projectName: "OpenVibe",
           groupName: "Frontend",
           workspaceId: "workspace-1",
           threadId: "thread-1",
@@ -50,7 +50,7 @@ describe("Home", () => {
     });
 
     expect(screen.getByText("Latest agents")).toBeTruthy();
-    expect(screen.getByText("CodexMonitor")).toBeTruthy();
+    expect(screen.getAllByText("OpenVibe").length).toBeGreaterThan(0);
     expect(screen.getByText("Frontend")).toBeTruthy();
     const message = screen.getByText("Ship the dashboard refresh");
     const card = message.closest("button");

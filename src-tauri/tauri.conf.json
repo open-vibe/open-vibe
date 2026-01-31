@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "CodexMonitor",
+  "productName": "OpenVibe",
   "version": "0.7.29",
   "identifier": "com.dimillian.codexmonitor",
   "build": {
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "CodexMonitor",
+        "title": "OpenVibe",
         "width": 1200,
         "height": 700,
         "minWidth": 360,
