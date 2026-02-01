@@ -5,6 +5,8 @@ import type {
   CodexDoctorResult,
   DictationModelStatus,
   DictationSessionState,
+  HappyBridgeCommand,
+  HappyBridgeStatus,
   LocalUsageSnapshot,
   WorkspaceInfo,
   WorkspaceSettings,
@@ -69,6 +71,16 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
 
 export async function getCodexConfigPath(): Promise<string> {
   return invoke<string>("get_codex_config_path");
+}
+
+export async function getHappyBridgeStatus(): Promise<HappyBridgeStatus> {
+  return invoke<HappyBridgeStatus>("happy_bridge_status");
+}
+
+export async function sendHappyBridgeCommand(
+  command: HappyBridgeCommand,
+): Promise<void> {
+  return invoke("happy_bridge_send", { command });
 }
 
 export type TextFileResponse = {
@@ -444,6 +456,16 @@ export async function localUsageSnapshot(
     payload.workspacePath = workspacePath;
   }
   return invoke("local_usage_snapshot", payload);
+}
+
+export async function getThreadTokenUsage(
+  workspaceId: string,
+  threadId: string,
+): Promise<Record<string, unknown> | null> {
+  return invoke<Record<string, unknown> | null>("thread_token_usage", {
+    workspaceId,
+    threadId,
+  });
 }
 
 export async function getModelList(workspaceId: string) {

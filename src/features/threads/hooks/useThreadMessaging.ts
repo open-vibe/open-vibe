@@ -5,6 +5,7 @@ import type {
   AccessMode,
   CustomPromptOption,
   DebugEntry,
+  HappyBridgeCommand,
   WorkspaceInfo,
 } from "../../../types";
 import {
@@ -54,6 +55,7 @@ type UseThreadMessagingOptions = {
   onDebug?: (entry: DebugEntry) => void;
   pushThreadErrorMessage: (threadId: string, message: string) => void;
   ensureThreadForActiveWorkspace: () => Promise<string | null>;
+  onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
 };
 
 export function useThreadMessaging({
@@ -78,6 +80,7 @@ export function useThreadMessaging({
   onDebug,
   pushThreadErrorMessage,
   ensureThreadForActiveWorkspace,
+  onHappyBridgeCommand,
 }: UseThreadMessagingOptions) {
   const sendMessageToThread = useCallback(
     async (
@@ -151,6 +154,19 @@ export function useThreadMessaging({
         },
       });
       const timestamp = Date.now();
+      if (onHappyBridgeCommand && finalText) {
+        const threadName = getCustomName(workspace.id, threadId) ?? null;
+        onHappyBridgeCommand({
+          type: "thread-message",
+          threadId,
+          workspaceId: workspace.id,
+          workspacePath: workspace.path,
+          threadName,
+          role: "user",
+          content: finalText,
+          createdAt: timestamp,
+        });
+      }
       recordThreadActivity(workspace.id, threadId, timestamp);
       dispatch({
         type: "setThreadTimestamp",
@@ -244,6 +260,7 @@ export function useThreadMessaging({
       markProcessing,
       model,
       onDebug,
+      onHappyBridgeCommand,
       pushThreadErrorMessage,
       recordThreadActivity,
       safeMessageActivity,

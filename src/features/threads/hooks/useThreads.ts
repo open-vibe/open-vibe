@@ -1,7 +1,13 @@
-import { useCallback, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import * as Sentry from "@sentry/react";
-import type { CustomPromptOption, DebugEntry, WorkspaceInfo } from "../../../types";
+import type {
+  CustomPromptOption,
+  DebugEntry,
+  HappyBridgeCommand,
+  WorkspaceInfo,
+} from "../../../types";
 import { useAppServerEvents } from "../../app/hooks/useAppServerEvents";
+import { getThreadTokenUsage, sendHappyBridgeCommand } from "../../../services/tauri";
 import { initialState, threadReducer } from "./useThreadsReducer";
 import { useThreadStorage } from "./useThreadStorage";
 import { useThreadLinking } from "./useThreadLinking";
@@ -14,6 +20,7 @@ import { useThreadSelectors } from "./useThreadSelectors";
 import { useThreadStatus } from "./useThreadStatus";
 import { useThreadUserInput } from "./useThreadUserInput";
 import { makeCustomNameKey, saveCustomName } from "../utils/threadStorage";
+import { normalizeTokenUsage } from "../utils/threadNormalize";
 
 type UseThreadsOptions = {
   activeWorkspace: WorkspaceInfo | null;
@@ -26,6 +33,8 @@ type UseThreadsOptions = {
   steerEnabled?: boolean;
   customPrompts?: CustomPromptOption[];
   onMessageActivity?: () => void;
+  happyEnabled?: boolean;
+  getWorkspacePath?: (workspaceId: string) => string | null;
 };
 
 export function useThreads({
@@ -39,6 +48,8 @@ export function useThreads({
   steerEnabled = false,
   customPrompts = [],
   onMessageActivity,
+  happyEnabled = false,
+  getWorkspacePath,
 }: UseThreadsOptions) {
   const [state, dispatch] = useReducer(threadReducer, initialState);
   const loadedThreadsRef = useRef<Record<string, boolean>>({});
@@ -66,6 +77,9 @@ export function useThreads({
     activeThreadIdByWorkspace: state.activeThreadIdByWorkspace,
     itemsByThread: state.itemsByThread,
   });
+  const activeTokenUsage = activeThreadId
+    ? state.tokenUsageByThread[activeThreadId] ?? null
+    : null;
 
   const { refreshAccountRateLimits } = useThreadRateLimits({
     activeWorkspaceId,
@@ -77,6 +91,20 @@ export function useThreads({
   const { markProcessing, markReviewing, setActiveTurnId } = useThreadStatus({
     dispatch,
   });
+
+  const queueHappyBridgeCommand = useCallback(
+    async (command: HappyBridgeCommand) => {
+      if (!happyEnabled) {
+        return;
+      }
+      try {
+        await sendHappyBridgeCommand(command);
+      } catch {
+        // Ignore bridge errors to avoid breaking local chat flow.
+      }
+    },
+    [happyEnabled],
+  );
 
   const pushThreadErrorMessage = useCallback(
     (threadId: string, message: string) => {
@@ -91,6 +119,46 @@ export function useThreads({
     },
     [activeThreadId, dispatch],
   );
+
+  const refreshThreadTokenUsage = useCallback(
+    async (workspaceId: string, threadId: string) => {
+      if (!workspaceId || !threadId) {
+        return;
+      }
+      try {
+        const tokenUsageRaw = await getThreadTokenUsage(workspaceId, threadId);
+        if (!tokenUsageRaw || typeof tokenUsageRaw !== "object") {
+          return;
+        }
+        dispatch({
+          type: "setThreadTokenUsage",
+          threadId,
+          tokenUsage: normalizeTokenUsage(
+            tokenUsageRaw as Record<string, unknown>,
+          ),
+        });
+      } catch (error) {
+        // Ignore usage fetch errors to avoid disrupting chat UI.
+        void error;
+      }
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    if (!activeWorkspaceId || !activeThreadId) {
+      return;
+    }
+    if (activeTokenUsage) {
+      return;
+    }
+    void refreshThreadTokenUsage(activeWorkspaceId, activeThreadId);
+  }, [
+    activeTokenUsage,
+    activeThreadId,
+    activeWorkspaceId,
+    refreshThreadTokenUsage,
+  ]);
 
   const safeMessageActivity = useCallback(() => {
     try {
@@ -125,9 +193,12 @@ export function useThreads({
     pushThreadErrorMessage,
     onDebug,
     onWorkspaceConnected: handleWorkspaceConnected,
+    getWorkspacePath,
+    onHappyBridgeCommand: queueHappyBridgeCommand,
     applyCollabThreadLinks,
     approvalAllowlistRef,
     pendingInterruptsRef,
+    refreshThreadTokenUsage,
   });
 
   useAppServerEvents(handlers);
@@ -153,6 +224,7 @@ export function useThreads({
     loadedThreadsRef,
     replaceOnResumeRef,
     applyCollabThreadLinksFromThread,
+    refreshThreadTokenUsage,
   });
 
   const startThread = useCallback(async () => {
@@ -205,6 +277,7 @@ export function useThreads({
     onDebug,
     pushThreadErrorMessage,
     ensureThreadForActiveWorkspace,
+    onHappyBridgeCommand: queueHappyBridgeCommand,
   });
 
   const setActiveThreadId = useCallback(
@@ -250,9 +323,24 @@ export function useThreads({
     [customNamesRef, dispatch],
   );
 
+  const getWorkspaceIdForThread = useCallback(
+    (threadId: string) => {
+      for (const [workspaceId, threads] of Object.entries(
+        state.threadsByWorkspace,
+      )) {
+        if (threads.some((thread) => thread.id === threadId)) {
+          return workspaceId;
+        }
+      }
+      return activeWorkspaceId;
+    },
+    [activeWorkspaceId, state.threadsByWorkspace],
+  );
+
   return {
     activeThreadId,
     setActiveThreadId,
+    getWorkspaceIdForThread,
     activeItems,
     itemsByThread: state.itemsByThread,
     approvals: state.approvals,

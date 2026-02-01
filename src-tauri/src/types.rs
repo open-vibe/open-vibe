@@ -304,6 +304,14 @@ pub(crate) struct AppSettings {
     pub(crate) remote_backend_host: String,
     #[serde(default, rename = "remoteBackendToken")]
     pub(crate) remote_backend_token: Option<String>,
+    #[serde(default = "default_happy_enabled", rename = "happyEnabled")]
+    pub(crate) happy_enabled: bool,
+    #[serde(default = "default_happy_server_url", rename = "happyServerUrl")]
+    pub(crate) happy_server_url: String,
+    #[serde(default, rename = "happyToken")]
+    pub(crate) happy_token: Option<String>,
+    #[serde(default, rename = "happySecret")]
+    pub(crate) happy_secret: Option<String>,
     #[serde(default = "default_access_mode", rename = "defaultAccessMode")]
     pub(crate) default_access_mode: String,
     #[serde(
@@ -498,6 +506,14 @@ fn default_access_mode() -> String {
 
 fn default_remote_backend_host() -> String {
     "127.0.0.1:4732".to_string()
+}
+
+fn default_happy_enabled() -> bool {
+    false
+}
+
+fn default_happy_server_url() -> String {
+    "https://api.cluster-fluster.com".to_string()
 }
 
 fn default_ui_scale() -> f64 {
@@ -743,6 +759,10 @@ impl Default for AppSettings {
             backend_mode: BackendMode::Local,
             remote_backend_host: default_remote_backend_host(),
             remote_backend_token: None,
+            happy_enabled: default_happy_enabled(),
+            happy_server_url: default_happy_server_url(),
+            happy_token: None,
+            happy_secret: None,
             default_access_mode: "current".to_string(),
             composer_model_shortcut: default_composer_model_shortcut(),
             composer_access_shortcut: default_composer_access_shortcut(),
@@ -809,6 +829,10 @@ mod tests {
         assert!(matches!(settings.backend_mode, BackendMode::Local));
         assert_eq!(settings.remote_backend_host, "127.0.0.1:4732");
         assert!(settings.remote_backend_token.is_none());
+        assert!(!settings.happy_enabled);
+        assert_eq!(settings.happy_server_url, "https://api.cluster-fluster.com");
+        assert!(settings.happy_token.is_none());
+        assert!(settings.happy_secret.is_none());
         assert_eq!(settings.default_access_mode, "current");
         assert_eq!(
             settings.composer_model_shortcut.as_deref(),

@@ -39,6 +39,54 @@ export type AppServerEvent = {
   message: Record<string, unknown>;
 };
 
+export type HappyBridgeStatus = {
+  running: boolean;
+  pid: number | null;
+  configured: boolean;
+};
+
+export type HappyBridgeCommand =
+  | {
+      type: "thread-message";
+      threadId: string;
+      workspaceId: string;
+      workspacePath: string;
+      threadName?: string | null;
+      role: "user" | "assistant";
+      content: string;
+      createdAt: number;
+    }
+  | {
+      type: "thread-open";
+      threadId: string;
+      workspaceId: string;
+      workspacePath: string;
+      threadName?: string | null;
+    }
+  | {
+      type: "thread-archive";
+      threadId: string;
+    };
+
+export type HappyBridgeEvent =
+  | {
+      type: "status";
+      connected: boolean;
+      reason?: string;
+    }
+  | {
+      type: "session-mapped";
+      threadId: string;
+      sessionId: string;
+    }
+  | {
+      type: "remote-message";
+      threadId: string;
+      role: "user" | "assistant";
+      content: string;
+      createdAt: number;
+    };
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
@@ -114,6 +162,10 @@ export type AppSettings = {
   backendMode: BackendMode;
   remoteBackendHost: string;
   remoteBackendToken: string | null;
+  happyEnabled: boolean;
+  happyServerUrl: string;
+  happyToken: string | null;
+  happySecret: string | null;
   defaultAccessMode: AccessMode;
   composerModelShortcut: string | null;
   composerAccessShortcut: string | null;

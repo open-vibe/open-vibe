@@ -29,6 +29,7 @@ vi.mock("../../../services/tauri", () => ({
   resumeThread: vi.fn(),
   listThreads: vi.fn(),
   archiveThread: vi.fn(),
+  getThreadTokenUsage: vi.fn(),
 }));
 
 vi.mock("../../../utils/threadItems", () => ({

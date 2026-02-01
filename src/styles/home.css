@@ -15,6 +15,7 @@
   text-align: left;
   padding: 36px 32px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .home-hero {

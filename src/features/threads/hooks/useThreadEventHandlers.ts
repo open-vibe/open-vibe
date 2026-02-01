@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, MutableRefObject } from "react";
-import type { AppServerEvent, DebugEntry } from "../../../types";
+import type { AppServerEvent, DebugEntry, HappyBridgeCommand } from "../../../types";
 import { useThreadApprovalEvents } from "./useThreadApprovalEvents";
 import { useThreadItemEvents } from "./useThreadItemEvents";
 import { useThreadTurnEvents } from "./useThreadTurnEvents";
@@ -23,12 +23,15 @@ type ThreadEventHandlersOptions = {
   pushThreadErrorMessage: (threadId: string, message: string) => void;
   onDebug?: (entry: DebugEntry) => void;
   onWorkspaceConnected: (workspaceId: string) => void;
+  getWorkspacePath?: (workspaceId: string) => string | null;
+  onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
   applyCollabThreadLinks: (
     threadId: string,
     item: Record<string, unknown>,
   ) => void;
   approvalAllowlistRef: MutableRefObject<Record<string, string[][]>>;
   pendingInterruptsRef: MutableRefObject<Set<string>>;
+  refreshThreadTokenUsage?: (workspaceId: string, threadId: string) => void;
 };
 
 export function useThreadEventHandlers({
@@ -43,9 +46,12 @@ export function useThreadEventHandlers({
   pushThreadErrorMessage,
   onDebug,
   onWorkspaceConnected,
+  getWorkspacePath,
+  onHappyBridgeCommand,
   applyCollabThreadLinks,
   approvalAllowlistRef,
   pendingInterruptsRef,
+  refreshThreadTokenUsage,
 }: ThreadEventHandlersOptions) {
   const onApprovalRequest = useThreadApprovalEvents({
     dispatch,
@@ -71,6 +77,8 @@ export function useThreadEventHandlers({
     markReviewing,
     safeMessageActivity,
     recordThreadActivity,
+    getWorkspacePath,
+    onHappyBridgeCommand,
     applyCollabThreadLinks,
   });
 
@@ -89,6 +97,7 @@ export function useThreadEventHandlers({
     pendingInterruptsRef,
     pushThreadErrorMessage,
     safeMessageActivity,
+    refreshThreadTokenUsage,
   });
 
   const onAppServerEvent = useCallback(

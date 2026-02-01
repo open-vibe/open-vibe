@@ -32,6 +32,109 @@ export function normalizeStringList(value: unknown) {
   return single ? [single] : [];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const USAGE_KEYS = new Set([
+  "totalTokens",
+  "total_tokens",
+  "inputTokens",
+  "input_tokens",
+  "cachedInputTokens",
+  "cached_input_tokens",
+  "cache_read_input_tokens",
+  "cacheReadInputTokens",
+  "outputTokens",
+  "output_tokens",
+  "reasoningOutputTokens",
+  "reasoning_output_tokens",
+]);
+
+function hasUsageKeys(record: Record<string, unknown>) {
+  return Object.keys(record).some((key) => USAGE_KEYS.has(key));
+}
+
+function pickUsageSection(
+  record: Record<string, unknown>,
+  keys: string[],
+): Record<string, unknown> | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (isRecord(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+export function extractTokenUsageCandidate(
+  raw: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const info = isRecord(raw.info) ? (raw.info as Record<string, unknown>) : null;
+  const candidates = [raw, info].filter(
+    (entry): entry is Record<string, unknown> => Boolean(entry),
+  );
+  const nestedKeys = [
+    "tokenUsage",
+    "token_usage",
+    "usage",
+    "usage_stats",
+    "usageStats",
+    "token_count",
+    "tokenCount",
+  ];
+
+  for (const candidate of candidates) {
+    for (const key of nestedKeys) {
+      const nested = candidate[key];
+      if (isRecord(nested)) {
+        if (
+          hasUsageKeys(nested) ||
+          pickUsageSection(nested, [
+            "total",
+            "total_token_usage",
+            "totalTokenUsage",
+            "total_usage",
+            "totalUsage",
+          ]) ||
+          pickUsageSection(nested, [
+            "last",
+            "last_token_usage",
+            "lastTokenUsage",
+            "last_usage",
+            "lastUsage",
+          ])
+        ) {
+          return nested;
+        }
+      }
+    }
+
+    if (
+      hasUsageKeys(candidate) ||
+      pickUsageSection(candidate, [
+        "total",
+        "total_token_usage",
+        "totalTokenUsage",
+        "total_usage",
+        "totalUsage",
+      ]) ||
+      pickUsageSection(candidate, [
+        "last",
+        "last_token_usage",
+        "lastTokenUsage",
+        "last_usage",
+        "lastUsage",
+      ])
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 export function normalizeRootPath(value: string) {
   let normalized = value.replace(/\\/g, "/").replace(/\/+$/, "");
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith("//")) {
@@ -60,8 +163,46 @@ export function extractRpcErrorMessage(response: unknown) {
 }
 
 export function normalizeTokenUsage(raw: Record<string, unknown>): ThreadTokenUsage {
-  const total = (raw.total as Record<string, unknown>) ?? {};
-  const last = (raw.last as Record<string, unknown>) ?? {};
+  const info = isRecord(raw.info) ? (raw.info as Record<string, unknown>) : null;
+  const rawHasUsage =
+    hasUsageKeys(raw) ||
+    Boolean(
+      pickUsageSection(raw, [
+        "total",
+        "total_token_usage",
+        "totalTokenUsage",
+        "total_usage",
+        "totalUsage",
+      ]),
+    ) ||
+    Boolean(
+      pickUsageSection(raw, [
+        "last",
+        "last_token_usage",
+        "lastTokenUsage",
+        "last_usage",
+        "lastUsage",
+      ]),
+    );
+  const primary = info && !rawHasUsage ? info : raw;
+  const totalSource =
+    pickUsageSection(primary, [
+      "total",
+      "total_token_usage",
+      "totalTokenUsage",
+      "total_usage",
+      "totalUsage",
+    ]) ?? (hasUsageKeys(primary) ? primary : null) ?? {};
+  const lastSource =
+    pickUsageSection(primary, [
+      "last",
+      "last_token_usage",
+      "lastTokenUsage",
+      "last_usage",
+      "lastUsage",
+    ]) ?? (hasUsageKeys(primary) ? primary : totalSource);
+  const total = (totalSource as Record<string, unknown>) ?? {};
+  const last = (lastSource as Record<string, unknown>) ?? {};
   return {
     total: {
       totalTokens: asNumber(total.totalTokens ?? total.total_tokens),
@@ -84,7 +225,13 @@ export function normalizeTokenUsage(raw: Record<string, unknown>): ThreadTokenUs
       ),
     },
     modelContextWindow: (() => {
-      const value = raw.modelContextWindow ?? raw.model_context_window;
+      const value =
+        primary.modelContextWindow ??
+        primary.model_context_window ??
+        primary.contextWindow ??
+        primary.context_window ??
+        primary.contextSize ??
+        primary.context_size;
       if (typeof value === "number") {
         return value;
       }

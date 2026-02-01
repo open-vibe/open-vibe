@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import {
   Brain,
   ChevronDown,
@@ -79,6 +79,10 @@ export function ComposerMetaBar({
             Math.min(Math.max((usedTokens / contextWindow) * 100, 0), 100),
         )
       : null;
+  const contextUsedPercent =
+    contextFreePercent === null
+      ? null
+      : Math.min(Math.max(100 - contextFreePercent, 0), 100);
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
@@ -231,7 +235,10 @@ export function ComposerMetaBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        <span className="text-xs font-semibold text-muted-foreground">
+          {contextUsedPercent === null ? "—" : `${Math.round(contextUsedPercent)}%`}
+        </span>
         <div
           className="relative grid size-5 place-items-center rounded-full"
           aria-label={
@@ -252,7 +259,8 @@ export function ComposerMetaBar({
             {
               "--context-free": contextFreePercent ?? 0,
               background:
-                "radial-gradient(circle, hsl(var(--background)) 54%, transparent 56%), conic-gradient(from 180deg, hsl(calc(120deg * var(--context-free) / 100) 80% 55%) calc(var(--context-free) * 1%), hsl(var(--border)) 0)",
+                "radial-gradient(circle, hsl(var(--background)) 52%, transparent 55%), conic-gradient(from 180deg, hsl(var(--primary)) calc(var(--context-free) * 1%), hsl(var(--muted-foreground) / 0.45) 0)",
+              boxShadow: "inset 0 0 0 1px hsl(var(--border) / 0.7)",
             } as CSSProperties
           }
         >

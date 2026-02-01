@@ -5,6 +5,7 @@ import type {
   RequestUserInputRequest,
 } from "../../../types";
 import { subscribeAppServerEvents } from "../../../services/events";
+import { extractTokenUsageCandidate } from "../../threads/utils/threadNormalize";
 
 type AgentDelta = {
   workspaceId: string;
@@ -65,6 +66,79 @@ type AppServerEventHandlers = {
   ) => void;
 };
 
+function getThreadIdFromParams(params: Record<string, unknown> | null) {
+  if (!params) {
+    return "";
+  }
+  const turn = params.turn as Record<string, unknown> | undefined;
+  const info = params.info as Record<string, unknown> | undefined;
+  const msg = params.msg as Record<string, unknown> | undefined;
+  const raw =
+    params.threadId ??
+    params.thread_id ??
+    params.conversationId ??
+    params.conversation_id ??
+    msg?.threadId ??
+    msg?.thread_id ??
+    msg?.conversationId ??
+    msg?.conversation_id ??
+    turn?.threadId ??
+    turn?.thread_id ??
+    info?.threadId ??
+    info?.thread_id;
+  return raw ? String(raw) : "";
+}
+
+function extractTokenUsageFromParams(params: Record<string, unknown> | null) {
+  if (!params) {
+    return null;
+  }
+  const direct = extractTokenUsageCandidate(params);
+  if (direct) {
+    return direct;
+  }
+  const msg = params.msg;
+  if (msg && typeof msg === "object" && !Array.isArray(msg)) {
+    const fromMsg = extractTokenUsageCandidate(msg as Record<string, unknown>);
+    if (fromMsg) {
+      return fromMsg;
+    }
+    const msgInfo = (msg as Record<string, unknown>).info;
+    if (msgInfo && typeof msgInfo === "object" && !Array.isArray(msgInfo)) {
+      const fromInfo = extractTokenUsageCandidate(
+        msgInfo as Record<string, unknown>,
+      );
+      if (fromInfo) {
+        return fromInfo;
+      }
+    }
+  }
+  const turn = params.turn;
+  if (turn && typeof turn === "object" && !Array.isArray(turn)) {
+    const fromTurn = extractTokenUsageCandidate(turn as Record<string, unknown>);
+    if (fromTurn) {
+      return fromTurn;
+    }
+  }
+  const info = params.info;
+  if (info && typeof info === "object" && !Array.isArray(info)) {
+    const fromInfo = extractTokenUsageCandidate(info as Record<string, unknown>);
+    if (fromInfo) {
+      return fromInfo;
+    }
+  }
+  const payload = params.payload;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const fromPayload = extractTokenUsageCandidate(
+      payload as Record<string, unknown>,
+    );
+    if (fromPayload) {
+      return fromPayload;
+    }
+  }
+  return null;
+}
+
 export function useAppServerEvents(handlers: AppServerEventHandlers) {
   useEffect(() => {
     const unlisten = subscribeAppServerEvents((payload) => {
@@ -72,6 +146,21 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
 
       const { workspace_id, message } = payload;
       const method = String(message.method ?? "");
+      const params = (message.params as Record<string, unknown>) ?? null;
+
+      let tokenUsageHandled = false;
+      const usageCandidate = extractTokenUsageFromParams(params);
+      const usageThreadId = getThreadIdFromParams(params);
+      if (usageCandidate) {
+        if (usageThreadId) {
+          handlers.onThreadTokenUsageUpdated?.(
+            workspace_id,
+            usageThreadId,
+            usageCandidate,
+          );
+          tokenUsageHandled = true;
+        }
+      }
 
       if (method === "codex/connected") {
         handlers.onWorkspaceConnected?.(workspace_id);
@@ -213,14 +302,19 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         return;
       }
 
-      if (method === "thread/tokenUsage/updated") {
-        const params = message.params as Record<string, unknown>;
-        const threadId = String(params.threadId ?? params.thread_id ?? "");
-        const tokenUsage =
-          (params.tokenUsage as Record<string, unknown> | undefined) ??
-          (params.token_usage as Record<string, unknown> | undefined);
-        if (threadId && tokenUsage) {
-          handlers.onThreadTokenUsageUpdated?.(workspace_id, threadId, tokenUsage);
+      if (
+        method === "thread/tokenUsage/updated" ||
+        method === "thread/token_usage/updated" ||
+        method === "thread/token-usage/updated"
+      ) {
+        if (!tokenUsageHandled) {
+          const threadId = String(params?.threadId ?? params?.thread_id ?? "");
+          const tokenUsage =
+            (params?.tokenUsage as Record<string, unknown> | undefined) ??
+            (params?.token_usage as Record<string, unknown> | undefined);
+          if (threadId && tokenUsage) {
+            handlers.onThreadTokenUsageUpdated?.(workspace_id, threadId, tokenUsage);
+          }
         }
         return;
       }

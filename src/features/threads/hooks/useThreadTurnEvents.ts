@@ -16,6 +16,7 @@ type UseThreadTurnEventsOptions = {
   pendingInterruptsRef: MutableRefObject<Set<string>>;
   pushThreadErrorMessage: (threadId: string, message: string) => void;
   safeMessageActivity: () => void;
+  refreshThreadTokenUsage?: (workspaceId: string, threadId: string) => void;
 };
 
 export function useThreadTurnEvents({
@@ -26,6 +27,7 @@ export function useThreadTurnEvents({
   pendingInterruptsRef,
   pushThreadErrorMessage,
   safeMessageActivity,
+  refreshThreadTokenUsage,
 }: UseThreadTurnEventsOptions) {
   const onTurnStarted = useCallback(
     (workspaceId: string, threadId: string, turnId: string) => {
@@ -50,12 +52,17 @@ export function useThreadTurnEvents({
   );
 
   const onTurnCompleted = useCallback(
-    (_workspaceId: string, threadId: string, _turnId: string) => {
+    (workspaceId: string, threadId: string, _turnId: string) => {
       markProcessing(threadId, false);
       setActiveTurnId(threadId, null);
       pendingInterruptsRef.current.delete(threadId);
+      if (refreshThreadTokenUsage) {
+        setTimeout(() => {
+          refreshThreadTokenUsage(workspaceId, threadId);
+        }, 250);
+      }
     },
-    [markProcessing, pendingInterruptsRef, setActiveTurnId],
+    [markProcessing, pendingInterruptsRef, refreshThreadTokenUsage, setActiveTurnId],
   );
 
   const onTurnPlanUpdated = useCallback(

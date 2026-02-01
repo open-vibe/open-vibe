@@ -1,6 +1,7 @@
-use tauri::{State, Window};
+use tauri::{Manager, State, Window};
 
 use crate::codex_config;
+use crate::happy_bridge;
 use crate::state::AppState;
 use crate::storage::write_settings;
 use crate::types::AppSettings;
@@ -46,6 +47,8 @@ pub(crate) async fn update_app_settings(
     let mut current = state.app_settings.lock().await;
     *current = settings.clone();
     let _ = window::apply_window_appearance(&window, settings.theme.as_str());
+    let app_handle = window.app_handle();
+    let _ = happy_bridge::apply_settings(&app_handle, &state, &settings).await;
     Ok(settings)
 }
 

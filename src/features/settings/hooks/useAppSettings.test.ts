@@ -86,6 +86,10 @@ describe("useAppSettings", () => {
       codeFontFamily: "  ",
       codeFontSize: 2,
       notificationSoundsEnabled: false,
+      happyEnabled: false,
+      happyServerUrl: "https://api.cluster-fluster.com",
+      happyToken: null,
+      happySecret: null,
     };
     const saved: AppSettings = {
       ...result.current.settings,
@@ -96,6 +100,10 @@ describe("useAppSettings", () => {
       codeFontFamily: "JetBrains Mono, monospace",
       codeFontSize: 13,
       notificationSoundsEnabled: false,
+      happyEnabled: false,
+      happyServerUrl: "https://api.cluster-fluster.com",
+      happyToken: null,
+      happySecret: null,
     };
     updateAppSettingsMock.mockResolvedValue(saved);
 

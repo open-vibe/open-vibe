@@ -36,7 +36,7 @@ export function TeamSwitcher({
   onSelectTeam?: (teamId: string) => void
 }) {
   const { isMobile } = useSidebar()
-  const resolvedTeam = React.useMemo(() => {
+  const activeTeam = React.useMemo(() => {
     if (!teams.length) {
       return null
     }
@@ -45,11 +45,6 @@ export function TeamSwitcher({
     }
     return teams[0]
   }, [activeTeamId, teams])
-  const [activeTeam, setActiveTeam] = React.useState(resolvedTeam)
-
-  React.useEffect(() => {
-    setActiveTeam(resolvedTeam)
-  }, [resolvedTeam])
 
   if (!activeTeam) {
     return null
@@ -87,7 +82,6 @@ export function TeamSwitcher({
               <DropdownMenuItem
                 key={team.name}
                 onClick={() => {
-                  setActiveTeam(team)
                   onSelectTeam?.(team.id)
                 }}
                 className="gap-2 p-2"

@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type { Dispatch } from "react";
 import { buildConversationItem } from "../../../utils/threadItems";
 import { asString } from "../utils/threadNormalize";
+import type { HappyBridgeCommand } from "../../../types";
 import type { ThreadAction } from "./useThreadsReducer";
 
 type UseThreadItemEventsOptions = {
@@ -16,6 +17,8 @@ type UseThreadItemEventsOptions = {
     threadId: string,
     timestamp?: number,
   ) => void;
+  getWorkspacePath?: (workspaceId: string) => string | null;
+  onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
   applyCollabThreadLinks: (
     threadId: string,
     item: Record<string, unknown>,
@@ -30,6 +33,8 @@ export function useThreadItemEvents({
   markReviewing,
   safeMessageActivity,
   recordThreadActivity,
+  getWorkspacePath,
+  onHappyBridgeCommand,
   applyCollabThreadLinks,
 }: UseThreadItemEventsOptions) {
   const handleItemUpdate = useCallback(
@@ -156,6 +161,20 @@ export function useThreadItemEvents({
         text,
         timestamp,
       });
+      if (onHappyBridgeCommand && text.trim()) {
+        const workspacePath = getWorkspacePath?.(workspaceId) ?? "";
+        const threadName = getCustomName(workspaceId, threadId) ?? null;
+        onHappyBridgeCommand({
+          type: "thread-message",
+          threadId,
+          workspaceId,
+          workspacePath,
+          threadName,
+          role: "assistant",
+          content: text,
+          createdAt: timestamp,
+        });
+      }
       markProcessing(threadId, false);
       recordThreadActivity(workspaceId, threadId, timestamp);
       safeMessageActivity();
@@ -167,6 +186,8 @@ export function useThreadItemEvents({
       activeThreadId,
       dispatch,
       getCustomName,
+      getWorkspacePath,
+      onHappyBridgeCommand,
       markProcessing,
       recordThreadActivity,
       safeMessageActivity,

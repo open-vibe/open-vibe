@@ -1,5 +1,10 @@
 import { listen } from "@tauri-apps/api/event";
-import type { AppServerEvent, DictationEvent, DictationModelStatus } from "../types";
+import type {
+  AppServerEvent,
+  DictationEvent,
+  DictationModelStatus,
+  HappyBridgeEvent,
+} from "../types";
 
 export type Unsubscribe = () => void;
 
@@ -19,7 +24,6 @@ function createEventHub<T>(eventName: string) {
   const listeners = new Set<Listener<T>>();
   let unlisten: Unsubscribe | null = null;
   let listenPromise: Promise<Unsubscribe> | null = null;
-
   const start = (options?: SubscriptionOptions) => {
     if (unlisten || listenPromise) {
       return;
@@ -80,6 +84,7 @@ const appServerHub = createEventHub<AppServerEvent>("app-server-event");
 const dictationDownloadHub = createEventHub<DictationModelStatus>("dictation-download");
 const dictationEventHub = createEventHub<DictationEvent>("dictation-event");
 const terminalOutputHub = createEventHub<TerminalOutputEvent>("terminal-output");
+const happyBridgeHub = createEventHub<HappyBridgeEvent>("happy-bridge-event");
 const updaterCheckHub = createEventHub<void>("updater-check");
 const menuNewAgentHub = createEventHub<void>("menu-new-agent");
 const menuNewWorktreeAgentHub = createEventHub<void>("menu-new-worktree-agent");
@@ -131,6 +136,13 @@ export function subscribeTerminalOutput(
   options?: SubscriptionOptions,
 ): Unsubscribe {
   return terminalOutputHub.subscribe(onEvent, options);
+}
+
+export function subscribeHappyBridgeEvents(
+  onEvent: (event: HappyBridgeEvent) => void,
+  options?: SubscriptionOptions,
+): Unsubscribe {
+  return happyBridgeHub.subscribe(onEvent, options);
 }
 
 export function subscribeUpdaterCheck(

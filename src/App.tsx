@@ -77,6 +77,7 @@ import { useWorkspaceController } from "./features/app/hooks/useWorkspaceControl
 import { useWorkspaceSelection } from "./features/workspaces/hooks/useWorkspaceSelection";
 import { useLocalUsage } from "./features/home/hooks/useLocalUsage";
 import { useGitHubPanelController } from "./features/app/hooks/useGitHubPanelController";
+import { useHappyBridgeEvents } from "./features/happy/hooks/useHappyBridgeEvents";
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
 import { isMissingGitRepoError } from "./utils/gitErrors";
@@ -590,6 +591,17 @@ function MainApp() {
     resolvedModel,
   });
 
+  const happyEnabled =
+    appSettings.happyEnabled &&
+    Boolean(appSettings.happyToken?.trim()) &&
+    Boolean(appSettings.happySecret?.trim());
+  const getWorkspacePath = useCallback(
+    (workspaceId: string) =>
+      workspaces.find((workspace) => workspace.id === workspaceId)?.path ??
+      null,
+    [workspaces],
+  );
+
   const {
     setActiveThreadId,
     activeThreadId,
@@ -625,6 +637,7 @@ function MainApp() {
     handleApprovalDecision,
     handleApprovalRemember,
     handleUserInputSubmit,
+    getWorkspaceIdForThread,
   } = useThreads({
     activeWorkspace,
     onWorkspaceConnected: markWorkspaceConnected,
@@ -635,7 +648,9 @@ function MainApp() {
     accessMode,
     steerEnabled: appSettings.experimentalSteerEnabled,
     customPrompts: prompts,
-    onMessageActivity: queueGitStatusRefresh
+    onMessageActivity: queueGitStatusRefresh,
+    happyEnabled,
+    getWorkspacePath,
   });
   const activeThreadIdRef = useRef<string | null>(activeThreadId ?? null);
   const { getThreadRows } = useThreadRows(threadParentById);
@@ -654,6 +669,12 @@ function MainApp() {
   } = useThreadTabs({
     workspaces,
     threadsByWorkspace,
+  });
+  useHappyBridgeEvents({
+    enabled: happyEnabled,
+    workspaces,
+    getWorkspaceIdForThread,
+    sendUserMessageToThread,
   });
   const closedThreadTabIdsRef = useRef<Set<string>>(new Set());
   const makeThreadTabId = useCallback(

@@ -33,6 +33,7 @@ vi.mock("../../../services/tauri", () => ({
   archiveThread: vi.fn(),
   getAccountRateLimits: vi.fn(),
   interruptTurn: vi.fn(),
+  getThreadTokenUsage: vi.fn(),
 }));
 
 const workspace: WorkspaceInfo = {

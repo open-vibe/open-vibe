@@ -85,7 +85,7 @@ export function useDictation(): UseDictationResult {
         hintTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [isAlreadyActiveMessage]);
 
   const start = useCallback(async (preferredLanguage: string | null) => {
     setError(null);

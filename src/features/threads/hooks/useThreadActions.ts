@@ -21,6 +21,8 @@ import {
 } from "../../../utils/threadItems";
 import {
   asString,
+  extractTokenUsageCandidate,
+  normalizeTokenUsage,
   normalizeRootPath,
 } from "../utils/threadNormalize";
 import { saveThreadActivity } from "../utils/threadStorage";
@@ -42,7 +44,35 @@ type UseThreadActionsOptions = {
     threadId: string,
     thread: Record<string, unknown>,
   ) => void;
+  refreshThreadTokenUsage?: (workspaceId: string, threadId: string) => void;
 };
+
+function extractTokenUsageFromTurns(
+  turns: unknown,
+): { usage: Record<string, unknown>; source: string } | null {
+  if (!Array.isArray(turns)) {
+    return null;
+  }
+  for (let index = turns.length - 1; index >= 0; index -= 1) {
+    const turn = turns[index];
+    if (!turn || typeof turn !== "object" || Array.isArray(turn)) {
+      continue;
+    }
+    const turnRecord = turn as Record<string, unknown>;
+    const usage = extractTokenUsageCandidate(turnRecord);
+    if (usage) {
+      return { usage, source: "turn" };
+    }
+    const info = turnRecord.info;
+    if (info && typeof info === "object" && !Array.isArray(info)) {
+      const nested = extractTokenUsageCandidate(info as Record<string, unknown>);
+      if (nested) {
+        return { usage: nested, source: "turn.info" };
+      }
+    }
+  }
+  return null;
+}
 
 export function useThreadActions({
   dispatch,
@@ -57,6 +87,7 @@ export function useThreadActions({
   loadedThreadsRef,
   replaceOnResumeRef,
   applyCollabThreadLinksFromThread,
+  refreshThreadTokenUsage,
 }: UseThreadActionsOptions) {
   const startThreadForWorkspace = useCallback(
     async (workspaceId: string, options?: { activate?: boolean }) => {
@@ -153,6 +184,26 @@ export function useThreadActions({
           | null;
         if (thread) {
           dispatch({ type: "ensureThread", workspaceId, threadId });
+          let tokenUsageRaw = extractTokenUsageCandidate(thread);
+          if (!tokenUsageRaw) {
+            const turnUsage = extractTokenUsageFromTurns(thread.turns);
+            if (turnUsage) {
+              tokenUsageRaw = turnUsage.usage;
+            }
+          }
+          if (tokenUsageRaw && typeof tokenUsageRaw === "object") {
+            dispatch({
+              type: "setThreadTokenUsage",
+              threadId,
+              tokenUsage: normalizeTokenUsage(
+                tokenUsageRaw as Record<string, unknown>,
+              ),
+            });
+          } else {
+            if (refreshThreadTokenUsage) {
+              void refreshThreadTokenUsage(workspaceId, threadId);
+            }
+          }
           applyCollabThreadLinksFromThread(threadId, thread);
           const items = buildItemsFromThread(thread);
           const localItems = itemsByThread[threadId] ?? [];
@@ -234,6 +285,7 @@ export function useThreadActions({
       loadedThreadsRef,
       onDebug,
       replaceOnResumeRef,
+      refreshThreadTokenUsage,
       threadStatusById,
     ],
   );

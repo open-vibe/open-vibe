@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, Local, TimeZone, Utc};
+use ignore::WalkBuilder;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -56,6 +57,38 @@ pub(crate) async fn local_usage_snapshot(
     .await
     .map_err(|err| err.to_string())??;
     Ok(snapshot)
+}
+
+#[tauri::command]
+pub(crate) async fn thread_token_usage(
+    workspace_id: String,
+    thread_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<Value>, String> {
+    let workspaces = state.workspaces.lock().await;
+    let entry = workspaces
+        .get(&workspace_id)
+        .ok_or_else(|| "workspace not found".to_string())?;
+    let workspace_path = PathBuf::from(&entry.path);
+    let sessions_roots = resolve_sessions_roots(&workspaces, Some(&workspace_path));
+    drop(workspaces);
+
+    if sessions_roots.is_empty() {
+        return Ok(None);
+    }
+
+    let search_roots = build_session_search_roots(&sessions_roots);
+    let session_file =
+        find_session_file_for_thread(&search_roots, thread_id.trim()).or_else(|| {
+            find_session_file_by_meta(&search_roots, thread_id.trim())
+        });
+
+    let Some(session_file) = session_file else {
+        return Ok(None);
+    };
+
+    let usage = read_latest_token_usage(&session_file)?;
+    Ok(usage)
 }
 
 fn scan_local_usage(
@@ -553,6 +586,162 @@ fn resolve_sessions_roots(
     }
 
     roots
+}
+
+fn build_session_search_roots(sessions_roots: &[PathBuf]) -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = Vec::new();
+    let mut seen = HashSet::new();
+    for root in sessions_roots {
+        if root.exists() && seen.insert(root.clone()) {
+            roots.push(root.clone());
+        }
+        if let Some(parent) = root.parent() {
+            let archived = parent.join("archived_sessions");
+            if archived.exists() && seen.insert(archived.clone()) {
+                roots.push(archived);
+            }
+        }
+    }
+    roots
+}
+
+fn find_session_file_for_thread(roots: &[PathBuf], thread_id: &str) -> Option<PathBuf> {
+    let needle = thread_id.trim().to_lowercase();
+    if needle.is_empty() {
+        return None;
+    }
+    for root in roots {
+        if !root.exists() {
+            continue;
+        }
+        for entry in WalkBuilder::new(root).standard_filters(false).build() {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(_) => continue,
+            };
+            if !entry.file_type().is_some_and(|ft| ft.is_file()) {
+                continue;
+            }
+            let path = entry.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("jsonl") {
+                continue;
+            }
+            let name = path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            if name.contains(&needle) {
+                return Some(path.to_path_buf());
+            }
+        }
+    }
+    None
+}
+
+fn find_session_file_by_meta(roots: &[PathBuf], thread_id: &str) -> Option<PathBuf> {
+    let needle = thread_id.trim();
+    if needle.is_empty() {
+        return None;
+    }
+    for root in roots {
+        if !root.exists() {
+            continue;
+        }
+        for entry in WalkBuilder::new(root).standard_filters(false).build() {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(_) => continue,
+            };
+            if !entry.file_type().is_some_and(|ft| ft.is_file()) {
+                continue;
+            }
+            let path = entry.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("jsonl") {
+                continue;
+            }
+            if session_file_matches_id(path, needle) {
+                return Some(path.to_path_buf());
+            }
+        }
+    }
+    None
+}
+
+fn session_file_matches_id(path: &Path, thread_id: &str) -> bool {
+    let file = match File::open(path) {
+        Ok(file) => file,
+        Err(_) => return false,
+    };
+    let reader = BufReader::new(file);
+    for (index, line) in reader.lines().enumerate() {
+        if index > 5 {
+            break;
+        }
+        let line = match line {
+            Ok(line) => line,
+            Err(_) => continue,
+        };
+        let value = match serde_json::from_str::<Value>(&line) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        let entry_type = value.get("type").and_then(|value| value.as_str());
+        if entry_type != Some("session_meta") {
+            continue;
+        }
+        let payload = value.get("payload").and_then(|value| value.as_object());
+        let id = payload
+            .and_then(|payload| payload.get("id"))
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
+        return id == thread_id;
+    }
+    false
+}
+
+fn read_latest_token_usage(path: &Path) -> Result<Option<Value>, String> {
+    let file = match File::open(path) {
+        Ok(file) => file,
+        Err(_) => return Ok(None),
+    };
+    let reader = BufReader::new(file);
+    let mut latest: Option<Value> = None;
+    for line in reader.lines() {
+        let line = match line {
+            Ok(line) => line,
+            Err(_) => continue,
+        };
+        if line.len() > 512_000 {
+            continue;
+        }
+        let value = match serde_json::from_str::<Value>(&line) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        let entry_type = value
+            .get("type")
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
+        if entry_type != "event_msg" {
+            continue;
+        }
+        let payload = value.get("payload").and_then(|value| value.as_object());
+        let payload_type = payload
+            .and_then(|payload| payload.get("type"))
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
+        if payload_type != "token_count" {
+            continue;
+        }
+        let info = payload.and_then(|payload| payload.get("info")).cloned();
+        if let Some(info) = info {
+            if !info.is_null() {
+                latest = Some(info);
+            }
+        }
+    }
+    Ok(latest)
 }
 
 fn resolve_workspace_codex_home_for_path(

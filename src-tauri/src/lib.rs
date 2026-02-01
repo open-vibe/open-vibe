@@ -23,6 +23,7 @@ mod dictation;
 mod event_sink;
 mod git;
 mod git_utils;
+mod happy_bridge;
 mod local_usage;
 mod menu;
 mod prompts;
@@ -65,6 +66,16 @@ pub fn run() {
         .setup(|app| {
             let state = state::AppState::load(&app.handle());
             app.manage(state);
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<state::AppState>();
+                let settings = state.app_settings.lock().await.clone();
+                if let Err(error) =
+                    happy_bridge::apply_settings(&app_handle, &state, &settings).await
+                {
+                    eprintln!("happy bridge apply failed: {error}");
+                }
+            });
             #[cfg(desktop)]
             {
                 app.handle()
@@ -166,7 +177,10 @@ pub fn run() {
             dictation::dictation_request_permission,
             dictation::dictation_stop,
             dictation::dictation_cancel,
-            local_usage::local_usage_snapshot
+            local_usage::local_usage_snapshot,
+            local_usage::thread_token_usage,
+            happy_bridge::happy_bridge_status,
+            happy_bridge::happy_bridge_send,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");

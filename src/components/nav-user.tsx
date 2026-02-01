@@ -19,7 +19,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
 
 export function NavUser({
@@ -37,7 +36,6 @@ export function NavUser({
   onOpenDebug?: () => void
   showDebugButton?: boolean
 }) {
-  const { isMobile } = useSidebar()
   const { t } = useI18n()
 
   return (

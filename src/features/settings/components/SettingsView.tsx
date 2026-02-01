@@ -400,6 +400,9 @@ export function SettingsView({
   const [codexArgsDraft, setCodexArgsDraft] = useState(appSettings.codexArgs ?? "");
   const [remoteHostDraft, setRemoteHostDraft] = useState(appSettings.remoteBackendHost);
   const [remoteTokenDraft, setRemoteTokenDraft] = useState(appSettings.remoteBackendToken ?? "");
+  const [happyServerDraft, setHappyServerDraft] = useState(
+    appSettings.happyServerUrl,
+  );
   const [yunyiTokenDraft, setYunyiTokenDraft] = useState(
     appSettings.experimentalYunyiToken,
   );
@@ -589,6 +592,10 @@ export function SettingsView({
   useEffect(() => {
     setRemoteTokenDraft(appSettings.remoteBackendToken ?? "");
   }, [appSettings.remoteBackendToken]);
+
+  useEffect(() => {
+    setHappyServerDraft(appSettings.happyServerUrl);
+  }, [appSettings.happyServerUrl]);
 
   useEffect(() => {
     setYunyiTokenDraft(appSettings.experimentalYunyiToken);
@@ -783,6 +790,7 @@ export function SettingsView({
       codexBinOverrideDrafts,
       setCodexBinOverrideSaving,
       onUpdateWorkspaceCodexBin,
+      normalizeWindowsPath,
       setCodexBinOverrideDrafts,
       setCodexBinOverrideSavedAt,
       t,
@@ -840,6 +848,18 @@ export function SettingsView({
     await onUpdateAppSettings({
       ...appSettings,
       remoteBackendToken: nextToken,
+    });
+  };
+
+  const handleCommitHappyServer = async () => {
+    const nextUrl = happyServerDraft.trim() || appSettings.happyServerUrl;
+    setHappyServerDraft(nextUrl);
+    if (nextUrl === appSettings.happyServerUrl) {
+      return;
+    }
+    await onUpdateAppSettings({
+      ...appSettings,
+      happyServerUrl: nextUrl,
     });
   };
 
@@ -3871,11 +3891,11 @@ export function SettingsView({
                           }
                         />
                       </div>
-                      {appSettings.experimentalYunyiEnabled && (
-                        <div className="space-y-2 rounded-md border border-border/60 p-3">
-                          <Label htmlFor="experimental-yunyi-token">
-                            {t("settings.experimental.yunyi.token.label")}
-                          </Label>
+                        {appSettings.experimentalYunyiEnabled && (
+                          <div className="space-y-2 rounded-md border border-border/60 p-3">
+                            <Label htmlFor="experimental-yunyi-token">
+                              {t("settings.experimental.yunyi.token.label")}
+                            </Label>
                           <Input
                             id="experimental-yunyi-token"
                             type="password"
@@ -3894,12 +3914,67 @@ export function SettingsView({
                           />
                           <div className="text-sm text-muted-foreground">
                             {t("settings.experimental.yunyi.token.help")}
+                            </div>
                           </div>
+                        )}
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="experimental-happy">
+                              {t("settings.experimental.happy.title")}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.experimental.happy.subtitle")}
+                            </div>
+                          </div>
+                          <Switch
+                            id="experimental-happy"
+                            checked={appSettings.happyEnabled}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                happyEnabled: value,
+                              })
+                            }
+                          />
                         </div>
-                      )}
-                      </div>
-                    </SettingsSection>
-                  </div>
+                        {appSettings.happyEnabled && (
+                          <div className="space-y-3 rounded-md border border-border/60 p-3">
+                            <div className="space-y-2">
+                              <Label htmlFor="experimental-happy-server">
+                                {t("settings.experimental.happy.server.label")}
+                              </Label>
+                              <Input
+                                id="experimental-happy-server"
+                                type="url"
+                                value={happyServerDraft}
+                                placeholder={t(
+                                  "settings.experimental.happy.server.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setHappyServerDraft(event.target.value)
+                                }
+                                onBlur={() => {
+                                  void handleCommitHappyServer();
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    void handleCommitHappyServer();
+                                  }
+                                }}
+                              />
+                              <div className="text-sm text-muted-foreground">
+                                {t("settings.experimental.happy.server.help")}
+                              </div>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {t("settings.experimental.happy.credentialsHelp")}
+                            </div>
+                          </div>
+                        )}
+                        </div>
+                      </SettingsSection>
+                    </div>
                 </TabsContent>
               </div>
             </Tabs>

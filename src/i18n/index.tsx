@@ -401,6 +401,24 @@ const en = {
   "settings.experimental.yunyi.token.placeholder": "Bearer ...",
   "settings.experimental.yunyi.token.help":
     "Stored locally and used to fetch usage data from yunyi.cfd.",
+  "settings.experimental.happy.title": "Happy remote",
+  "settings.experimental.happy.subtitle":
+    "Sync sessions to Happy so you can continue on mobile.",
+  "settings.experimental.happy.token.label": "Happy token",
+  "settings.experimental.happy.token.placeholder": "Bearer ...",
+  "settings.experimental.happy.token.help":
+    "Stored locally and used to authenticate with the Happy server.",
+  "settings.experimental.happy.secret.label": "Happy secret key",
+  "settings.experimental.happy.secret.placeholder": "XXXXX-XXXXX-XXXXX...",
+  "settings.experimental.happy.secret.help":
+    "Required for end-to-end encryption. Keep this private.",
+  "settings.experimental.happy.server.label": "Server URL",
+  "settings.experimental.happy.server.placeholder":
+    "https://api.cluster-fluster.com",
+  "settings.experimental.happy.server.help":
+    "Defaults to the official server. Self-hosted support is optional.",
+  "settings.experimental.happy.credentialsHelp":
+    "Credentials are loaded automatically from ~/.happy/access.key (or HAPPY_HOME_DIR).",
   "settings.projects.group.deletePrompt": "Delete \"{name}\"?",
   "settings.projects.group.deleteDetail":
     "Projects in this group will move to \"{label}\".",
@@ -810,6 +828,21 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.experimental.yunyi.token.label": "云驿 API 令牌",
   "settings.experimental.yunyi.token.placeholder": "Bearer ...",
   "settings.experimental.yunyi.token.help": "仅保存在本地，用于请求 yunyi.cfd 的用量。",
+  "settings.experimental.happy.title": "Happy 远程",
+  "settings.experimental.happy.subtitle": "同步会话到 Happy，支持手机继续操作。",
+  "settings.experimental.happy.token.label": "Happy 令牌",
+  "settings.experimental.happy.token.placeholder": "Bearer ...",
+  "settings.experimental.happy.token.help": "仅保存在本地，用于连接 Happy 服务器。",
+  "settings.experimental.happy.secret.label": "Happy 密钥",
+  "settings.experimental.happy.secret.placeholder": "XXXXX-XXXXX-XXXXX...",
+  "settings.experimental.happy.secret.help": "用于端到端加密，请妥善保管。",
+  "settings.experimental.happy.server.label": "服务器地址",
+  "settings.experimental.happy.server.placeholder":
+    "https://api.cluster-fluster.com",
+  "settings.experimental.happy.server.help":
+    "默认使用官方服务器，自建地址可选。",
+  "settings.experimental.happy.credentialsHelp":
+    "凭据会自动从 ~/.happy/access.key（或 HAPPY_HOME_DIR）读取。",
   "settings.projects.group.deletePrompt": "删除“{name}”？",
   "settings.projects.group.deleteDetail": "该分组中的项目将移动到“{label}”。",
   "settings.projects.group.deleteTitle": "删除分组",

@@ -19,6 +19,7 @@ import { getDefaultInterruptShortcut } from "../../../utils/shortcuts";
 
 const allowedThemes = new Set(["system", "light", "dark"]);
 const allowedLanguages = new Set(["system", "en", "zh-CN"]);
+const DEFAULT_HAPPY_SERVER_URL = "https://api.cluster-fluster.com";
 
 const defaultSettings: AppSettings = {
   codexBin: null,
@@ -26,6 +27,10 @@ const defaultSettings: AppSettings = {
   backendMode: "local",
   remoteBackendHost: "127.0.0.1:4732",
   remoteBackendToken: null,
+  happyEnabled: false,
+  happyServerUrl: DEFAULT_HAPPY_SERVER_URL,
+  happyToken: null,
+  happySecret: null,
   defaultAccessMode: "current",
   composerModelShortcut: "cmd+shift+m",
   composerAccessShortcut: "cmd+shift+a",
@@ -102,6 +107,10 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     ...settings,
     codexBin: settings.codexBin?.trim() ? settings.codexBin.trim() : null,
     codexArgs: settings.codexArgs?.trim() ? settings.codexArgs.trim() : null,
+    happyServerUrl:
+      settings.happyServerUrl?.trim() || DEFAULT_HAPPY_SERVER_URL,
+    happyToken: settings.happyToken?.trim() ? settings.happyToken.trim() : null,
+    happySecret: settings.happySecret?.trim() ? settings.happySecret.trim() : null,
     uiScale: clampUiScale(settings.uiScale),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
     language: allowedLanguages.has(settings.language) ? settings.language : "system",
