@@ -956,8 +956,12 @@ impl DaemonState {
         id: String,
         codex_bin: Option<String>,
     ) -> Result<WorkspaceInfo, String> {
-        let (entry_snapshot, list) = {
+        let (previous_entry, entry_snapshot, parent_entry, list) = {
             let mut workspaces = self.workspaces.lock().await;
+            let previous_entry = workspaces
+                .get(&id)
+                .cloned()
+                .ok_or("workspace not found".to_string())?;
             let entry_snapshot = match workspaces.get_mut(&id) {
                 Some(entry) => {
                     entry.codex_bin = codex_bin.clone();
@@ -965,12 +969,64 @@ impl DaemonState {
                 }
                 None => return Err("workspace not found".to_string()),
             };
+            let parent_entry = if entry_snapshot.kind.is_worktree() {
+                entry_snapshot
+                    .parent_id
+                    .as_deref()
+                    .and_then(|parent_id| workspaces.get(parent_id))
+                    .cloned()
+            } else {
+                None
+            };
             let list: Vec<_> = workspaces.values().cloned().collect();
-            (entry_snapshot, list)
+            (previous_entry, entry_snapshot, parent_entry, list)
         };
         write_workspaces(&self.storage_path, &list)?;
 
         let connected = self.sessions.lock().await.contains_key(&id);
+        let codex_bin_changed = previous_entry.codex_bin != entry_snapshot.codex_bin;
+        if connected && codex_bin_changed {
+            let rollback_entry = previous_entry.clone();
+            let (default_bin, codex_args) = {
+                let settings = self.app_settings.lock().await;
+                (
+                    settings.codex_bin.clone(),
+                    codex_args::resolve_workspace_codex_args(
+                        &entry_snapshot,
+                        parent_entry.as_ref(),
+                        Some(&settings),
+                    ),
+                )
+            };
+            let codex_home =
+                codex_home::resolve_workspace_codex_home(&entry_snapshot, parent_entry.as_ref());
+            let new_session = match spawn_workspace_session(
+                entry_snapshot.clone(),
+                default_bin,
+                codex_args,
+                codex_home,
+                self.client_version.clone(),
+                self.event_sink.clone(),
+            )
+            .await
+            {
+                Ok(session) => session,
+                Err(error) => {
+                    let mut workspaces = self.workspaces.lock().await;
+                    workspaces.insert(rollback_entry.id.clone(), rollback_entry);
+                    return Err(error);
+                }
+            };
+            if let Some(old_session) = self
+                .sessions
+                .lock()
+                .await
+                .insert(entry_snapshot.id.clone(), new_session)
+            {
+                let mut child = old_session.child.lock().await;
+                let _ = child.kill().await;
+            }
+        }
         Ok(WorkspaceInfo {
             id: entry_snapshot.id,
             name: entry_snapshot.name,

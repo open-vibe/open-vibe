@@ -315,12 +315,43 @@ export function useThreadActions({
             : [];
           const nextCursor =
             (result?.nextCursor ?? result?.next_cursor ?? null) as string | null;
+          const sampleCwds = Array.from(
+            new Set(
+              data
+                .map((thread) => String(thread?.cwd ?? ""))
+                .filter((cwd) => cwd.length > 0),
+            ),
+          ).slice(0, 5);
           matchingThreads.push(
             ...data.filter(
               (thread) =>
                 normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath,
             ),
           );
+          if (pagesFetched === 1) {
+            onDebug?.({
+              id: `${Date.now()}-client-thread-list-summary`,
+              timestamp: Date.now(),
+              source: "client",
+              label: "thread/list summary",
+              payload: {
+                workspaceId: workspace.id,
+                workspacePath,
+                totalFetched: data.length,
+                matched: matchingThreads.length,
+                sampleCwds,
+              },
+            });
+            if (typeof console !== "undefined") {
+              console.info("[thread/list]", {
+                workspaceId: workspace.id,
+                workspacePath,
+                totalFetched: data.length,
+                matched: matchingThreads.length,
+                sampleCwds,
+              });
+            }
+          }
           cursor = nextCursor;
           if (matchingThreads.length === 0 && pagesFetched >= maxPagesWithoutMatch) {
             break;

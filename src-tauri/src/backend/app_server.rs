@@ -134,15 +134,50 @@ pub(crate) fn build_codex_path_env(codex_bin: Option<&str>) -> Option<String> {
 }
 
 pub(crate) fn build_codex_command_with_bin(codex_bin: Option<String>) -> Command {
-    let bin = codex_bin
+    let raw_bin = codex_bin
         .clone()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| "codex".into());
-    let mut command = Command::new(bin);
-    if let Some(path_env) = build_codex_path_env(codex_bin.as_deref()) {
+    let bin = normalize_windows_bin_path(&raw_bin);
+    let mut command = if cfg!(windows) && is_windows_cmd_script(&bin) {
+        let mut command = Command::new("cmd");
+        command.arg("/C").arg(&bin);
+        command
+    } else {
+        Command::new(&bin)
+    };
+    let path_env = if codex_bin.is_some() {
+        build_codex_path_env(Some(&bin))
+    } else {
+        build_codex_path_env(None)
+    };
+    if let Some(path_env) = path_env {
         command.env("PATH", path_env);
     }
     command
+}
+
+fn normalize_windows_bin_path(path: &str) -> String {
+    if !cfg!(windows) {
+        return path.to_string();
+    }
+    let trimmed = path.trim();
+    let unquoted = trimmed
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .unwrap_or(trimmed);
+    unquoted.replace('/', "\\")
+}
+
+fn is_windows_cmd_script(path: &str) -> bool {
+    if !cfg!(windows) {
+        return false;
+    }
+    Path::new(path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "cmd" | "bat"))
+        .unwrap_or(false)
 }
 
 pub(crate) async fn check_codex_installation(

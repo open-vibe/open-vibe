@@ -131,9 +131,9 @@ export async function getConfigModel(workspaceId: string): Promise<string | null
 
 export async function addWorkspace(
   path: string,
-  codex_bin: string | null,
+  codexBin: string | null,
 ): Promise<WorkspaceInfo> {
-  return invoke<WorkspaceInfo>("add_workspace", { path, codex_bin });
+  return invoke<WorkspaceInfo>("add_workspace", { path, codexBin });
 }
 
 export async function isWorkspacePathDir(path: string): Promise<boolean> {
@@ -183,9 +183,9 @@ export async function updateWorkspaceSettings(
 
 export async function updateWorkspaceCodexBin(
   id: string,
-  codex_bin: string | null,
+  codexBin: string | null,
 ): Promise<WorkspaceInfo> {
-  return invoke<WorkspaceInfo>("update_workspace_codex_bin", { id, codex_bin });
+  return invoke<WorkspaceInfo>("update_workspace_codex_bin", { id, codexBin });
 }
 
 export async function removeWorkspace(id: string): Promise<void> {

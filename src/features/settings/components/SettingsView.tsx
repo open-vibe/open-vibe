@@ -34,6 +34,7 @@ import { getPlatformKind } from "../../../utils/platform";
 import { getCodexConfigPath } from "../../../services/tauri";
 import { useI18n } from "../../../i18n";
 import { cn } from "@/lib/utils";
+import { pushErrorToast } from "@/services/toasts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -380,6 +381,20 @@ export function SettingsView({
     () => t("settings.experimental.openInFileManager", { label: fileManagerLabel }),
     [fileManagerLabel, t],
   );
+  const normalizeWindowsPath = useCallback(
+    (value: string | null) => {
+      if (!value || platform !== "windows") {
+        return value;
+      }
+      const trimmed = value.trim();
+      const unquoted =
+        trimmed.startsWith("\"") && trimmed.endsWith("\"")
+          ? trimmed.slice(1, -1)
+          : trimmed;
+      return unquoted.replace(/\//g, "\\");
+    },
+    [platform],
+  );
   const [activeSection, setActiveSection] = useState<CodexSection>("projects");
   const [codexPathDraft, setCodexPathDraft] = useState(appSettings.codexBin ?? "");
   const [codexArgsDraft, setCodexArgsDraft] = useState(appSettings.codexArgs ?? "");
@@ -396,6 +411,18 @@ export function SettingsView({
   const [codeFontSizeDraft, setCodeFontSizeDraft] = useState(appSettings.codeFontSize);
   const [codexBinOverrideDrafts, setCodexBinOverrideDrafts] = useState<
     Record<string, string>
+  >({});
+  const [codexBinOverrideSaving, setCodexBinOverrideSaving] = useState<
+    Record<string, boolean>
+  >({});
+  const [codexBinOverrideSavedAt, setCodexBinOverrideSavedAt] = useState<
+    Record<string, number>
+  >({});
+  const [codexBinOverrideDoctor, setCodexBinOverrideDoctor] = useState<
+    Record<
+      string,
+      { status: "idle" | "running" | "done"; result: CodexDoctorResult | null; error?: string }
+    >
   >({});
   const [codexHomeOverrideDrafts, setCodexHomeOverrideDrafts] = useState<
     Record<string, string>
@@ -680,7 +707,9 @@ export function SettingsView({
     }
   }, [initialSection]);
 
-  const nextCodexBin = codexPathDraft.trim() ? codexPathDraft.trim() : null;
+  const nextCodexBin = normalizeWindowsPath(
+    codexPathDraft.trim() ? codexPathDraft.trim() : null,
+  );
   const nextCodexArgs = codexArgsDraft.trim() ? codexArgsDraft.trim() : null;
   const codexDirty =
     nextCodexBin !== (appSettings.codexBin ?? null) ||
@@ -704,6 +733,91 @@ export function SettingsView({
       setIsSavingSettings(false);
     }
   };
+
+  const handleCommitCodexBinOverride = useCallback(
+    async (workspace: WorkspaceInfo) => {
+      const draft = codexBinOverrideDrafts[workspace.id] ?? "";
+      const nextValue = normalizeWindowsPath(normalizeOverrideValue(draft));
+      const previousValue = workspace.codex_bin ?? null;
+      if (nextValue === previousValue) {
+        return;
+      }
+      setCodexBinOverrideDrafts((prev) => ({
+        ...prev,
+        [workspace.id]: nextValue ?? "",
+      }));
+      setCodexBinOverrideSaving((prev) => ({ ...prev, [workspace.id]: true }));
+      try {
+        await onUpdateWorkspaceCodexBin(workspace.id, nextValue);
+        setCodexBinOverrideSavedAt((prev) => ({
+          ...prev,
+          [workspace.id]: Date.now(),
+        }));
+        window.setTimeout(() => {
+          setCodexBinOverrideSavedAt((prev) => {
+            if (!prev[workspace.id]) {
+              return prev;
+            }
+            const next = { ...prev };
+            delete next[workspace.id];
+            return next;
+          });
+        }, 2000);
+      } catch (error) {
+        setCodexBinOverrideDrafts((prev) => ({
+          ...prev,
+          [workspace.id]: previousValue ?? "",
+        }));
+        pushErrorToast({
+          title: t("settings.codex.workspaceOverrides.saveErrorTitle"),
+          message:
+            error instanceof Error
+              ? error.message
+              : t("settings.codex.workspaceOverrides.saveErrorMessage"),
+        });
+      } finally {
+        setCodexBinOverrideSaving((prev) => ({ ...prev, [workspace.id]: false }));
+      }
+    },
+    [
+      codexBinOverrideDrafts,
+      setCodexBinOverrideSaving,
+      onUpdateWorkspaceCodexBin,
+      setCodexBinOverrideDrafts,
+      setCodexBinOverrideSavedAt,
+      t,
+    ],
+  );
+
+  const handleRunWorkspaceDoctor = useCallback(
+    async (workspace: WorkspaceInfo) => {
+      const resolvedBin =
+        normalizeWindowsPath(workspace.codex_bin ?? appSettings.codexBin) ?? null;
+      const resolvedArgs =
+        workspace.settings.codexArgs ?? appSettings.codexArgs ?? null;
+      setCodexBinOverrideDoctor((prev) => ({
+        ...prev,
+        [workspace.id]: { status: "running", result: null },
+      }));
+      try {
+        const result = await onRunDoctor(resolvedBin, resolvedArgs);
+        setCodexBinOverrideDoctor((prev) => ({
+          ...prev,
+          [workspace.id]: { status: "done", result },
+        }));
+      } catch (error) {
+        setCodexBinOverrideDoctor((prev) => ({
+          ...prev,
+          [workspace.id]: {
+            status: "done",
+            result: null,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        }));
+      }
+    },
+    [appSettings.codexArgs, appSettings.codexBin, normalizeWindowsPath, onRunDoctor],
+  );
 
   const handleCommitRemoteHost = async () => {
     const nextHost = remoteHostDraft.trim() || "127.0.0.1:4732";
@@ -3191,19 +3305,49 @@ export function SettingsView({
                                           [workspace.id]: event.target.value,
                                         }))
                                       }
-                                      onBlur={async () => {
-                                        const draft = codexBinOverrideDrafts[workspace.id] ?? "";
-                                        const nextValue = normalizeOverrideValue(draft);
-                                        if (nextValue === (workspace.codex_bin ?? null)) {
-                                          return;
+                                      onBlur={() => {
+                                        void handleCommitCodexBinOverride(workspace);
+                                      }}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                          event.currentTarget.blur();
                                         }
-                                        await onUpdateWorkspaceCodexBin(workspace.id, nextValue);
                                       }}
                                       aria-label={t(
                                         "settings.codex.workspaceOverrides.binAria",
                                         { name: workspace.name },
                                       )}
                                     />
+                                    {(() => {
+                                      const draft =
+                                        codexBinOverrideDrafts[workspace.id] ?? "";
+                                      const nextValue = normalizeOverrideValue(draft);
+                                      const isDirty =
+                                        nextValue !== (workspace.codex_bin ?? null);
+                                      const isSaving =
+                                        codexBinOverrideSaving[workspace.id] ?? false;
+                                      const savedAt =
+                                        codexBinOverrideSavedAt[workspace.id] ?? 0;
+                                      const showSaved = savedAt > 0;
+                                      return isDirty ? (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          onClick={() =>
+                                            void handleCommitCodexBinOverride(workspace)
+                                          }
+                                          disabled={isSaving}
+                                        >
+                                          {isSaving
+                                            ? t("settings.action.saving")
+                                            : t("settings.action.save")}
+                                        </Button>
+                                      ) : showSaved ? (
+                                        <span className="text-xs text-muted-foreground">
+                                          {t("settings.codex.workspaceOverrides.saved")}
+                                        </span>
+                                      ) : null;
+                                    })()}
                                     <Button
                                       type="button"
                                       variant="ghost"
@@ -3213,11 +3357,91 @@ export function SettingsView({
                                           ...prev,
                                           [workspace.id]: "",
                                         }));
+                                        setCodexBinOverrideSaving((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: true,
+                                        }));
                                         await onUpdateWorkspaceCodexBin(workspace.id, null);
+                                        setCodexBinOverrideSavedAt((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: Date.now(),
+                                        }));
+                                        window.setTimeout(() => {
+                                          setCodexBinOverrideSavedAt((prev) => {
+                                            if (!prev[workspace.id]) {
+                                              return prev;
+                                            }
+                                            const next = { ...prev };
+                                            delete next[workspace.id];
+                                            return next;
+                                          });
+                                        }, 2000);
+                                        setCodexBinOverrideSaving((prev) => ({
+                                          ...prev,
+                                          [workspace.id]: false,
+                                        }));
                                       }}
+                                      disabled={codexBinOverrideSaving[workspace.id]}
                                     >
                                       {t("settings.action.clear")}
                                     </Button>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                    <span>
+                                      {t("settings.codex.workspaceOverrides.savedValue", {
+                                        value: workspace.codex_bin ?? t("settings.value.none"),
+                                      })}
+                                    </span>
+                                    <span>
+                                      {t("settings.codex.workspaceOverrides.effectiveBin", {
+                                        value:
+                                          workspace.codex_bin ??
+                                          appSettings.codexBin ??
+                                          "codex",
+                                      })}
+                                    </span>
+                                    <span>
+                                      {t("settings.codex.workspaceOverrides.effectiveHome", {
+                                        value:
+                                          workspace.settings.codexHome ??
+                                          t("settings.value.default"),
+                                      })}
+                                    </span>
+                                    <span>
+                                      {t("settings.codex.workspaceOverrides.effectiveArgs", {
+                                        value:
+                                          workspace.settings.codexArgs ??
+                                          appSettings.codexArgs ??
+                                          t("settings.value.none"),
+                                      })}
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2"
+                                      onClick={() => void handleRunWorkspaceDoctor(workspace)}
+                                      disabled={
+                                        codexBinOverrideDoctor[workspace.id]?.status ===
+                                        "running"
+                                      }
+                                    >
+                                      {codexBinOverrideDoctor[workspace.id]?.status === "running"
+                                        ? t("settings.codex.workspaceOverrides.testRunning")
+                                        : t("settings.codex.workspaceOverrides.test")}
+                                    </Button>
+                                    {codexBinOverrideDoctor[workspace.id]?.status === "done" &&
+                                      (codexBinOverrideDoctor[workspace.id]?.result ? (
+                                        <span>
+                                          {codexBinOverrideDoctor[workspace.id]?.result?.ok
+                                            ? t("settings.codex.workspaceOverrides.testOk")
+                                            : t("settings.codex.workspaceOverrides.testFailed")}
+                                        </span>
+                                      ) : codexBinOverrideDoctor[workspace.id]?.error ? (
+                                        <span>
+                                          {t("settings.codex.workspaceOverrides.testFailed")}
+                                        </span>
+                                      ) : null)}
                                   </div>
                                 </div>
                                 <div className="space-y-2">

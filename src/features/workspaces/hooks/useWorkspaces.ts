@@ -471,6 +471,7 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
       setWorkspaces((prev) =>
         prev.map((entry) => (entry.id === workspaceId ? updated : entry)),
       );
+      await refreshWorkspaces();
       return updated;
     } catch (error) {
       if (previous) {

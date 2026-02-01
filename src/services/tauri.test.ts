@@ -30,7 +30,7 @@ describe("tauri invoke wrappers", () => {
     vi.clearAllMocks();
   });
 
-  it("uses codex_bin for addWorkspace", async () => {
+  it("uses codexBin for addWorkspace", async () => {
     const invokeMock = vi.mocked(invoke);
     invokeMock.mockResolvedValueOnce({ id: "ws-1" });
 
@@ -38,7 +38,7 @@ describe("tauri invoke wrappers", () => {
 
     expect(invokeMock).toHaveBeenCalledWith("add_workspace", {
       path: "/tmp/project",
-      codex_bin: null,
+      codexBin: null,
     });
   });
 
