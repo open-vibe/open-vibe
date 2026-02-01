@@ -31,6 +31,7 @@ import { pickWorkspacePath } from "../../../services/tauri";
 import { cn } from "@/lib/utils";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type { ThreadTopbarOverrides } from "../types/threadTabs";
+import { useI18n } from "../../../i18n";
 
 const GitHubPanelData = lazy(() =>
   import("../../git/components/GitHubPanelData").then((module) => ({
@@ -146,6 +147,7 @@ export function ThreadTabView({
   onComposerOverridesChange,
   onTopbarOverridesChange,
 }: ThreadTabViewProps) {
+  const { t } = useI18n();
   const diffLayerRef = useRef<HTMLDivElement | null>(null);
   const chatLayerRef = useRef<HTMLDivElement | null>(null);
   const lastComposerOverridesRef = useRef<ComposerOverrides | null>(null);
@@ -308,13 +310,16 @@ export function ThreadTabView({
 
   const fileStatus = gitStatus.error
     ? isMissingGitRepoError(gitStatus.error)
-      ? "No git repository"
-      : "Git status unavailable"
+      ? t("git.status.noRepo")
+      : t("git.status.unavailable")
     : gitStatus.files.length > 0
-      ? `${gitStatus.files.length} file${
-          gitStatus.files.length === 1 ? "" : "s"
-        } changed`
-      : "Working tree clean";
+      ? t(
+          gitStatus.files.length === 1
+            ? "git.status.changed.one"
+            : "git.status.changed.other",
+          { count: gitStatus.files.length },
+        )
+      : t("git.status.clean");
 
   const normalizePath = useCallback((value: string) => {
     return value.replace(/\\/g, "/").replace(/\/+$/, "");

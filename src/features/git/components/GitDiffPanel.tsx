@@ -194,6 +194,7 @@ function CommitButton({
   commitLoading,
   onCommit,
 }: CommitButtonProps) {
+  const { t } = useI18n();
   const hasMessage = commitMessage.trim().length > 0;
   const hasChanges = hasStagedFiles || hasUnstagedFiles;
   const canCommit = hasMessage && hasChanges && !commitLoading;
@@ -213,12 +214,12 @@ function CommitButton({
         disabled={!canCommit}
         title={
           !hasMessage
-            ? "Enter a commit message"
+            ? t("git.commit.enterMessage")
             : !hasChanges
-              ? "No changes to commit"
+              ? t("git.commit.noChanges")
               : hasStagedFiles
-                ? "Commit staged changes"
-                : "Commit all unstaged changes"
+                ? t("git.commit.staged")
+                : t("git.commit.unstaged")
         }
       >
         {commitLoading ? (
@@ -238,7 +239,9 @@ function CommitButton({
             <path d="M20 6 9 17l-5-5" />
           </svg>
           )}
-        <span>{commitLoading ? "Committing..." : "Commit"}</span>
+        <span>
+          {commitLoading ? t("git.commit.loading") : t("git.commit")}
+        </span>
       </button>
     </div>
   );
@@ -1207,7 +1210,7 @@ export function GitDiffPanel({
               <div className="commit-message-input-wrapper">
                 <textarea
                   className="commit-message-input"
-                  placeholder="Commit message..."
+                  placeholder={t("git.commitMessage.placeholder")}
                   value={commitMessage}
                   onChange={(e) => onCommitMessageChange?.(e.target.value)}
                   disabled={commitMessageLoading}
@@ -1225,10 +1228,10 @@ export function GitDiffPanel({
                   disabled={commitMessageLoading || !canGenerateCommitMessage}
                   title={
                     stagedFiles.length > 0
-                      ? "Generate commit message from staged changes"
-                      : "Generate commit message from unstaged changes"
+                      ? t("git.commitMessage.generate.staged")
+                      : t("git.commitMessage.generate.unstaged")
                   }
-                  aria-label="Generate commit message"
+                  aria-label={t("git.commitMessage.generate.aria")}
                 >
                   {commitMessageLoading ? (
                     <svg
@@ -1307,20 +1310,25 @@ export function GitDiffPanel({
                 className="push-button"
                 onClick={() => void onPush?.()}
                 disabled={pushLoading}
-                title={`Push ${commitsAhead} commit${commitsAhead > 1 ? "s" : ""}`}
+                title={t(
+                  commitsAhead === 1
+                    ? "git.push.title.one"
+                    : "git.push.title.other",
+                  { count: commitsAhead },
+                )}
               >
                 {pushLoading ? (
                   <span className="commit-button-spinner" aria-hidden />
                 ) : (
                   <Upload size={14} aria-hidden />
                 )}
-                <span>Push</span>
+                <span>{t("git.push")}</span>
                 <span className="push-count">{commitsAhead}</span>
               </button>
             </div>
           )}
           {!error && !stagedFiles.length && !unstagedFiles.length && commitsAhead === 0 && (
-            <div className="diff-empty">No changes detected.</div>
+            <div className="diff-empty">{t("git.noChangesDetected")}</div>
           )}
           {(stagedFiles.length > 0 || unstagedFiles.length > 0) && (
             <>

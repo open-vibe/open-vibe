@@ -81,7 +81,7 @@ import { useHappyBridgeEvents } from "./features/happy/hooks/useHappyBridgeEvent
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
 import { isMissingGitRepoError } from "./utils/gitErrors";
-import { I18nProvider } from "./i18n";
+import { I18nProvider, getTranslator } from "./i18n";
 import { useSyncSelectedDiffPath } from "./features/app/hooks/useSyncSelectedDiffPath";
 import { useMenuAcceleratorController } from "./features/app/hooks/useMenuAcceleratorController";
 import { useAppMenuEvents } from "./features/app/hooks/useAppMenuEvents";
@@ -273,6 +273,10 @@ function MainApp() {
   });
 
   const { errorToasts, dismissErrorToast } = useErrorToasts();
+  const t = useMemo(
+    () => getTranslator(appSettings.language),
+    [appSettings.language],
+  );
 
   useEffect(() => {
     setAccessMode((prev) =>
@@ -532,13 +536,16 @@ function MainApp() {
   }, [activeWorkspace, handleSetGitRoot, normalizePath]);
   const fileStatus = gitStatus.error
     ? isMissingGitRepoError(gitStatus.error)
-      ? "No git repository"
-      : "Git status unavailable"
+      ? t("git.status.noRepo")
+      : t("git.status.unavailable")
     : gitStatus.files.length > 0
-      ? `${gitStatus.files.length} file${
-          gitStatus.files.length === 1 ? "" : "s"
-        } changed`
-      : "Working tree clean";
+      ? t(
+          gitStatus.files.length === 1
+            ? "git.status.changed.one"
+            : "git.status.changed.other",
+          { count: gitStatus.files.length },
+        )
+      : t("git.status.clean");
 
   usePersistComposerSettings({
     appSettingsLoading,

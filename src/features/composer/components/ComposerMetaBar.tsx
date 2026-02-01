@@ -1,11 +1,5 @@
 import { type CSSProperties } from "react";
-import {
-  Brain,
-  ChevronDown,
-  ShieldCheck,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { Brain, ChevronDown, ShieldCheck, Sparkles, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +48,7 @@ export function ComposerMetaBar({
 }: ComposerMetaBarProps) {
   const { t } = useI18n();
   const collabLabel = collaborationModes.find(
-    (mode) => mode.id === selectedCollaborationModeId
+    (mode) => mode.id === selectedCollaborationModeId,
   )?.label;
   const selectedModel = models.find((model) => model.id === selectedModelId);
   const modelLabel = selectedModel?.displayName || selectedModel?.model;
@@ -75,8 +69,7 @@ export function ComposerMetaBar({
     contextWindow && contextWindow > 0 && usedTokens > 0
       ? Math.max(
           0,
-          100 -
-            Math.min(Math.max((usedTokens / contextWindow) * 100, 0), 100),
+          100 - Math.min(Math.max((usedTokens / contextWindow) * 100, 0), 100),
         )
       : null;
   const contextUsedPercent =
@@ -95,10 +88,13 @@ export function ComposerMetaBar({
               className="h-8 rounded-full px-3 text-xs"
               disabled={disabled}
             >
-              <Users className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+              <Users
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden
+              />
               <span className="max-w-[140px] truncate">
                 {formatCollaborationModeLabel(
-                  collabLabel ?? t("composer.collaboration")
+                  collabLabel ?? t("composer.collaboration"),
                 )}
               </span>
               <ChevronDown
@@ -110,7 +106,9 @@ export function ComposerMetaBar({
           <DropdownMenuContent align="start">
             <DropdownMenuRadioGroup
               value={selectedCollaborationModeId ?? ""}
-              onValueChange={(value) => onSelectCollaborationMode(value || null)}
+              onValueChange={(value) =>
+                onSelectCollaborationMode(value || null)
+              }
             >
               {collaborationModes.map((mode) => (
                 <DropdownMenuRadioItem key={mode.id} value={mode.id}>
@@ -130,7 +128,10 @@ export function ComposerMetaBar({
             className="h-8 rounded-full px-3 text-xs"
             disabled={disabled || models.length === 0}
           >
-            <Sparkles className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            <Sparkles
+              className="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden
+            />
             <span className="max-w-[160px] truncate">
               {modelLabel ?? t("composer.noModels")}
             </span>
@@ -218,9 +219,7 @@ export function ComposerMetaBar({
         <DropdownMenuContent align="start">
           <DropdownMenuRadioGroup
             value={accessMode}
-            onValueChange={(value) =>
-              onSelectAccessMode(value as AccessMode)
-            }
+            onValueChange={(value) => onSelectAccessMode(value as AccessMode)}
           >
             <DropdownMenuRadioItem value="read-only">
               {t("composer.access.readOnly")}
@@ -237,7 +236,9 @@ export function ComposerMetaBar({
 
       <div className="ml-auto flex items-center gap-2">
         <span className="text-xs font-semibold text-muted-foreground">
-          {contextUsedPercent === null ? "—" : `${Math.round(contextUsedPercent)}%`}
+          {contextUsedPercent === null
+            ? "—"
+            : `${Math.round(contextUsedPercent)}%`}
         </span>
         <div
           className="relative grid size-5 place-items-center rounded-full"
@@ -258,9 +259,9 @@ export function ComposerMetaBar({
           style={
             {
               "--context-free": contextFreePercent ?? 0,
-              background:
-                "radial-gradient(circle, hsl(var(--background)) 52%, transparent 55%), conic-gradient(from 180deg, hsl(var(--primary)) calc(var(--context-free) * 1%), hsl(var(--muted-foreground) / 0.45) 0)",
-              boxShadow: "inset 0 0 0 1px hsl(var(--border) / 0.7)",
+              background: `radial-gradient(circle, var(--surface-card-strong) 52%, transparent 55%), 
+               conic-gradient(from 180deg, var(--border-accent) calc(var(--context-free) * 1%), var(--surface-control) 0)`,
+              boxShadow: "inset 0 0 0 1px var(--border-subtle)",
             } as CSSProperties
           }
         >

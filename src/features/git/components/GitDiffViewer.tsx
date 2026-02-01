@@ -8,6 +8,7 @@ import type { GitHubPullRequest, GitHubPullRequestComment } from "../../../types
 import { formatRelativeTime } from "../../../utils/time";
 import { Markdown } from "../../messages/components/Markdown";
 import { ImageDiffCard } from "./ImageDiffCard";
+import { useI18n } from "../../../i18n";
 
 type GitDiffViewerItem = {
   path: string;
@@ -368,6 +369,7 @@ export function GitDiffViewer({
   pullRequestCommentsError = null,
   onActivePathChange,
 }: GitDiffViewerProps) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const activePathRef = useRef<string | null>(null);
@@ -608,9 +610,9 @@ export function GitDiffViewer({
             Refreshing diff...
           </div>
         )}
-        {!error && !isLoading && !diffs.length && (
-          <div className="diff-viewer-empty">No changes detected.</div>
-        )}
+          {!error && !isLoading && !diffs.length && (
+            <div className="diff-viewer-empty">{t("git.noChangesDetected")}</div>
+          )}
         {!error && diffs.length > 0 && (
           <div
             className="diff-viewer-list"
