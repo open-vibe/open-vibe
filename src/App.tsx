@@ -655,6 +655,11 @@ function MainApp() {
     workspaces,
     threadsByWorkspace,
   });
+  const closedThreadTabIdsRef = useRef<Set<string>>(new Set());
+  const makeThreadTabId = useCallback(
+    (workspaceId: string, threadId: string) => `${workspaceId}:${threadId}`,
+    [],
+  );
 
   const activeThreadTab = useMemo(
     () =>
@@ -694,7 +699,10 @@ function MainApp() {
     if (!activeWorkspaceId || !activeThreadId) {
       return;
     }
-    const tabId = `${activeWorkspaceId}:${activeThreadId}`;
+    const tabId = makeThreadTabId(activeWorkspaceId, activeThreadId);
+    if (closedThreadTabIdsRef.current.has(tabId)) {
+      return;
+    }
     if (threadTabs.some((tab) => tab.id === tabId)) {
       return;
     }
@@ -707,6 +715,7 @@ function MainApp() {
   }, [
     activeThreadId,
     activeWorkspaceId,
+    makeThreadTabId,
     openThreadTab,
     threadTabs,
     threadsByWorkspace,
@@ -715,13 +724,41 @@ function MainApp() {
   const openThreadTabForWorkspace = useCallback(
     (workspaceId: string, threadId: string) => {
       setHomeView(false);
+      closedThreadTabIdsRef.current.delete(makeThreadTabId(workspaceId, threadId));
       const fallbackName = `Agent ${threadId.slice(0, 4)}`;
       const threadName =
         threadsByWorkspace[workspaceId]?.find((thread) => thread.id === threadId)
           ?.name ?? fallbackName;
       openThreadTab(workspaceId, threadId, threadName);
     },
-    [openThreadTab, setHomeView, threadsByWorkspace],
+    [makeThreadTabId, openThreadTab, setHomeView, threadsByWorkspace],
+  );
+
+  const handleCloseThreadTab = useCallback(
+    (tabId: string) => {
+      const closingIndex = threadTabs.findIndex((tab) => tab.id === tabId);
+      if (closingIndex === -1) {
+        return;
+      }
+      const closingTab = threadTabs[closingIndex];
+      closedThreadTabIdsRef.current.add(tabId);
+      closeThreadTab(tabId);
+      if (activeThreadTabId !== tabId) {
+        return;
+      }
+      const remainingTabs = threadTabs.filter((tab) => tab.id !== tabId);
+      if (remainingTabs.length === 0) {
+        setActiveThreadId(null, closingTab.workspaceId);
+        setHomeView(true);
+        return;
+      }
+      const nextTab =
+        remainingTabs[closingIndex - 1] ?? remainingTabs[closingIndex] ?? null;
+      if (nextTab) {
+        setActiveThreadId(nextTab.threadId, nextTab.workspaceId);
+      }
+    },
+    [activeThreadTabId, closeThreadTab, setActiveThreadId, setHomeView, threadTabs],
   );
 
   useAutoExitEmptyDiff({
@@ -1754,7 +1791,7 @@ function MainApp() {
     },
     onDeleteThread: (workspaceId, threadId) => {
       removeThread(workspaceId, threadId);
-      closeThreadTab(`${workspaceId}:${threadId}`);
+      handleCloseThreadTab(`${workspaceId}:${threadId}`);
       clearDraftForThread(threadId);
       removeImagesForThread(threadId);
     },
@@ -2127,7 +2164,7 @@ function MainApp() {
         setHomeView(false);
         setActiveThreadTabId(tabId);
       }}
-      onCloseTab={closeThreadTab}
+      onCloseTab={handleCloseThreadTab}
       onReorderTab={reorderThreadTabs}
     />
   ) : null;

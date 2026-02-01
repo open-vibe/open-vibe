@@ -176,7 +176,7 @@ export function useThreadTabs({
       }
       const nextTabs = prev.filter((tab) => tab.id !== tabId);
       if (activeTabId === tabId) {
-        const nextTab = nextTabs[idx] ?? nextTabs[idx - 1] ?? null;
+        const nextTab = nextTabs[idx - 1] ?? nextTabs[idx] ?? null;
         setActiveTabId(nextTab?.id ?? null);
       }
       return nextTabs;
