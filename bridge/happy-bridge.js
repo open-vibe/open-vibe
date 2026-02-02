@@ -8,9 +8,22 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline";
+import https from "node:https";
 
-const serverUrl =
-  process.env.HAPPY_BRIDGE_SERVER_URL || "https://api.cluster-fluster.com";
+const normalizeServerUrl = (value) => {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) {
+    return "https://api.cluster-fluster.com";
+  }
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+};
+
+const serverUrl = normalizeServerUrl(
+  process.env.HAPPY_BRIDGE_SERVER_URL || "https://api.cluster-fluster.com",
+);
 const tokenEnv = process.env.HAPPY_BRIDGE_TOKEN || "";
 const secretEnv = process.env.HAPPY_BRIDGE_SECRET || "";
 const publicKeyEnv = process.env.HAPPY_BRIDGE_PUBLIC_KEY || "";
@@ -45,6 +58,33 @@ const emitEvent = (payload) => {
     process.stdout.write(`${JSON.stringify(payload)}\n`);
   } catch (error) {
     log("failed to emit event", error);
+  }
+};
+
+const httpsAgent = new https.Agent({ keepAlive: true });
+
+const isPlainHttpToHttpsError = (error) => {
+  const data = error?.response?.data;
+  return (
+    typeof data === "string" &&
+    data.includes("plain HTTP request was sent to HTTPS port")
+  );
+};
+
+const postJson = async (path, payload, creds) => {
+  const url = `${serverUrl}${path}`;
+  const headers = { Authorization: `Bearer ${creds.token}` };
+  try {
+    return await axios.post(url, payload, { headers });
+  } catch (error) {
+    if (serverUrl.startsWith("https://") && isPlainHttpToHttpsError(error)) {
+      return await axios.post(url, payload, {
+        headers,
+        proxy: false,
+        httpsAgent,
+      });
+    }
+    throw error;
   }
 };
 
@@ -363,9 +403,7 @@ const ensureMachine = async (creds) => {
     ),
     dataEncryptionKey,
   };
-  const response = await axios.post(`${serverUrl}/v1/machines`, payload, {
-    headers: { Authorization: `Bearer ${creds.token}` },
-  });
+  const response = await postJson("/v1/machines", payload, creds);
   return response.data.machine;
 };
 
@@ -432,8 +470,8 @@ const ensureSession = async (thread, creds) => {
     encryptionKey = getRandomBytes(32);
     dataEncryptionKey = encodeBase64(wrapDataKey(encryptionKey, creds.publicKey));
   }
-  const response = await axios.post(
-    `${serverUrl}/v1/sessions`,
+  const response = await postJson(
+    "/v1/sessions",
     {
       tag: `openvibe:${thread.threadId}`,
       metadata: encodeBase64(
@@ -442,9 +480,7 @@ const ensureSession = async (thread, creds) => {
       agentState: null,
       dataEncryptionKey,
     },
-    {
-      headers: { Authorization: `Bearer ${creds.token}` },
-    },
+    creds,
   );
   const sessionId = response.data.session.id;
   state.sessions[thread.threadId] = {
