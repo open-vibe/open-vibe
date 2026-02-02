@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { ask, open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
@@ -18,10 +24,10 @@ import type {
   AppSettings,
   CodexDoctorResult,
   DictationModelStatus,
-  WorkspaceSettings,
   OpenAppTarget,
   WorkspaceGroup,
   WorkspaceInfo,
+  WorkspaceSettings,
 } from "../../../types";
 import { formatDownloadSize } from "../../../utils/formatting";
 import {
@@ -49,16 +55,19 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  DEFAULT_CODE_FONT_FAMILY,
-  DEFAULT_UI_FONT_FAMILY,
+  clampCodeFontSize,
   CODE_FONT_SIZE_DEFAULT,
   CODE_FONT_SIZE_MAX,
   CODE_FONT_SIZE_MIN,
-  clampCodeFontSize,
+  DEFAULT_CODE_FONT_FAMILY,
+  DEFAULT_UI_FONT_FAMILY,
   normalizeFontFamily,
 } from "../../../utils/fonts";
 import { DEFAULT_OPEN_APP_ID, OPEN_APP_STORAGE_KEY } from "../../app/constants";
-import { GENERIC_APP_ICON, getKnownOpenAppIcon } from "../../app/utils/openAppIcons";
+import {
+  GENERIC_APP_ICON,
+  getKnownOpenAppIcon,
+} from "../../app/utils/openAppIcons";
 import { useGlobalAgentsMd } from "../hooks/useGlobalAgentsMd";
 import { useGlobalCodexConfigToml } from "../hooks/useGlobalCodexConfigToml";
 import { FileEditorCard } from "../../shared/components/FileEditorCard";
@@ -145,7 +154,8 @@ type ComposerPresetSettings = Pick<
   | "composerCodeBlockCopyUseModifier"
 >;
 
-const COMPOSER_PRESET_CONFIGS: Record<ComposerPreset, ComposerPresetSettings> = {
+const COMPOSER_PRESET_CONFIGS: Record<ComposerPreset, ComposerPresetSettings> =
+{
   default: {
     composerFenceExpandOnSpace: false,
     composerFenceExpandOnEnter: false,
@@ -209,7 +219,10 @@ export type SettingsViewProps = {
   onDeleteWorkspace: (id: string) => void;
   onCreateWorkspaceGroup: (name: string) => Promise<WorkspaceGroup | null>;
   onRenameWorkspaceGroup: (id: string, name: string) => Promise<boolean | null>;
-  onMoveWorkspaceGroup: (id: string, direction: "up" | "down") => Promise<boolean | null>;
+  onMoveWorkspaceGroup: (
+    id: string,
+    direction: "up" | "down",
+  ) => Promise<boolean | null>;
   onDeleteWorkspaceGroup: (id: string) => Promise<boolean | null>;
   onAssignWorkspaceGroup: (
     workspaceId: string,
@@ -224,7 +237,10 @@ export type SettingsViewProps = {
     codexBin: string | null,
     codexArgs: string | null,
   ) => Promise<CodexDoctorResult>;
-  onUpdateWorkspaceCodexBin: (id: string, codexBin: string | null) => Promise<void>;
+  onUpdateWorkspaceCodexBin: (
+    id: string,
+    codexBin: string | null,
+  ) => Promise<void>;
   onUpdateWorkspaceSettings: (
     id: string,
     settings: Partial<WorkspaceSettings>,
@@ -286,7 +302,8 @@ type ShortcutDraftKey =
 
 type OpenAppDraft = OpenAppTarget & { argsText: string };
 
-const shortcutDraftKeyBySetting: Record<ShortcutSettingKey, ShortcutDraftKey> = {
+const shortcutDraftKeyBySetting: Record<ShortcutSettingKey, ShortcutDraftKey> =
+{
   composerModelShortcut: "model",
   composerAccessShortcut: "access",
   composerReasoningShortcut: "reasoning",
@@ -378,7 +395,8 @@ export function SettingsView({
     return t("settings.platform.fileManager");
   }, [platform, t]);
   const openInFileManagerLabel = useMemo(
-    () => t("settings.experimental.openInFileManager", { label: fileManagerLabel }),
+    () =>
+      t("settings.experimental.openInFileManager", { label: fileManagerLabel }),
     [fileManagerLabel, t],
   );
   const normalizeWindowsPath = useCallback(
@@ -388,7 +406,7 @@ export function SettingsView({
       }
       const trimmed = value.trim();
       const unquoted =
-        trimmed.startsWith("\"") && trimmed.endsWith("\"")
+        trimmed.startsWith('"') && trimmed.endsWith('"')
           ? trimmed.slice(1, -1)
           : trimmed;
       return unquoted.replace(/\//g, "\\");
@@ -396,10 +414,18 @@ export function SettingsView({
     [platform],
   );
   const [activeSection, setActiveSection] = useState<CodexSection>("projects");
-  const [codexPathDraft, setCodexPathDraft] = useState(appSettings.codexBin ?? "");
-  const [codexArgsDraft, setCodexArgsDraft] = useState(appSettings.codexArgs ?? "");
-  const [remoteHostDraft, setRemoteHostDraft] = useState(appSettings.remoteBackendHost);
-  const [remoteTokenDraft, setRemoteTokenDraft] = useState(appSettings.remoteBackendToken ?? "");
+  const [codexPathDraft, setCodexPathDraft] = useState(
+    appSettings.codexBin ?? "",
+  );
+  const [codexArgsDraft, setCodexArgsDraft] = useState(
+    appSettings.codexArgs ?? "",
+  );
+  const [remoteHostDraft, setRemoteHostDraft] = useState(
+    appSettings.remoteBackendHost,
+  );
+  const [remoteTokenDraft, setRemoteTokenDraft] = useState(
+    appSettings.remoteBackendToken ?? "",
+  );
   const [happyServerDraft, setHappyServerDraft] = useState(
     appSettings.happyServerUrl,
   );
@@ -410,8 +436,12 @@ export function SettingsView({
     `${Math.round(clampUiScale(appSettings.uiScale) * 100)}%`,
   );
   const [uiFontDraft, setUiFontDraft] = useState(appSettings.uiFontFamily);
-  const [codeFontDraft, setCodeFontDraft] = useState(appSettings.codeFontFamily);
-  const [codeFontSizeDraft, setCodeFontSizeDraft] = useState(appSettings.codeFontSize);
+  const [codeFontDraft, setCodeFontDraft] = useState(
+    appSettings.codeFontFamily,
+  );
+  const [codeFontSizeDraft, setCodeFontSizeDraft] = useState(
+    appSettings.codeFontSize,
+  );
   const [codexBinOverrideDrafts, setCodexBinOverrideDrafts] = useState<
     Record<string, string>
   >({});
@@ -424,7 +454,11 @@ export function SettingsView({
   const [codexBinOverrideDoctor, setCodexBinOverrideDoctor] = useState<
     Record<
       string,
-      { status: "idle" | "running" | "done"; result: CodexDoctorResult | null; error?: string }
+      {
+        status: "idle" | "running" | "done";
+        result: CodexDoctorResult | null;
+        error?: string;
+      }
     >
   >({});
   const [codexHomeOverrideDrafts, setCodexHomeOverrideDrafts] = useState<
@@ -511,7 +545,8 @@ export function SettingsView({
   const globalAgentsSaveLabel = globalAgentsExists
     ? t("settings.action.save")
     : t("settings.action.create");
-  const globalAgentsSaveDisabled = globalAgentsLoading || globalAgentsSaving || !globalAgentsDirty;
+  const globalAgentsSaveDisabled =
+    globalAgentsLoading || globalAgentsSaving || !globalAgentsDirty;
   const globalAgentsRefreshDisabled = globalAgentsLoading || globalAgentsSaving;
   const globalConfigStatus = globalConfigLoading
     ? t("settings.status.loading")
@@ -531,7 +566,8 @@ export function SettingsView({
   const globalConfigSaveLabel = globalConfigExists
     ? t("settings.action.save")
     : t("settings.action.create");
-  const globalConfigSaveDisabled = globalConfigLoading || globalConfigSaving || !globalConfigDirty;
+  const globalConfigSaveDisabled =
+    globalConfigLoading || globalConfigSaving || !globalConfigDirty;
   const globalConfigRefreshDisabled = globalConfigLoading || globalConfigSaving;
   const selectedDictationModel = useMemo(() => {
     return (
@@ -726,7 +762,9 @@ export function SettingsView({
   const parsedPercent = trimmedScale
     ? Number(trimmedScale.replace("%", ""))
     : Number.NaN;
-  const parsedScale = Number.isFinite(parsedPercent) ? parsedPercent / 100 : null;
+  const parsedScale = Number.isFinite(parsedPercent)
+    ? parsedPercent / 100
+    : null;
 
   const handleSaveCodexSettings = async () => {
     setIsSavingSettings(true);
@@ -783,7 +821,10 @@ export function SettingsView({
               : t("settings.codex.workspaceOverrides.saveErrorMessage"),
         });
       } finally {
-        setCodexBinOverrideSaving((prev) => ({ ...prev, [workspace.id]: false }));
+        setCodexBinOverrideSaving((prev) => ({
+          ...prev,
+          [workspace.id]: false,
+        }));
       }
     },
     [
@@ -800,7 +841,8 @@ export function SettingsView({
   const handleRunWorkspaceDoctor = useCallback(
     async (workspace: WorkspaceInfo) => {
       const resolvedBin =
-        normalizeWindowsPath(workspace.codex_bin ?? appSettings.codexBin) ?? null;
+        normalizeWindowsPath(workspace.codex_bin ?? appSettings.codexBin) ??
+        null;
       const resolvedArgs =
         workspace.settings.codexArgs ?? appSettings.codexArgs ?? null;
       setCodexBinOverrideDoctor((prev) => ({
@@ -824,7 +866,12 @@ export function SettingsView({
         }));
       }
     },
-    [appSettings.codexArgs, appSettings.codexBin, normalizeWindowsPath, onRunDoctor],
+    [
+      appSettings.codexArgs,
+      appSettings.codexBin,
+      normalizeWindowsPath,
+      onRunDoctor,
+    ],
   );
 
   const handleCommitRemoteHost = async () => {
@@ -904,10 +951,7 @@ export function SettingsView({
   };
 
   const handleCommitUiFont = async () => {
-    const nextFont = normalizeFontFamily(
-      uiFontDraft,
-      DEFAULT_UI_FONT_FAMILY,
-    );
+    const nextFont = normalizeFontFamily(uiFontDraft, DEFAULT_UI_FONT_FAMILY);
     setUiFontDraft(nextFont);
     if (nextFont === appSettings.uiFontFamily) {
       return;
@@ -995,7 +1039,10 @@ export function SettingsView({
     });
   };
 
-  const handleOpenAppKindChange = (index: number, kind: OpenAppTarget["kind"]) => {
+  const handleOpenAppKindChange = (
+    index: number,
+    kind: OpenAppTarget["kind"],
+  ) => {
     setOpenAppDrafts((prev) => {
       const next = [...prev];
       const current = next[index];
@@ -1005,8 +1052,8 @@ export function SettingsView({
       next[index] = {
         ...current,
         kind,
-        appName: kind === "app" ? current.appName ?? "" : null,
-        command: kind === "command" ? current.command ?? "" : null,
+        appName: kind === "app" ? (current.appName ?? "") : null,
+        command: kind === "command" ? (current.command ?? "") : null,
         argsText: kind === "finder" ? "" : current.argsText,
       };
       void handleCommitOpenApps(next);
@@ -1033,7 +1080,9 @@ export function SettingsView({
     const removed = openAppDrafts[index];
     const next = openAppDrafts.filter((_, draftIndex) => draftIndex !== index);
     const nextSelected =
-      removed?.id === openAppSelectedId ? next[0]?.id ?? DEFAULT_OPEN_APP_ID : openAppSelectedId;
+      removed?.id === openAppSelectedId
+        ? (next[0]?.id ?? DEFAULT_OPEN_APP_ID)
+        : openAppSelectedId;
     setOpenAppDrafts(next);
     void handleCommitOpenApps(next, nextSelected);
   };
@@ -1101,7 +1150,10 @@ export function SettingsView({
     }
   };
 
-  const updateShortcut = async (key: ShortcutSettingKey, value: string | null) => {
+  const updateShortcut = async (
+    key: ShortcutSettingKey,
+    value: string | null,
+  ) => {
     const draftKey = shortcutDraftKeyBySetting[key];
     setShortcutDrafts((prev) => ({
       ...prev,
@@ -1206,13 +1258,18 @@ export function SettingsView({
 
   const handleDeleteGroup = async (group: WorkspaceGroup) => {
     const groupProjects =
-      groupedWorkspaces.find((entry) => entry.id === group.id)?.workspaces ?? [];
+      groupedWorkspaces.find((entry) => entry.id === group.id)?.workspaces ??
+      [];
     const detail =
       groupProjects.length > 0
-        ? `\n\n${t("settings.projects.group.deleteDetail", { label: ungroupedLabel })}`
+        ? `\n\n${t("settings.projects.group.deleteDetail", {
+          label: ungroupedLabel,
+        })}`
         : "";
     const confirmed = await ask(
-      `${t("settings.projects.group.deletePrompt", { name: group.name })}${detail}`,
+      `${t("settings.projects.group.deletePrompt", {
+        name: group.name,
+      })}${detail}`,
       {
         title: t("settings.projects.group.deleteTitle"),
         kind: "warning",
@@ -1232,2339 +1289,421 @@ export function SettingsView({
   };
 
   return (
-      <div
-        className="fixed inset-0 z-50"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settings-title"
-      >
-        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-6">
-          <div className="relative z-10 flex h-[720px] max-h-[calc(100vh-3rem)] w-[960px] max-w-[calc(100%-3rem)] flex-col overflow-hidden rounded-xl border bg-background shadow-xl">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <h2 id="settings-title" className="text-lg font-semibold">
-                {t("settings.title")}
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={onClose}
-                aria-label={t("settings.close")}
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </Button>
-            </div>
-            <Tabs
-              value={activeSection}
-              onValueChange={(value) => setActiveSection(value as CodexSection)}
-              className="flex min-h-0 flex-1"
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-6">
+        <div className="relative z-10 flex h-[720px] max-h-[calc(100vh-3rem)] w-[960px] max-w-[calc(100%-3rem)] flex-col overflow-hidden rounded-xl border bg-background shadow-xl">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <h2 id="settings-title" className="text-lg font-semibold">
+              {t("settings.title")}
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={onClose}
+              aria-label={t("settings.close")}
             >
-              <TabsList className="h-full w-60 flex-col items-stretch justify-start gap-1 overflow-y-auto rounded-none border-r bg-transparent p-2 text-sm text-muted-foreground">
-                <TabsTrigger
-                  value="projects"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <LayoutGrid className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.projects")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="display"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.displaySound")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="composer"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <FileText className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.composer")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="dictation"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <Mic className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.dictation")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="shortcuts"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <Keyboard className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.shortcuts")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="open-apps"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <ExternalLink className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.openIn")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="codex"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <TerminalSquare className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.codex")}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="experimental"
-                  className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
-                >
-                  <FlaskConical className="h-4 w-4" aria-hidden />
-                  <span>{t("settings.nav.experimental")}</span>
-                </TabsTrigger>
-              </TabsList>
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-                <TabsContent value="projects" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.projects.title")}
-                      description={t("settings.projects.subtitle")}
-                    >
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.projects.groups.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.projects.groups.subtitle")}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Input
-                            className="min-w-[220px] flex-1"
-                            value={newGroupName}
-                            placeholder={t("settings.projects.groupName.placeholder")}
-                            aria-label={t("settings.projects.groupName.placeholder")}
-                            onChange={(event) => setNewGroupName(event.target.value)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" && canCreateGroup) {
-                                event.preventDefault();
-                                void handleCreateGroup();
-                              }
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              void handleCreateGroup();
-                            }}
-                            disabled={!canCreateGroup}
-                          >
-                            {t("settings.projects.group.add")}
-                          </Button>
-                        </div>
-                        {groupError && (
-                          <div className="text-sm text-destructive">{groupError}</div>
-                        )}
-                        {workspaceGroups.length > 0 ? (
-                          <div className="space-y-3">
-                            {workspaceGroups.map((group, index) => (
-                              <div key={group.id} className="rounded-md border border-border/60 p-3">
-                                <div className="flex flex-wrap items-start justify-between gap-4">
-                                  <div className="flex-1 min-w-[220px] space-y-3">
-                                    <Input
-                                      value={groupDrafts[group.id] ?? group.name}
-                                      aria-label={t("settings.projects.groupName.placeholder")}
-                                      onChange={(event) =>
-                                        setGroupDrafts((prev) => ({
-                                          ...prev,
-                                          [group.id]: event.target.value,
-                                        }))
-                                      }
-                                      onBlur={() => {
-                                        void handleRenameGroup(group);
-                                      }}
-                                      onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                          event.preventDefault();
-                                          void handleRenameGroup(group);
-                                        }
-                                      }}
-                                    />
-                                    <div className="space-y-2">
-                                      <div className="text-sm font-medium">
-                                        {t("settings.projects.group.copiesFolder")}
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <div
-                                          className={cn(
-                                            "flex-1 min-w-[200px] truncate rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs",
-                                            !group.copiesFolder && "text-muted-foreground",
-                                          )}
-                                          title={group.copiesFolder ?? ""}
-                                        >
-                                          {group.copiesFolder ??
-                                            t("settings.projects.group.notSet")}
-                                        </div>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            void handleChooseGroupCopiesFolder(group);
-                                          }}
-                                        >
-                                          {t("settings.projects.group.choose")}
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => {
-                                            void handleClearGroupCopiesFolder(group);
-                                          }}
-                                          disabled={!group.copiesFolder}
-                                        >
-                                          {t("settings.projects.group.clear")}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      className="text-muted-foreground hover:text-foreground"
-                                      onClick={() => {
-                                        void onMoveWorkspaceGroup(group.id, "up");
-                                      }}
-                                      disabled={index === 0}
-                                      aria-label={t("settings.projects.group.moveUp")}
-                                    >
-                                      <ChevronUp className="h-4 w-4" aria-hidden />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      className="text-muted-foreground hover:text-foreground"
-                                      onClick={() => {
-                                        void onMoveWorkspaceGroup(group.id, "down");
-                                      }}
-                                      disabled={index === workspaceGroups.length - 1}
-                                      aria-label={t("settings.projects.group.moveDown")}
-                                    >
-                                      <ChevronDown className="h-4 w-4" aria-hidden />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      className="text-muted-foreground hover:text-foreground"
-                                      onClick={() => {
-                                        void handleDeleteGroup(group);
-                                      }}
-                                      aria-label={t("settings.projects.group.delete")}
-                                    >
-                                      <Trash2 className="h-4 w-4" aria-hidden />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.projects.group.empty")}
-                          </div>
-                        )}
-                      </div>
-                      <Separator />
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.projects.projects.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.projects.projects.subtitle")}
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          {groupedWorkspaces.map((group) => (
-                            <div key={group.id ?? "ungrouped"} className="space-y-2">
-                              <div className="text-xs font-semibold uppercase text-muted-foreground">
-                                {group.name}
-                              </div>
-                              <div className="space-y-2">
-                                {group.workspaces.map((workspace, index) => {
-                                  const groupValue = workspaceGroups.some(
-                                    (entry) => entry.id === workspace.settings.groupId,
-                                  )
-                                    ? workspace.settings.groupId ?? UNGROUPED_SELECT_VALUE
-                                    : UNGROUPED_SELECT_VALUE;
-                                  return (
-                                    <div
-                                      key={workspace.id}
-                                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 p-3"
-                                    >
-                                      <div className="min-w-[220px]">
-                                        <div className="text-sm font-medium">
-                                          {workspace.name}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                          {workspace.path}
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <Select
-                                          value={groupValue}
-                                          onValueChange={(value) => {
-                                            const nextGroupId =
-                                              value === UNGROUPED_SELECT_VALUE ? null : value;
-                                            void onAssignWorkspaceGroup(workspace.id, nextGroupId);
-                                          }}
-                                        >
-                                          <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder={ungroupedLabel} />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value={UNGROUPED_SELECT_VALUE}>
-                                              {ungroupedLabel}
-                                            </SelectItem>
-                                            {workspaceGroups.map((entry) => (
-                                              <SelectItem key={entry.id} value={entry.id}>
-                                                {entry.name}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          className="text-muted-foreground hover:text-foreground"
-                                          onClick={() => onMoveWorkspace(workspace.id, "up")}
-                                          disabled={index === 0}
-                                          aria-label={t("settings.projects.project.moveUp")}
-                                        >
-                                          <ChevronUp className="h-4 w-4" aria-hidden />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          className="text-muted-foreground hover:text-foreground"
-                                          onClick={() => onMoveWorkspace(workspace.id, "down")}
-                                          disabled={index === group.workspaces.length - 1}
-                                          aria-label={t("settings.projects.project.moveDown")}
-                                        >
-                                          <ChevronDown className="h-4 w-4" aria-hidden />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          className="text-muted-foreground hover:text-foreground"
-                                          onClick={() => onDeleteWorkspace(workspace.id)}
-                                          aria-label={t("settings.projects.project.delete")}
-                                        >
-                                          <Trash2 className="h-4 w-4" aria-hidden />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        {projects.length === 0 && (
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.projects.project.empty")}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    </SettingsSection>
-                  </div>
-                </TabsContent>
-                <TabsContent value="display" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.display.title")}
-                      description={t("settings.display.subtitle")}
-                    >
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.display.section.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.display.section.subtitle")}
-                          </div>
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="theme-select">
-                              {t("settings.display.theme.label")}
-                            </Label>
-                            <Select
-                              value={appSettings.theme}
-                              onValueChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  theme: value as AppSettings["theme"],
-                                })
-                              }
-                            >
-                              <SelectTrigger id="theme-select">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="system">
-                                  {t("settings.display.theme.system")}
-                                </SelectItem>
-                                <SelectItem value="light">
-                                  {t("settings.display.theme.light")}
-                                </SelectItem>
-                                <SelectItem value="dark">
-                                  {t("settings.display.theme.dark")}
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="language-select">
-                              {t("settings.language.label")}
-                            </Label>
-                            <Select
-                              value={appSettings.language}
-                              onValueChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  language: value as AppSettings["language"],
-                                })
-                              }
-                            >
-                              <SelectTrigger id="language-select">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="system">{t("language.system")}</SelectItem>
-                                <SelectItem value="en">{t("language.english")}</SelectItem>
-                                <SelectItem value="zh-CN">{t("language.chinese")}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.language.help")}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="reduce-transparency">
-                              {t("settings.display.reduceTransparency.title")}
-                            </Label>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.display.reduceTransparency.subtitle")}
-                            </div>
-                          </div>
-                          <Switch
-                            id="reduce-transparency"
-                            checked={reduceTransparency}
-                            onCheckedChange={(value) => onToggleTransparency(value)}
-                          />
-                        </div>
-                        <div className="rounded-md border border-border/60 p-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="ui-scale">
-                              {t("settings.display.interfaceScale.title")}
-                            </Label>
-                            <div
-                              className="text-sm text-muted-foreground"
-                              title={scaleShortcutTitle}
-                            >
-                              {scaleShortcutText}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                id="ui-scale"
-                                type="text"
-                                inputMode="decimal"
-                                className="w-24"
-                                value={scaleDraft}
-                                aria-label={t("settings.display.interfaceScale.label")}
-                                onChange={(event) => setScaleDraft(event.target.value)}
-                                onBlur={() => {
-                                  void handleCommitScale();
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    void handleCommitScale();
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  void handleResetScale();
-                                }}
-                              >
-                                {t("settings.display.reset")}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-md border border-border/60 p-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="ui-font-family">
-                              {t("settings.display.uiFont.label")}
-                            </Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                id="ui-font-family"
-                                type="text"
-                                value={uiFontDraft}
-                                onChange={(event) => setUiFontDraft(event.target.value)}
-                                onBlur={() => {
-                                  void handleCommitUiFont();
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    void handleCommitUiFont();
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setUiFontDraft(DEFAULT_UI_FONT_FAMILY);
-                                  void onUpdateAppSettings({
-                                    ...appSettings,
-                                    uiFontFamily: DEFAULT_UI_FONT_FAMILY,
-                                  });
-                                }}
-                              >
-                                {t("settings.display.reset")}
-                              </Button>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.display.uiFont.help")}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-md border border-border/60 p-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="code-font-family">
-                              {t("settings.display.codeFont.label")}
-                            </Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                id="code-font-family"
-                                type="text"
-                                value={codeFontDraft}
-                                onChange={(event) => setCodeFontDraft(event.target.value)}
-                                onBlur={() => {
-                                  void handleCommitCodeFont();
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    void handleCommitCodeFont();
-                                  }
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setCodeFontDraft(DEFAULT_CODE_FONT_FAMILY);
-                                  void onUpdateAppSettings({
-                                    ...appSettings,
-                                    codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
-                                  });
-                                }}
-                              >
-                                {t("settings.display.reset")}
-                              </Button>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.display.codeFont.help")}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-md border border-border/60 p-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="code-font-size">
-                              {t("settings.display.codeFontSize.label")}
-                            </Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <input
-                                id="code-font-size"
-                                type="range"
-                                min={CODE_FONT_SIZE_MIN}
-                                max={CODE_FONT_SIZE_MAX}
-                                step={1}
-                                className="h-2 w-40"
-                                value={codeFontSizeDraft}
-                                onChange={(event) => {
-                                  const nextValue = Number(event.target.value);
-                                  setCodeFontSizeDraft(nextValue);
-                                  void handleCommitCodeFontSize(nextValue);
-                                }}
-                              />
-                              <div className="text-sm text-muted-foreground">
-                                {codeFontSizeDraft}px
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setCodeFontSizeDraft(CODE_FONT_SIZE_DEFAULT);
-                                  void handleCommitCodeFontSize(CODE_FONT_SIZE_DEFAULT);
-                                }}
-                              >
-                                {t("settings.display.reset")}
-                              </Button>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.display.codeFontSize.help")}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.display.sounds.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.display.sounds.subtitle")}
-                          </div>
-                        </div>
-                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="notification-sounds">
-                              {t("settings.display.notificationSounds.title")}
-                            </Label>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.display.notificationSounds.subtitle")}
-                            </div>
-                          </div>
-                          <Switch
-                            id="notification-sounds"
-                            checked={appSettings.notificationSoundsEnabled}
-                            onCheckedChange={(value) =>
-                              void onUpdateAppSettings({
-                                ...appSettings,
-                                notificationSoundsEnabled: value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={onTestNotificationSound}
-                          >
-                            {t("settings.display.testSound")}
-                          </Button>
-                        </div>
-                      </div>
-                    </SettingsSection>
-                  </div>
-                </TabsContent>
-                <TabsContent value="composer" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.composer.title")}
-                      description={t("settings.composer.subtitle")}
-                    >
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.composer.presets.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.composer.presets.subtitle")}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="composer-preset">
-                            {t("settings.composer.presets.label")}
-                          </Label>
-                          <Select
-                            value={appSettings.composerEditorPreset}
-                            onValueChange={(value) =>
-                              handleComposerPresetChange(value as ComposerPreset)
-                            }
-                          >
-                            <SelectTrigger id="composer-preset">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(composerPresetLabels).map(([preset, label]) => (
-                                <SelectItem key={preset} value={preset}>
-                                  {label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.composer.presets.help")}
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-3">
+              <X className="h-4 w-4" aria-hidden />
+            </Button>
+          </div>
+          <Tabs
+            value={activeSection}
+            onValueChange={(value) => setActiveSection(value as CodexSection)}
+            className="flex min-h-0 flex-1"
+          >
+            <TabsList className="h-full w-60 flex-col items-stretch justify-start gap-1 overflow-y-auto rounded-none border-r bg-transparent p-2 text-sm text-muted-foreground">
+              <TabsTrigger
+                value="projects"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <LayoutGrid className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.projects")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="display"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.displaySound")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="composer"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <FileText className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.composer")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="dictation"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <Mic className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.dictation")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="shortcuts"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <Keyboard className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.shortcuts")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="open-apps"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.openIn")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="codex"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <TerminalSquare className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.codex")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="experimental"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <FlaskConical className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.experimental")}</span>
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+              <TabsContent value="projects" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.projects.title")}
+                    description={t("settings.projects.subtitle")}
+                  >
+                    <div className="space-y-3">
+                      <div className="space-y-1">
                         <div className="text-sm font-medium">
-                          {t("settings.composer.codeFences.title")}
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-fence-space">
-                                {t("settings.composer.codeFences.expandSpace.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.codeFences.expandSpace.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-fence-space"
-                              checked={appSettings.composerFenceExpandOnSpace}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerFenceExpandOnSpace: value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-fence-enter">
-                                {t("settings.composer.codeFences.expandEnter.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.codeFences.expandEnter.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-fence-enter"
-                              checked={appSettings.composerFenceExpandOnEnter}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerFenceExpandOnEnter: value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-fence-language">
-                                {t("settings.composer.codeFences.languageTags.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.codeFences.languageTags.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-fence-language"
-                              checked={appSettings.composerFenceLanguageTags}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerFenceLanguageTags: value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-fence-wrap">
-                                {t("settings.composer.codeFences.wrapSelection.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.codeFences.wrapSelection.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-fence-wrap"
-                              checked={appSettings.composerFenceWrapSelection}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerFenceWrapSelection: value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-fence-copy">
-                                {t("settings.composer.codeFences.copyWithoutFences.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.codeFences.copyWithoutFences.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-fence-copy"
-                              checked={appSettings.composerCodeBlockCopyUseModifier}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerCodeBlockCopyUseModifier: value,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium">
-                          {t("settings.composer.pasting.title")}
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-paste-multiline">
-                                {t("settings.composer.pasting.autoWrapMultiline.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.pasting.autoWrapMultiline.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-paste-multiline"
-                              checked={appSettings.composerFenceAutoWrapPasteMultiline}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerFenceAutoWrapPasteMultiline: value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                            <div className="space-y-1">
-                              <Label htmlFor="composer-paste-codelike">
-                                {t("settings.composer.pasting.autoWrapCodeLike.title")}
-                              </Label>
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.composer.pasting.autoWrapCodeLike.subtitle")}
-                              </div>
-                            </div>
-                            <Switch
-                              id="composer-paste-codelike"
-                              checked={appSettings.composerFenceAutoWrapPasteCodeLike}
-                              onCheckedChange={(value) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  composerFenceAutoWrapPasteCodeLike: value,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium">
-                          {t("settings.composer.lists.title")}
-                        </div>
-                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="composer-list-continuation">
-                              {t("settings.composer.lists.continue.title")}
-                            </Label>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.composer.lists.continue.subtitle")}
-                            </div>
-                          </div>
-                          <Switch
-                            id="composer-list-continuation"
-                            checked={appSettings.composerListContinuation}
-                            onCheckedChange={(value) =>
-                              void onUpdateAppSettings({
-                                ...appSettings,
-                                composerListContinuation: value,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </SettingsSection>
-                  </div>
-                </TabsContent>
-                <TabsContent value="dictation" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.dictation.title")}
-                      description={t("settings.dictation.subtitle")}
-                    >
-                      {platform === "windows" && (
-                        <div className="border-l-2 border-border/60 pl-3 text-sm text-muted-foreground">
-                          {t("settings.dictation.windowsNote")}
-                        </div>
-                      )}
-                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                        <div className="space-y-1">
-                          <Label htmlFor="dictation-enabled">
-                            {t("settings.dictation.enable.title")}
-                          </Label>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.dictation.enable.subtitle")}
-                          </div>
-                        </div>
-                        <Switch
-                          id="dictation-enabled"
-                          checked={appSettings.dictationEnabled}
-                          onCheckedChange={(value) => {
-                            const nextEnabled = value;
-                            void onUpdateAppSettings({
-                              ...appSettings,
-                              dictationEnabled: nextEnabled,
-                            });
-                            if (
-                              !nextEnabled &&
-                              dictationModelStatus?.state === "downloading" &&
-                              onCancelDictationDownload
-                            ) {
-                              onCancelDictationDownload();
-                            }
-                            if (
-                              nextEnabled &&
-                              dictationModelStatus?.state === "missing" &&
-                              onDownloadDictationModel
-                            ) {
-                              onDownloadDictationModel();
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="dictation-model">
-                            {t("settings.dictation.model.label")}
-                          </Label>
-                          <Select
-                            value={appSettings.dictationModelId}
-                            onValueChange={(value) =>
-                              void onUpdateAppSettings({
-                                ...appSettings,
-                                dictationModelId: value,
-                              })
-                            }
-                          >
-                            <SelectTrigger id="dictation-model">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dictationModels.map((model) => (
-                                <SelectItem key={model.id} value={model.id}>
-                                  {model.label} ({model.size})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.dictation.modelHelp", {
-                              note: selectedDictationModel.note,
-                              size: selectedDictationModel.size,
-                            })}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dictation-language">
-                            {t("settings.dictation.language.label")}
-                          </Label>
-                          <Select
-                            value={appSettings.dictationPreferredLanguage ?? DICTATION_AUTO_VALUE}
-                            onValueChange={(value) =>
-                              void onUpdateAppSettings({
-                                ...appSettings,
-                                dictationPreferredLanguage:
-                                  value === DICTATION_AUTO_VALUE ? null : value,
-                              })
-                            }
-                          >
-                            <SelectTrigger id="dictation-language">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={DICTATION_AUTO_VALUE}>
-                                {t("settings.dictation.language.auto")}
-                              </SelectItem>
-                              <SelectItem value="en">
-                                {t("settings.dictation.language.en")}
-                              </SelectItem>
-                              <SelectItem value="es">
-                                {t("settings.dictation.language.es")}
-                              </SelectItem>
-                              <SelectItem value="fr">
-                                {t("settings.dictation.language.fr")}
-                              </SelectItem>
-                              <SelectItem value="de">
-                                {t("settings.dictation.language.de")}
-                              </SelectItem>
-                              <SelectItem value="it">
-                                {t("settings.dictation.language.it")}
-                              </SelectItem>
-                              <SelectItem value="pt">
-                                {t("settings.dictation.language.pt")}
-                              </SelectItem>
-                              <SelectItem value="nl">
-                                {t("settings.dictation.language.nl")}
-                              </SelectItem>
-                              <SelectItem value="sv">
-                                {t("settings.dictation.language.sv")}
-                              </SelectItem>
-                              <SelectItem value="no">
-                                {t("settings.dictation.language.no")}
-                              </SelectItem>
-                              <SelectItem value="da">
-                                {t("settings.dictation.language.da")}
-                              </SelectItem>
-                              <SelectItem value="fi">
-                                {t("settings.dictation.language.fi")}
-                              </SelectItem>
-                              <SelectItem value="pl">
-                                {t("settings.dictation.language.pl")}
-                              </SelectItem>
-                              <SelectItem value="tr">
-                                {t("settings.dictation.language.tr")}
-                              </SelectItem>
-                              <SelectItem value="ru">
-                                {t("settings.dictation.language.ru")}
-                              </SelectItem>
-                              <SelectItem value="uk">
-                                {t("settings.dictation.language.uk")}
-                              </SelectItem>
-                              <SelectItem value="ja">
-                                {t("settings.dictation.language.ja")}
-                              </SelectItem>
-                              <SelectItem value="ko">
-                                {t("settings.dictation.language.ko")}
-                              </SelectItem>
-                              <SelectItem value="zh">
-                                {t("settings.dictation.language.zh")}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.dictation.language.help")}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dictation-hold-key">
-                            {t("settings.dictation.holdKey.label")}
-                          </Label>
-                          <Select
-                            value={appSettings.dictationHoldKey ?? DICTATION_HOLD_OFF_VALUE}
-                            onValueChange={(value) =>
-                              void onUpdateAppSettings({
-                                ...appSettings,
-                                dictationHoldKey:
-                                  value === DICTATION_HOLD_OFF_VALUE ? null : value,
-                              })
-                            }
-                          >
-                            <SelectTrigger id="dictation-hold-key">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={DICTATION_HOLD_OFF_VALUE}>
-                                {t("settings.dictation.holdKey.off")}
-                              </SelectItem>
-                              <SelectItem value="alt">
-                                {t("settings.dictation.holdKey.alt")}
-                              </SelectItem>
-                              <SelectItem value="shift">
-                                {t("settings.dictation.holdKey.shift")}
-                              </SelectItem>
-                              <SelectItem value="control">
-                                {t("settings.dictation.holdKey.control")}
-                              </SelectItem>
-                              <SelectItem value="meta">
-                                {t("settings.dictation.holdKey.meta")}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.dictation.holdKey.help")}
-                          </div>
-                        </div>
-                      </div>
-                      {dictationModelStatus && (
-                        <div className="space-y-2 rounded-md border border-border/60 p-3">
-                          <div className="text-sm font-medium">
-                            {t("settings.dictation.status.label", {
-                              label: selectedDictationModel.label,
-                            })}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {dictationModelStatus.state === "ready" &&
-                              t("settings.dictation.status.ready")}
-                            {dictationModelStatus.state === "missing" &&
-                              t("settings.dictation.status.missing")}
-                            {dictationModelStatus.state === "downloading" &&
-                              t("settings.dictation.status.downloading")}
-                            {dictationModelStatus.state === "error" &&
-                              (dictationModelStatus.error ??
-                                t("settings.dictation.status.error"))}
-                          </div>
-                          {dictationProgress && (
-                            <div className="space-y-1">
-                              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                                <div
-                                  className="h-full bg-primary"
-                                  style={{
-                                    width: dictationProgress.totalBytes
-                                      ? `${Math.min(
-                                          100,
-                                          (dictationProgress.downloadedBytes /
-                                            dictationProgress.totalBytes) *
-                                            100,
-                                        )}%`
-                                      : "0%",
-                                  }}
-                                />
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {formatDownloadSize(dictationProgress.downloadedBytes)}
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex flex-wrap items-center gap-2">
-                            {dictationModelStatus.state === "missing" && (
-                              <Button
-                                type="button"
-                                onClick={onDownloadDictationModel}
-                                disabled={!onDownloadDictationModel}
-                              >
-                                {t("settings.action.downloadModel")}
-                              </Button>
-                            )}
-                            {dictationModelStatus.state === "downloading" && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={onCancelDictationDownload}
-                                disabled={!onCancelDictationDownload}
-                              >
-                                {t("settings.action.cancelDownload")}
-                              </Button>
-                            )}
-                            {dictationReady && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={onRemoveDictationModel}
-                                disabled={!onRemoveDictationModel}
-                              >
-                                {t("settings.action.removeModel")}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </SettingsSection>
-                  </div>
-                </TabsContent>
-                <TabsContent value="shortcuts" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.shortcuts.title")}
-                      description={t("settings.shortcuts.subtitle")}
-                    >
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.shortcuts.file.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.shortcuts.file.subtitle")}
-                          </div>
-                        </div>
-                        <div className="grid gap-4">
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.newAgent")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.newAgent)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "newAgentShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => void updateShortcut("newAgentShortcut", null)}
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+n"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.newWorktreeAgent")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.newWorktreeAgent)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "newWorktreeAgentShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("newWorktreeAgentShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+n"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.newCloneAgent")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.newCloneAgent)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "newCloneAgentShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("newCloneAgentShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+alt+n"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.archiveThread")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.archiveThread)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "archiveThreadShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("archiveThreadShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+ctrl+a"),
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.shortcuts.composer.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.shortcuts.composer.subtitle")}
-                          </div>
-                        </div>
-                        <div className="grid gap-4">
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.cycleModel")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.model)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "composerModelShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("composerModelShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.pressToSet", {
-                                value: formatShortcut("cmd+shift+m"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.cycleAccess")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.access)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "composerAccessShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("composerAccessShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+a"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.cycleReasoning")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.reasoning)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "composerReasoningShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("composerReasoningShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+r"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.cycleCollaboration")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.collaboration)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "composerCollaborationShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("composerCollaborationShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("shift+tab"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.stopRun")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.interrupt)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "interruptShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("interruptShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut(getDefaultInterruptShortcut()),
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.shortcuts.panels.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.shortcuts.panels.subtitle")}
-                          </div>
-                        </div>
-                        <div className="grid gap-4">
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.panels.projects")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.projectsSidebar)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(
-                                    event,
-                                    "toggleProjectsSidebarShortcut",
-                                  )
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut(
-                                    "toggleProjectsSidebarShortcut",
-                                    null,
-                                  )
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+p"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.panels.git")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.gitSidebar)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(
-                                    event,
-                                    "toggleGitSidebarShortcut",
-                                  )
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("toggleGitSidebarShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+g"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.panels.debug")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.debugPanel)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(
-                                    event,
-                                    "toggleDebugPanelShortcut",
-                                  )
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("toggleDebugPanelShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+d"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.panels.terminal")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.terminal)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(
-                                    event,
-                                    "toggleTerminalShortcut",
-                                  )
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("toggleTerminalShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+t"),
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {t("settings.shortcuts.navigation.title")}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t("settings.shortcuts.navigation.subtitle")}
-                          </div>
-                        </div>
-                        <div className="grid gap-4">
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.navigation.nextAgent")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.cycleAgentNext)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "cycleAgentNextShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("cycleAgentNextShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+ctrl+down"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.navigation.prevAgent")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.cycleAgentPrev)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(event, "cycleAgentPrevShortcut")
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("cycleAgentPrevShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+ctrl+up"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.navigation.nextWorkspace")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.cycleWorkspaceNext)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(
-                                    event,
-                                    "cycleWorkspaceNextShortcut",
-                                  )
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("cycleWorkspaceNextShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {t("settings.shortcuts.default", {
-                                value: formatShortcut("cmd+shift+down"),
-                              })}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{t("settings.shortcuts.navigation.prevWorkspace")}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Input
-                                className="w-56"
-                                value={formatShortcut(shortcutDrafts.cycleWorkspacePrev)}
-                                onKeyDown={(event) =>
-                                  handleShortcutKeyDown(
-                                    event,
-                                    "cycleWorkspacePrevShortcut",
-                                  )
-                                }
-                                placeholder={t("settings.shortcuts.placeholder")}
-                                readOnly
-                              />
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  void updateShortcut("cycleWorkspacePrevShortcut", null)
-                                }
-                              >
-                                {t("settings.action.clear")}
-                              </Button>
-                            </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("settings.shortcuts.default", {
-                              value: formatShortcut("cmd+shift+up"),
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    </SettingsSection>
-                  </div>
-                </TabsContent>
-                <TabsContent value="open-apps" className="mt-0">
-                  <div className="space-y-3">
-                    <SettingsSection
-                      title={t("settings.openApps.title")}
-                      description={t("settings.openApps.subtitle")}
-                    >
-                      <div className="space-y-2">
-                        {openAppDrafts.map((target, index) => {
-                          const iconSrc =
-                            getKnownOpenAppIcon(target.id) ??
-                            openAppIconById[target.id] ??
-                            GENERIC_APP_ICON;
-                          return (
-                            <div key={target.id} className="rounded-md border border-border/60 p-2">
-                              <div className="flex flex-wrap items-start gap-2">
-                                <div
-                                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-muted/20"
-                                  aria-hidden
-                                >
-                                  <img src={iconSrc} alt="" width={16} height={16} />
-                                </div>
-                                <div className="flex-1 space-y-2">
-                                  <div className="grid gap-2 md:grid-cols-2">
-                                    <div className="space-y-1">
-                                      <Label htmlFor={`open-app-label-${target.id}`}>
-                                        {t("settings.openApps.label")}
-                                      </Label>
-                                      <Input
-                                        id={`open-app-label-${target.id}`}
-                                        value={target.label}
-                                        placeholder={t("settings.openApps.label")}
-                                        onChange={(event) =>
-                                          handleOpenAppDraftChange(index, {
-                                            label: event.target.value,
-                                          })
-                                        }
-                                        onBlur={() => {
-                                          void handleCommitOpenApps(openAppDrafts);
-                                        }}
-                                        aria-label={t("settings.openApps.aria.label", {
-                                          index: index + 1,
-                                        })}
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label htmlFor={`open-app-kind-${target.id}`}>
-                                        {t("settings.openApps.type")}
-                                      </Label>
-                                      <Select
-                                        value={target.kind}
-                                        onValueChange={(value) =>
-                                          handleOpenAppKindChange(
-                                            index,
-                                            value as OpenAppTarget["kind"],
-                                          )
-                                        }
-                                      >
-                                        <SelectTrigger id={`open-app-kind-${target.id}`}>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="app">
-                                            {t("settings.openApps.type.app")}
-                                          </SelectItem>
-                                          <SelectItem value="command">
-                                            {t("settings.openApps.type.command")}
-                                          </SelectItem>
-                                          <SelectItem value="finder">{fileManagerLabel}</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    {target.kind === "app" && (
-                                      <div className="space-y-1 md:col-span-2">
-                                        <Label htmlFor={`open-app-appname-${target.id}`}>
-                                          {t("settings.openApps.appName")}
-                                        </Label>
-                                        <Input
-                                          id={`open-app-appname-${target.id}`}
-                                          value={target.appName ?? ""}
-                                          placeholder={t("settings.openApps.appName")}
-                                          onChange={(event) =>
-                                            handleOpenAppDraftChange(index, {
-                                              appName: event.target.value,
-                                            })
-                                          }
-                                          onBlur={() => {
-                                            void handleCommitOpenApps(openAppDrafts);
-                                          }}
-                                          aria-label={t("settings.openApps.aria.appName", {
-                                            index: index + 1,
-                                          })}
-                                        />
-                                      </div>
-                                    )}
-                                    {target.kind === "command" && (
-                                      <div className="space-y-1 md:col-span-2">
-                                        <Label htmlFor={`open-app-command-${target.id}`}>
-                                          {t("settings.openApps.command")}
-                                        </Label>
-                                        <Input
-                                          id={`open-app-command-${target.id}`}
-                                          value={target.command ?? ""}
-                                          placeholder={t("settings.openApps.command")}
-                                          onChange={(event) =>
-                                            handleOpenAppDraftChange(index, {
-                                              command: event.target.value,
-                                            })
-                                          }
-                                          onBlur={() => {
-                                            void handleCommitOpenApps(openAppDrafts);
-                                          }}
-                                          aria-label={t("settings.openApps.aria.command", {
-                                            index: index + 1,
-                                          })}
-                                        />
-                                      </div>
-                                    )}
-                                    {target.kind !== "finder" && (
-                                      <div className="space-y-1 md:col-span-2">
-                                        <Label htmlFor={`open-app-args-${target.id}`}>
-                                          {t("settings.openApps.args")}
-                                        </Label>
-                                        <Input
-                                          id={`open-app-args-${target.id}`}
-                                          value={target.argsText}
-                                          placeholder={t("settings.openApps.args")}
-                                          onChange={(event) =>
-                                            handleOpenAppDraftChange(index, {
-                                              argsText: event.target.value,
-                                            })
-                                          }
-                                          onBlur={() => {
-                                            void handleCommitOpenApps(openAppDrafts);
-                                          }}
-                                          aria-label={t("settings.openApps.aria.args", {
-                                            index: index + 1,
-                                          })}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <label className="flex items-center gap-2 text-sm">
-                                      <input
-                                        type="radio"
-                                        className="h-4 w-4"
-                                        name="open-app-default"
-                                        checked={target.id === openAppSelectedId}
-                                        onChange={() => handleSelectOpenAppDefault(target.id)}
-                                      />
-                                      {t("settings.openApps.default")}
-                                    </label>
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        className="text-muted-foreground hover:text-foreground"
-                                        onClick={() => handleMoveOpenApp(index, "up")}
-                                        disabled={index === 0}
-                                        aria-label={t("settings.openApps.moveUp")}
-                                      >
-                                        <ChevronUp className="h-4 w-4" aria-hidden />
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        className="text-muted-foreground hover:text-foreground"
-                                        onClick={() => handleMoveOpenApp(index, "down")}
-                                        disabled={index === openAppDrafts.length - 1}
-                                        aria-label={t("settings.openApps.moveDown")}
-                                      >
-                                        <ChevronDown className="h-4 w-4" aria-hidden />
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        className="text-muted-foreground hover:text-foreground"
-                                        onClick={() => handleDeleteOpenApp(index)}
-                                        disabled={openAppDrafts.length <= 1}
-                                        aria-label={t("settings.openApps.remove")}
-                                        title={t("settings.openApps.remove")}
-                                      >
-                                        <Trash2 className="h-4 w-4" aria-hidden />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Button type="button" variant="outline" onClick={handleAddOpenApp}>
-                          {t("settings.action.addApp")}
-                        </Button>
-                        <div className="text-xs text-muted-foreground">
-                          {t("settings.openApps.help")}
-                        </div>
-                      </div>
-                    </SettingsSection>
-                  </div>
-                </TabsContent>
-                <TabsContent value="codex" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.codex.title")}
-                      description={t("settings.codex.subtitle")}
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor="codex-path">{t("settings.codex.path.label")}</Label>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Input
-                            id="codex-path"
-                            value={codexPathDraft}
-                            placeholder="codex"
-                            onChange={(event) => setCodexPathDraft(event.target.value)}
-                          />
-                          <Button type="button" variant="outline" onClick={handleBrowseCodex}>
-                            {t("settings.action.browse")}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setCodexPathDraft("")}
-                          >
-                            {t("settings.action.usePath")}
-                          </Button>
+                          {t("settings.projects.groups.title")}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {t("settings.codex.path.help")}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="codex-args">{t("settings.codex.args.label")}</Label>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Input
-                            id="codex-args"
-                            value={codexArgsDraft}
-                            placeholder="--profile personal"
-                            onChange={(event) => setCodexArgsDraft(event.target.value)}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setCodexArgsDraft("")}
-                          >
-                            {t("settings.action.clear")}
-                          </Button>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {t("settings.codex.args.help")}
+                          {t("settings.projects.groups.subtitle")}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {codexDirty && (
-                          <Button
-                            type="button"
-                            onClick={handleSaveCodexSettings}
-                            disabled={isSavingSettings}
-                          >
-                            {isSavingSettings
-                              ? t("settings.action.saving")
-                              : t("settings.action.save")}
-                          </Button>
-                        )}
+                        <Input
+                          className="min-w-[220px] flex-1"
+                          value={newGroupName}
+                          placeholder={t(
+                            "settings.projects.groupName.placeholder",
+                          )}
+                          aria-label={t(
+                            "settings.projects.groupName.placeholder",
+                          )}
+                          onChange={(event) =>
+                            setNewGroupName(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && canCreateGroup) {
+                              event.preventDefault();
+                              void handleCreateGroup();
+                            }
+                          }}
+                        />
                         <Button
                           type="button"
-                          variant="outline"
-                          onClick={handleRunDoctor}
-                          disabled={doctorState.status === "running"}
+                          onClick={() => {
+                            void handleCreateGroup();
+                          }}
+                          disabled={!canCreateGroup}
                         >
-                          <Stethoscope className="h-4 w-4" aria-hidden />
-                          {doctorState.status === "running"
-                            ? t("settings.action.running")
-                            : t("settings.action.runDoctor")}
+                          {t("settings.projects.group.add")}
                         </Button>
                       </div>
-                      {doctorState.result && (
-                        <div
-                          className={cn(
-                            "rounded-md border border-border/60 p-3 text-sm",
-                            doctorState.result.ok
-                              ? "border-emerald-500/40 bg-emerald-50/40"
-                              : "border-destructive/40 bg-destructive/10",
-                          )}
-                        >
-                          <div className="font-medium">
-                            {doctorState.result.ok
-                              ? t("settings.codex.doctor.okTitle")
-                              : t("settings.codex.doctor.errorTitle")}
-                          </div>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <div>
-                              {t("settings.codex.doctor.version", {
-                                value:
-                                  doctorState.result.version ??
-                                  t("settings.codex.doctor.unknown"),
-                              })}
-                            </div>
-                            <div>
-                              {t("settings.codex.doctor.appServer", {
-                                value: doctorState.result.appServerOk
-                                  ? t("settings.codex.doctor.ok")
-                                  : t("settings.codex.doctor.failed"),
-                              })}
-                            </div>
-                            <div>
-                              {t("settings.codex.doctor.node", {
-                                value: doctorState.result.nodeOk
-                                  ? t("settings.codex.doctor.okWithVersion", {
-                                      version:
-                                        doctorState.result.nodeVersion ??
-                                        t("settings.codex.doctor.unknown"),
-                                    })
-                                  : t("settings.codex.doctor.missing"),
-                              })}
-                            </div>
-                            {doctorState.result.details && (
-                              <div>{doctorState.result.details}</div>
-                            )}
-                            {doctorState.result.nodeDetails && (
-                              <div>{doctorState.result.nodeDetails}</div>
-                            )}
-                            {doctorState.result.path && (
-                              <div className="text-xs text-muted-foreground">
-                                {t("settings.codex.doctor.path", {
-                                  value: doctorState.result.path,
-                                })}
-                              </div>
-                            )}
-                          </div>
+                      {groupError && (
+                        <div className="text-sm text-destructive">
+                          {groupError}
                         </div>
                       )}
-                    </SettingsSection>
-                    <SettingsSection
-                      title={t("settings.codex.workspaceOverrides.title")}
-                      description={t("settings.codex.workspaceOverrides.subtitle")}
-                    >
+                      {workspaceGroups.length > 0 ? (
+                        <div className="space-y-3">
+                          {workspaceGroups.map((group, index) => (
+                            <div
+                              key={group.id}
+                              className="rounded-md border border-border/60 p-3"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div className="flex-1 min-w-[220px] space-y-3">
+                                  <Input
+                                    value={groupDrafts[group.id] ?? group.name}
+                                    aria-label={t(
+                                      "settings.projects.groupName.placeholder",
+                                    )}
+                                    onChange={(event) =>
+                                      setGroupDrafts((prev) => ({
+                                        ...prev,
+                                        [group.id]: event.target.value,
+                                      }))
+                                    }
+                                    onBlur={() => {
+                                      void handleRenameGroup(group);
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        void handleRenameGroup(group);
+                                      }
+                                    }}
+                                  />
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-medium">
+                                      {t(
+                                        "settings.projects.group.copiesFolder",
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <div
+                                        className={cn(
+                                          "flex-1 min-w-[200px] truncate rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs",
+                                          !group.copiesFolder &&
+                                          "text-muted-foreground",
+                                        )}
+                                        title={group.copiesFolder ?? ""}
+                                      >
+                                        {group.copiesFolder ??
+                                          t("settings.projects.group.notSet")}
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          void handleChooseGroupCopiesFolder(
+                                            group,
+                                          );
+                                        }}
+                                      >
+                                        {t("settings.projects.group.choose")}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          void handleClearGroupCopiesFolder(
+                                            group,
+                                          );
+                                        }}
+                                        disabled={!group.copiesFolder}
+                                      >
+                                        {t("settings.projects.group.clear")}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="text-muted-foreground hover:text-foreground"
+                                    onClick={() => {
+                                      void onMoveWorkspaceGroup(group.id, "up");
+                                    }}
+                                    disabled={index === 0}
+                                    aria-label={t(
+                                      "settings.projects.group.moveUp",
+                                    )}
+                                  >
+                                    <ChevronUp
+                                      className="h-4 w-4"
+                                      aria-hidden
+                                    />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="text-muted-foreground hover:text-foreground"
+                                    onClick={() => {
+                                      void onMoveWorkspaceGroup(
+                                        group.id,
+                                        "down",
+                                      );
+                                    }}
+                                    disabled={
+                                      index === workspaceGroups.length - 1
+                                    }
+                                    aria-label={t(
+                                      "settings.projects.group.moveDown",
+                                    )}
+                                  >
+                                    <ChevronDown
+                                      className="h-4 w-4"
+                                      aria-hidden
+                                    />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="text-muted-foreground hover:text-foreground"
+                                    onClick={() => {
+                                      void handleDeleteGroup(group);
+                                    }}
+                                    aria-label={t(
+                                      "settings.projects.group.delete",
+                                    )}
+                                  >
+                                    <Trash2 className="h-4 w-4" aria-hidden />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.projects.group.empty")}
+                        </div>
+                      )}
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.projects.projects.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.projects.projects.subtitle")}
+                        </div>
+                      </div>
                       <div className="space-y-3">
-                        {projects.map((workspace) => (
-                          <div key={workspace.id} className="rounded-md border border-border/60 p-3">
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-sm font-medium">{workspace.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {workspace.path}
-                                </div>
-                              </div>
-                              <div className="grid gap-3 md:grid-cols-2">
-                                <div className="space-y-2">
-                                  <Label htmlFor={`override-bin-${workspace.id}`}>
-                                    {t("settings.codex.workspaceOverrides.binLabel")}
-                                  </Label>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      id={`override-bin-${workspace.id}`}
-                                      value={codexBinOverrideDrafts[workspace.id] ?? ""}
-                                      placeholder={t(
-                                        "settings.codex.workspaceOverrides.binPlaceholder",
-                                      )}
-                                      onChange={(event) =>
-                                        setCodexBinOverrideDrafts((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: event.target.value,
-                                        }))
-                                      }
-                                      onBlur={() => {
-                                        void handleCommitCodexBinOverride(workspace);
-                                      }}
-                                      onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                          event.currentTarget.blur();
+                        {groupedWorkspaces.map((group) => (
+                          <div
+                            key={group.id ?? "ungrouped"}
+                            className="space-y-2"
+                          >
+                            <div className="text-xs font-semibold uppercase text-muted-foreground">
+                              {group.name}
+                            </div>
+                            <div className="space-y-2">
+                              {group.workspaces.map((workspace, index) => {
+                                const groupValue = workspaceGroups.some(
+                                  (entry) =>
+                                    entry.id === workspace.settings.groupId,
+                                )
+                                  ? (workspace.settings.groupId ??
+                                    UNGROUPED_SELECT_VALUE)
+                                  : UNGROUPED_SELECT_VALUE;
+                                return (
+                                  <div
+                                    key={workspace.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/60 p-3"
+                                  >
+                                    <div className="min-w-[220px]">
+                                      <div className="text-sm font-medium">
+                                        {workspace.name}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {workspace.path}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Select
+                                        value={groupValue}
+                                        onValueChange={(value) => {
+                                          const nextGroupId =
+                                            value === UNGROUPED_SELECT_VALUE
+                                              ? null
+                                              : value;
+                                          void onAssignWorkspaceGroup(
+                                            workspace.id,
+                                            nextGroupId,
+                                          );
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-[180px]">
+                                          <SelectValue
+                                            placeholder={ungroupedLabel}
+                                          />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem
+                                            value={UNGROUPED_SELECT_VALUE}
+                                          >
+                                            {ungroupedLabel}
+                                          </SelectItem>
+                                          {workspaceGroups.map((entry) => (
+                                            <SelectItem
+                                              key={entry.id}
+                                              value={entry.id}
+                                            >
+                                              {entry.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground"
+                                        onClick={() =>
+                                          onMoveWorkspace(workspace.id, "up")
                                         }
-                                      }}
-                                      aria-label={t(
-                                        "settings.codex.workspaceOverrides.binAria",
-                                        { name: workspace.name },
-                                      )}
-                                    />
-                                    {(() => {
-                                      const draft =
-                                        codexBinOverrideDrafts[workspace.id] ?? "";
-                                      const nextValue = normalizeOverrideValue(draft);
-                                      const isDirty =
-                                        nextValue !== (workspace.codex_bin ?? null);
-                                      const isSaving =
-                                        codexBinOverrideSaving[workspace.id] ?? false;
-                                      const savedAt =
-                                        codexBinOverrideSavedAt[workspace.id] ?? 0;
-                                      const showSaved = savedAt > 0;
-                                      return isDirty ? (
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          onClick={() =>
-                                            void handleCommitCodexBinOverride(workspace)
-                                          }
-                                          disabled={isSaving}
-                                        >
-                                          {isSaving
-                                            ? t("settings.action.saving")
-                                            : t("settings.action.save")}
-                                        </Button>
-                                      ) : showSaved ? (
-                                        <span className="text-xs text-muted-foreground">
-                                          {t("settings.codex.workspaceOverrides.saved")}
-                                        </span>
-                                      ) : null;
-                                    })()}
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={async () => {
-                                        setCodexBinOverrideDrafts((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: "",
-                                        }));
-                                        setCodexBinOverrideSaving((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: true,
-                                        }));
-                                        await onUpdateWorkspaceCodexBin(workspace.id, null);
-                                        setCodexBinOverrideSavedAt((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: Date.now(),
-                                        }));
-                                        window.setTimeout(() => {
-                                          setCodexBinOverrideSavedAt((prev) => {
-                                            if (!prev[workspace.id]) {
-                                              return prev;
-                                            }
-                                            const next = { ...prev };
-                                            delete next[workspace.id];
-                                            return next;
-                                          });
-                                        }, 2000);
-                                        setCodexBinOverrideSaving((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: false,
-                                        }));
-                                      }}
-                                      disabled={codexBinOverrideSaving[workspace.id]}
-                                    >
-                                      {t("settings.action.clear")}
-                                    </Button>
-                                  </div>
-                                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                    <span>
-                                      {t("settings.codex.workspaceOverrides.savedValue", {
-                                        value: workspace.codex_bin ?? t("settings.value.none"),
-                                      })}
-                                    </span>
-                                    <span>
-                                      {t("settings.codex.workspaceOverrides.effectiveBin", {
-                                        value:
-                                          workspace.codex_bin ??
-                                          appSettings.codexBin ??
-                                          "codex",
-                                      })}
-                                    </span>
-                                    <span>
-                                      {t("settings.codex.workspaceOverrides.effectiveHome", {
-                                        value:
-                                          workspace.settings.codexHome ??
-                                          t("settings.value.default"),
-                                      })}
-                                    </span>
-                                    <span>
-                                      {t("settings.codex.workspaceOverrides.effectiveArgs", {
-                                        value:
-                                          workspace.settings.codexArgs ??
-                                          appSettings.codexArgs ??
-                                          t("settings.value.none"),
-                                      })}
-                                    </span>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 px-2"
-                                      onClick={() => void handleRunWorkspaceDoctor(workspace)}
-                                      disabled={
-                                        codexBinOverrideDoctor[workspace.id]?.status ===
-                                        "running"
-                                      }
-                                    >
-                                      {codexBinOverrideDoctor[workspace.id]?.status === "running"
-                                        ? t("settings.codex.workspaceOverrides.testRunning")
-                                        : t("settings.codex.workspaceOverrides.test")}
-                                    </Button>
-                                    {codexBinOverrideDoctor[workspace.id]?.status === "done" &&
-                                      (codexBinOverrideDoctor[workspace.id]?.result ? (
-                                        <span>
-                                          {codexBinOverrideDoctor[workspace.id]?.result?.ok
-                                            ? t("settings.codex.workspaceOverrides.testOk")
-                                            : t("settings.codex.workspaceOverrides.testFailed")}
-                                        </span>
-                                      ) : codexBinOverrideDoctor[workspace.id]?.error ? (
-                                        <span>
-                                          {t("settings.codex.workspaceOverrides.testFailed")}
-                                        </span>
-                                      ) : null)}
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor={`override-home-${workspace.id}`}>
-                                    {t("settings.codex.workspaceOverrides.homeLabel")}
-                                  </Label>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      id={`override-home-${workspace.id}`}
-                                      value={codexHomeOverrideDrafts[workspace.id] ?? ""}
-                                      placeholder={t(
-                                        "settings.codex.workspaceOverrides.homePlaceholder",
-                                      )}
-                                      onChange={(event) =>
-                                        setCodexHomeOverrideDrafts((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: event.target.value,
-                                        }))
-                                      }
-                                      onBlur={async () => {
-                                        const draft = codexHomeOverrideDrafts[workspace.id] ?? "";
-                                        const nextValue = normalizeOverrideValue(draft);
-                                        if (nextValue === (workspace.settings.codexHome ?? null)) {
-                                          return;
+                                        disabled={index === 0}
+                                        aria-label={t(
+                                          "settings.projects.project.moveUp",
+                                        )}
+                                      >
+                                        <ChevronUp
+                                          className="h-4 w-4"
+                                          aria-hidden
+                                        />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground"
+                                        onClick={() =>
+                                          onMoveWorkspace(workspace.id, "down")
                                         }
-                                        await onUpdateWorkspaceSettings(workspace.id, {
-                                          codexHome: nextValue,
-                                        });
-                                      }}
-                                      aria-label={t(
-                                        "settings.codex.workspaceOverrides.homeAria",
-                                        { name: workspace.name },
-                                      )}
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={async () => {
-                                        setCodexHomeOverrideDrafts((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: "",
-                                        }));
-                                        await onUpdateWorkspaceSettings(workspace.id, {
-                                          codexHome: null,
-                                        });
-                                      }}
-                                    >
-                                      {t("settings.action.clear")}
-                                    </Button>
-                                  </div>
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                  <Label htmlFor={`override-args-${workspace.id}`}>
-                                    {t("settings.codex.workspaceOverrides.argsLabel")}
-                                  </Label>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      id={`override-args-${workspace.id}`}
-                                      value={codexArgsOverrideDrafts[workspace.id] ?? ""}
-                                      placeholder={t(
-                                        "settings.codex.workspaceOverrides.argsPlaceholder",
-                                      )}
-                                      onChange={(event) =>
-                                        setCodexArgsOverrideDrafts((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: event.target.value,
-                                        }))
-                                      }
-                                      onBlur={async () => {
-                                        const draft = codexArgsOverrideDrafts[workspace.id] ?? "";
-                                        const nextValue = normalizeOverrideValue(draft);
-                                        if (nextValue === (workspace.settings.codexArgs ?? null)) {
-                                          return;
+                                        disabled={
+                                          index === group.workspaces.length - 1
                                         }
-                                        await onUpdateWorkspaceSettings(workspace.id, {
-                                          codexArgs: nextValue,
-                                        });
-                                      }}
-                                      aria-label={t(
-                                        "settings.codex.workspaceOverrides.argsAria",
-                                        { name: workspace.name },
-                                      )}
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={async () => {
-                                        setCodexArgsOverrideDrafts((prev) => ({
-                                          ...prev,
-                                          [workspace.id]: "",
-                                        }));
-                                        await onUpdateWorkspaceSettings(workspace.id, {
-                                          codexArgs: null,
-                                        });
-                                      }}
-                                    >
-                                      {t("settings.action.clear")}
-                                    </Button>
+                                        aria-label={t(
+                                          "settings.projects.project.moveDown",
+                                        )}
+                                      >
+                                        <ChevronDown
+                                          className="h-4 w-4"
+                                          aria-hidden
+                                        />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-muted-foreground hover:text-foreground"
+                                        onClick={() =>
+                                          onDeleteWorkspace(workspace.id)
+                                        }
+                                        aria-label={t(
+                                          "settings.projects.project.delete",
+                                        )}
+                                      >
+                                        <Trash2
+                                          className="h-4 w-4"
+                                          aria-hidden
+                                        />
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
@@ -3574,12 +1713,2323 @@ export function SettingsView({
                           </div>
                         )}
                       </div>
-                    </SettingsSection>
-                    <SettingsSection
-                      title={t("settings.codex.access.title")}
-                      description={t("settings.codex.access.subtitle")}
-                    >
-                      <div className="space-y-4">
+                    </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="display" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.display.title")}
+                    description={t("settings.display.subtitle")}
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.display.section.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.display.section.subtitle")}
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="theme-select">
+                            {t("settings.display.theme.label")}
+                          </Label>
+                          <Select
+                            value={appSettings.theme}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                theme: value as AppSettings["theme"],
+                              })
+                            }
+                          >
+                            <SelectTrigger id="theme-select">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="system">
+                                {t("settings.display.theme.system")}
+                              </SelectItem>
+                              <SelectItem value="light">
+                                {t("settings.display.theme.light")}
+                              </SelectItem>
+                              <SelectItem value="dark">
+                                {t("settings.display.theme.dark")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="language-select">
+                            {t("settings.language.label")}
+                          </Label>
+                          <Select
+                            value={appSettings.language}
+                            onValueChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                language: value as AppSettings["language"],
+                              })
+                            }
+                          >
+                            <SelectTrigger id="language-select">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="system">
+                                {t("language.system")}
+                              </SelectItem>
+                              <SelectItem value="en">
+                                {t("language.english")}
+                              </SelectItem>
+                              <SelectItem value="zh-CN">
+                                {t("language.chinese")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.language.help")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="reduce-transparency">
+                            {t("settings.display.reduceTransparency.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.reduceTransparency.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="reduce-transparency"
+                          checked={reduceTransparency}
+                          onCheckedChange={(value) =>
+                            onToggleTransparency(value)
+                          }
+                        />
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="ui-scale">
+                            {t("settings.display.interfaceScale.title")}
+                          </Label>
+                          <div
+                            className="text-sm text-muted-foreground"
+                            title={scaleShortcutTitle}
+                          >
+                            {scaleShortcutText}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              id="ui-scale"
+                              type="text"
+                              inputMode="decimal"
+                              className="w-24"
+                              value={scaleDraft}
+                              aria-label={t(
+                                "settings.display.interfaceScale.label",
+                              )}
+                              onChange={(event) =>
+                                setScaleDraft(event.target.value)
+                              }
+                              onBlur={() => {
+                                void handleCommitScale();
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  void handleCommitScale();
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                void handleResetScale();
+                              }}
+                            >
+                              {t("settings.display.reset")}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="ui-font-family">
+                            {t("settings.display.uiFont.label")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              id="ui-font-family"
+                              type="text"
+                              value={uiFontDraft}
+                              onChange={(event) =>
+                                setUiFontDraft(event.target.value)
+                              }
+                              onBlur={() => {
+                                void handleCommitUiFont();
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  void handleCommitUiFont();
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUiFontDraft(DEFAULT_UI_FONT_FAMILY);
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  uiFontFamily: DEFAULT_UI_FONT_FAMILY,
+                                });
+                              }}
+                            >
+                              {t("settings.display.reset")}
+                            </Button>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.uiFont.help")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="code-font-family">
+                            {t("settings.display.codeFont.label")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              id="code-font-family"
+                              type="text"
+                              value={codeFontDraft}
+                              onChange={(event) =>
+                                setCodeFontDraft(event.target.value)
+                              }
+                              onBlur={() => {
+                                void handleCommitCodeFont();
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  void handleCommitCodeFont();
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setCodeFontDraft(DEFAULT_CODE_FONT_FAMILY);
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
+                                });
+                              }}
+                            >
+                              {t("settings.display.reset")}
+                            </Button>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.codeFont.help")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="code-font-size">
+                            {t("settings.display.codeFontSize.label")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              id="code-font-size"
+                              type="range"
+                              min={CODE_FONT_SIZE_MIN}
+                              max={CODE_FONT_SIZE_MAX}
+                              step={1}
+                              className="h-2 w-40"
+                              value={codeFontSizeDraft}
+                              onChange={(event) => {
+                                const nextValue = Number(event.target.value);
+                                setCodeFontSizeDraft(nextValue);
+                                void handleCommitCodeFontSize(nextValue);
+                              }}
+                            />
+                            <div className="text-sm text-muted-foreground">
+                              {codeFontSizeDraft}px
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setCodeFontSizeDraft(CODE_FONT_SIZE_DEFAULT);
+                                void handleCommitCodeFontSize(
+                                  CODE_FONT_SIZE_DEFAULT,
+                                );
+                              }}
+                            >
+                              {t("settings.display.reset")}
+                            </Button>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.codeFontSize.help")}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.display.sounds.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.display.sounds.subtitle")}
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="notification-sounds">
+                            {t("settings.display.notificationSounds.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.display.notificationSounds.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="notification-sounds"
+                          checked={appSettings.notificationSoundsEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              notificationSoundsEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={onTestNotificationSound}
+                        >
+                          {t("settings.display.testSound")}
+                        </Button>
+                      </div>
+                    </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="composer" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.composer.title")}
+                    description={t("settings.composer.subtitle")}
+                  >
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.composer.presets.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.composer.presets.subtitle")}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="composer-preset">
+                          {t("settings.composer.presets.label")}
+                        </Label>
+                        <Select
+                          value={appSettings.composerEditorPreset}
+                          onValueChange={(value) =>
+                            handleComposerPresetChange(value as ComposerPreset)
+                          }
+                        >
+                          <SelectTrigger id="composer-preset">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(composerPresetLabels).map(
+                              ([preset, label]) => (
+                                <SelectItem key={preset} value={preset}>
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.composer.presets.help")}
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium">
+                        {t("settings.composer.codeFences.title")}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-fence-space">
+                              {t(
+                                "settings.composer.codeFences.expandSpace.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.codeFences.expandSpace.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-fence-space"
+                            checked={appSettings.composerFenceExpandOnSpace}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerFenceExpandOnSpace: value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-fence-enter">
+                              {t(
+                                "settings.composer.codeFences.expandEnter.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.codeFences.expandEnter.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-fence-enter"
+                            checked={appSettings.composerFenceExpandOnEnter}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerFenceExpandOnEnter: value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-fence-language">
+                              {t(
+                                "settings.composer.codeFences.languageTags.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.codeFences.languageTags.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-fence-language"
+                            checked={appSettings.composerFenceLanguageTags}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerFenceLanguageTags: value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-fence-wrap">
+                              {t(
+                                "settings.composer.codeFences.wrapSelection.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.codeFences.wrapSelection.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-fence-wrap"
+                            checked={appSettings.composerFenceWrapSelection}
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerFenceWrapSelection: value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-fence-copy">
+                              {t(
+                                "settings.composer.codeFences.copyWithoutFences.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.codeFences.copyWithoutFences.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-fence-copy"
+                            checked={
+                              appSettings.composerCodeBlockCopyUseModifier
+                            }
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerCodeBlockCopyUseModifier: value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium">
+                        {t("settings.composer.pasting.title")}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-paste-multiline">
+                              {t(
+                                "settings.composer.pasting.autoWrapMultiline.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.pasting.autoWrapMultiline.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-paste-multiline"
+                            checked={
+                              appSettings.composerFenceAutoWrapPasteMultiline
+                            }
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerFenceAutoWrapPasteMultiline: value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="composer-paste-codelike">
+                              {t(
+                                "settings.composer.pasting.autoWrapCodeLike.title",
+                              )}
+                            </Label>
+                            <div className="text-sm text-muted-foreground">
+                              {t(
+                                "settings.composer.pasting.autoWrapCodeLike.subtitle",
+                              )}
+                            </div>
+                          </div>
+                          <Switch
+                            id="composer-paste-codelike"
+                            checked={
+                              appSettings.composerFenceAutoWrapPasteCodeLike
+                            }
+                            onCheckedChange={(value) =>
+                              void onUpdateAppSettings({
+                                ...appSettings,
+                                composerFenceAutoWrapPasteCodeLike: value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium">
+                        {t("settings.composer.lists.title")}
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="composer-list-continuation">
+                            {t("settings.composer.lists.continue.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.composer.lists.continue.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="composer-list-continuation"
+                          checked={appSettings.composerListContinuation}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              composerListContinuation: value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="dictation" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.dictation.title")}
+                    description={t("settings.dictation.subtitle")}
+                  >
+                    {platform === "windows" && (
+                      <div className="border-l-2 border-border/60 pl-3 text-sm text-muted-foreground">
+                        {t("settings.dictation.windowsNote")}
+                      </div>
+                    )}
+                    <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="dictation-enabled">
+                          {t("settings.dictation.enable.title")}
+                        </Label>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.dictation.enable.subtitle")}
+                        </div>
+                      </div>
+                      <Switch
+                        id="dictation-enabled"
+                        checked={appSettings.dictationEnabled}
+                        onCheckedChange={(value) => {
+                          const nextEnabled = value;
+                          void onUpdateAppSettings({
+                            ...appSettings,
+                            dictationEnabled: nextEnabled,
+                          });
+                          if (
+                            !nextEnabled &&
+                            dictationModelStatus?.state === "downloading" &&
+                            onCancelDictationDownload
+                          ) {
+                            onCancelDictationDownload();
+                          }
+                          if (
+                            nextEnabled &&
+                            dictationModelStatus?.state === "missing" &&
+                            onDownloadDictationModel
+                          ) {
+                            onDownloadDictationModel();
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="dictation-model">
+                          {t("settings.dictation.model.label")}
+                        </Label>
+                        <Select
+                          value={appSettings.dictationModelId}
+                          onValueChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              dictationModelId: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger id="dictation-model">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dictationModels.map((model) => (
+                              <SelectItem key={model.id} value={model.id}>
+                                {model.label} ({model.size})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.dictation.modelHelp", {
+                            note: selectedDictationModel.note,
+                            size: selectedDictationModel.size,
+                          })}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dictation-language">
+                          {t("settings.dictation.language.label")}
+                        </Label>
+                        <Select
+                          value={
+                            appSettings.dictationPreferredLanguage ??
+                            DICTATION_AUTO_VALUE
+                          }
+                          onValueChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              dictationPreferredLanguage:
+                                value === DICTATION_AUTO_VALUE ? null : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger id="dictation-language">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={DICTATION_AUTO_VALUE}>
+                              {t("settings.dictation.language.auto")}
+                            </SelectItem>
+                            <SelectItem value="en">
+                              {t("settings.dictation.language.en")}
+                            </SelectItem>
+                            <SelectItem value="es">
+                              {t("settings.dictation.language.es")}
+                            </SelectItem>
+                            <SelectItem value="fr">
+                              {t("settings.dictation.language.fr")}
+                            </SelectItem>
+                            <SelectItem value="de">
+                              {t("settings.dictation.language.de")}
+                            </SelectItem>
+                            <SelectItem value="it">
+                              {t("settings.dictation.language.it")}
+                            </SelectItem>
+                            <SelectItem value="pt">
+                              {t("settings.dictation.language.pt")}
+                            </SelectItem>
+                            <SelectItem value="nl">
+                              {t("settings.dictation.language.nl")}
+                            </SelectItem>
+                            <SelectItem value="sv">
+                              {t("settings.dictation.language.sv")}
+                            </SelectItem>
+                            <SelectItem value="no">
+                              {t("settings.dictation.language.no")}
+                            </SelectItem>
+                            <SelectItem value="da">
+                              {t("settings.dictation.language.da")}
+                            </SelectItem>
+                            <SelectItem value="fi">
+                              {t("settings.dictation.language.fi")}
+                            </SelectItem>
+                            <SelectItem value="pl">
+                              {t("settings.dictation.language.pl")}
+                            </SelectItem>
+                            <SelectItem value="tr">
+                              {t("settings.dictation.language.tr")}
+                            </SelectItem>
+                            <SelectItem value="ru">
+                              {t("settings.dictation.language.ru")}
+                            </SelectItem>
+                            <SelectItem value="uk">
+                              {t("settings.dictation.language.uk")}
+                            </SelectItem>
+                            <SelectItem value="ja">
+                              {t("settings.dictation.language.ja")}
+                            </SelectItem>
+                            <SelectItem value="ko">
+                              {t("settings.dictation.language.ko")}
+                            </SelectItem>
+                            <SelectItem value="zh">
+                              {t("settings.dictation.language.zh")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.dictation.language.help")}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dictation-hold-key">
+                          {t("settings.dictation.holdKey.label")}
+                        </Label>
+                        <Select
+                          value={
+                            appSettings.dictationHoldKey ??
+                            DICTATION_HOLD_OFF_VALUE
+                          }
+                          onValueChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              dictationHoldKey:
+                                value === DICTATION_HOLD_OFF_VALUE
+                                  ? null
+                                  : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger id="dictation-hold-key">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={DICTATION_HOLD_OFF_VALUE}>
+                              {t("settings.dictation.holdKey.off")}
+                            </SelectItem>
+                            <SelectItem value="alt">
+                              {t("settings.dictation.holdKey.alt")}
+                            </SelectItem>
+                            <SelectItem value="shift">
+                              {t("settings.dictation.holdKey.shift")}
+                            </SelectItem>
+                            <SelectItem value="control">
+                              {t("settings.dictation.holdKey.control")}
+                            </SelectItem>
+                            <SelectItem value="meta">
+                              {t("settings.dictation.holdKey.meta")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.dictation.holdKey.help")}
+                        </div>
+                      </div>
+                    </div>
+                    {dictationModelStatus && (
+                      <div className="space-y-2 rounded-md border border-border/60 p-3">
+                        <div className="text-sm font-medium">
+                          {t("settings.dictation.status.label", {
+                            label: selectedDictationModel.label,
+                          })}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {dictationModelStatus.state === "ready" &&
+                            t("settings.dictation.status.ready")}
+                          {dictationModelStatus.state === "missing" &&
+                            t("settings.dictation.status.missing")}
+                          {dictationModelStatus.state === "downloading" &&
+                            t("settings.dictation.status.downloading")}
+                          {dictationModelStatus.state === "error" &&
+                            (dictationModelStatus.error ??
+                              t("settings.dictation.status.error"))}
+                        </div>
+                        {dictationProgress && (
+                          <div className="space-y-1">
+                            <div className="h-2 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full bg-primary"
+                                style={{
+                                  width: dictationProgress.totalBytes
+                                    ? `${Math.min(
+                                      100,
+                                      (dictationProgress.downloadedBytes /
+                                        dictationProgress.totalBytes) *
+                                      100,
+                                    )}%`
+                                    : "0%",
+                                }}
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatDownloadSize(
+                                dictationProgress.downloadedBytes,
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {dictationModelStatus.state === "missing" && (
+                            <Button
+                              type="button"
+                              onClick={onDownloadDictationModel}
+                              disabled={!onDownloadDictationModel}
+                            >
+                              {t("settings.action.downloadModel")}
+                            </Button>
+                          )}
+                          {dictationModelStatus.state === "downloading" && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={onCancelDictationDownload}
+                              disabled={!onCancelDictationDownload}
+                            >
+                              {t("settings.action.cancelDownload")}
+                            </Button>
+                          )}
+                          {dictationReady && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={onRemoveDictationModel}
+                              disabled={!onRemoveDictationModel}
+                            >
+                              {t("settings.action.removeModel")}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="shortcuts" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.shortcuts.title")}
+                    description={t("settings.shortcuts.subtitle")}
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.shortcuts.file.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.shortcuts.file.subtitle")}
+                        </div>
+                      </div>
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.newAgent")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.newAgent)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(event, "newAgentShortcut")
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut("newAgentShortcut", null)
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+n"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.newWorktreeAgent")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.newWorktreeAgent,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "newWorktreeAgentShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "newWorktreeAgentShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+n"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.newCloneAgent")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.newCloneAgent,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "newCloneAgentShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "newCloneAgentShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+alt+n"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.archiveThread")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.archiveThread,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "archiveThreadShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "archiveThreadShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+ctrl+a"),
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.shortcuts.composer.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.shortcuts.composer.subtitle")}
+                        </div>
+                      </div>
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.cycleModel")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.model)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "composerModelShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "composerModelShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.pressToSet", {
+                              value: formatShortcut("cmd+shift+m"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.cycleAccess")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.access)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "composerAccessShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "composerAccessShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+a"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.cycleReasoning")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.reasoning)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "composerReasoningShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "composerReasoningShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+r"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.cycleCollaboration")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.collaboration,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "composerCollaborationShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "composerCollaborationShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("shift+tab"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.stopRun")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.interrupt)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "interruptShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut("interruptShortcut", null)
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut(
+                                getDefaultInterruptShortcut(),
+                              ),
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.shortcuts.panels.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.shortcuts.panels.subtitle")}
+                        </div>
+                      </div>
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.panels.projects")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.projectsSidebar,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "toggleProjectsSidebarShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "toggleProjectsSidebarShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+p"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.panels.git")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.gitSidebar)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "toggleGitSidebarShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "toggleGitSidebarShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+g"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("settings.shortcuts.panels.debug")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.debugPanel)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "toggleDebugPanelShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "toggleDebugPanelShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+d"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.panels.terminal")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(shortcutDrafts.terminal)}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "toggleTerminalShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "toggleTerminalShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+t"),
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.shortcuts.navigation.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.shortcuts.navigation.subtitle")}
+                        </div>
+                      </div>
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.navigation.nextAgent")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.cycleAgentNext,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "cycleAgentNextShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "cycleAgentNextShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+ctrl+down"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.navigation.prevAgent")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.cycleAgentPrev,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "cycleAgentPrevShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "cycleAgentPrevShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+ctrl+up"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.navigation.nextWorkspace")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.cycleWorkspaceNext,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "cycleWorkspaceNextShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "cycleWorkspaceNextShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+down"),
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>
+                            {t("settings.shortcuts.navigation.prevWorkspace")}
+                          </Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              className="w-56"
+                              value={formatShortcut(
+                                shortcutDrafts.cycleWorkspacePrev,
+                              )}
+                              onKeyDown={(event) =>
+                                handleShortcutKeyDown(
+                                  event,
+                                  "cycleWorkspacePrevShortcut",
+                                )
+                              }
+                              placeholder={t("settings.shortcuts.placeholder")}
+                              readOnly
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                void updateShortcut(
+                                  "cycleWorkspacePrevShortcut",
+                                  null,
+                                )
+                              }
+                            >
+                              {t("settings.action.clear")}
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.shortcuts.default", {
+                              value: formatShortcut("cmd+shift+up"),
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="open-apps" className="mt-0">
+                <div className="space-y-3">
+                  <SettingsSection
+                    title={t("settings.openApps.title")}
+                    description={t("settings.openApps.subtitle")}
+                  >
+                    <div className="space-y-2">
+                      {openAppDrafts.map((target, index) => {
+                        const iconSrc =
+                          getKnownOpenAppIcon(target.id) ??
+                          openAppIconById[target.id] ??
+                          GENERIC_APP_ICON;
+                        return (
+                          <div
+                            key={target.id}
+                            className="rounded-md border border-border/60 p-2 bg-card/50"
+                          >
+                            <div className="flex gap-3">
+                              {/* 左侧图标：固定宽度，与第一行对齐 */}
+                              <div
+                                className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/30"
+                                aria-hidden
+                              >
+                                <img
+                                  src={iconSrc}
+                                  alt=""
+                                  width={14}
+                                  height={14}
+                                  className="opacity-80"
+                                />
+                              </div>
+
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                {/* 表单区域：左右布局 */}
+                                <div className="grid gap-1.5 md:grid-cols-2">
+                                  {/* 标签行 */}
+                                  <div className="flex items-center gap-2">
+                                    <Label
+                                      htmlFor={`open-app-label-${target.id}`}
+                                      className="w-12 shrink-0 text-right text-xs text-muted-foreground"
+                                    >
+                                      {t("settings.openApps.label")}
+                                    </Label>
+                                    <Input
+                                      id={`open-app-label-${target.id}`}
+                                      className="h-7 px-2 text-sm" // 高度进一步压缩至 h-7
+                                      value={target.label}
+                                      onChange={(event) =>
+                                        handleOpenAppDraftChange(index, {
+                                          label: event.target.value,
+                                        })
+                                      }
+                                      onBlur={() =>
+                                        void handleCommitOpenApps(openAppDrafts)
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* 类型行 */}
+                                  <div className="flex items-center gap-2">
+                                    <Label
+                                      htmlFor={`open-app-kind-${target.id}`}
+                                      className="w-12 shrink-0 text-right text-xs text-muted-foreground"
+                                    >
+                                      {t("settings.openApps.type")}
+                                    </Label>
+                                    <Select
+                                      value={target.kind}
+                                      onValueChange={(value) =>
+                                        handleOpenAppKindChange(
+                                          index,
+                                          value as OpenAppTarget["kind"],
+                                        )
+                                      }
+                                    >
+                                      <SelectTrigger
+                                        id={`open-app-kind-${target.id}`}
+                                        className="h-7 px-2 text-sm"
+                                      >
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="app">
+                                          {t("settings.openApps.type.app")}
+                                        </SelectItem>
+                                        <SelectItem value="command">
+                                          {t("settings.openApps.type.command")}
+                                        </SelectItem>
+                                        <SelectItem value="finder">
+                                          {fileManagerLabel}
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  {/* 动态显示的输入框 - 占据整行 */}
+                                  {(target.kind === "app" ||
+                                    target.kind === "command") && (
+                                      <div className="flex items-center gap-2 md:col-span-2">
+                                        <Label
+                                          htmlFor={
+                                            target.kind === "app"
+                                              ? `open-app-appname-${target.id}`
+                                              : `open-app-command-${target.id}`
+                                          }
+                                          className="w-12 shrink-0 text-right text-xs text-muted-foreground"
+                                        >
+                                          {target.kind === "app"
+                                            ? t("settings.openApps.appName")
+                                            : t("settings.openApps.command")}
+                                        </Label>
+                                        <Input
+                                          id={
+                                            target.kind === "app"
+                                              ? `open-app-appname-${target.id}`
+                                              : `open-app-command-${target.id}`
+                                          }
+                                          className="h-7 px-2 text-sm flex-1"
+                                          value={
+                                            (target.kind === "app"
+                                              ? target.appName
+                                              : target.command) ?? ""
+                                          }
+                                          onChange={(event) =>
+                                            handleOpenAppDraftChange(
+                                              index,
+                                              target.kind === "app"
+                                                ? { appName: event.target.value }
+                                                : { command: event.target.value },
+                                            )
+                                          }
+                                          onBlur={() =>
+                                            void handleCommitOpenApps(
+                                              openAppDrafts,
+                                            )
+                                          }
+                                        />
+                                      </div>
+                                    )}
+
+                                  {target.kind !== "finder" && (
+                                    <div className="flex items-center gap-2 md:col-span-2">
+                                      <Label
+                                        htmlFor={`open-app-args-${target.id}`}
+                                        className="w-12 shrink-0 text-right text-xs text-muted-foreground"
+                                      >
+                                        {t("settings.openApps.args")}
+                                      </Label>
+                                      <Input
+                                        id={`open-app-args-${target.id}`}
+                                        className="h-7 px-2 text-sm flex-1"
+                                        value={target.argsText}
+                                        onChange={(event) =>
+                                          handleOpenAppDraftChange(index, {
+                                            argsText: event.target.value,
+                                          })
+                                        }
+                                        onBlur={() =>
+                                          void handleCommitOpenApps(
+                                            openAppDrafts,
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* 底部紧凑操作栏 */}
+                                <div className="flex items-center justify-between pt-1">
+                                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer ml-14">
+                                    <input
+                                      type="radio"
+                                      className="h-3 w-3"
+                                      name="open-app-default"
+                                      checked={target.id === openAppSelectedId}
+                                      onChange={() =>
+                                        handleSelectOpenAppDefault(target.id)
+                                      }
+                                    />
+                                    {t("settings.openApps.default")}
+                                  </label>
+                                  <div className="flex items-center gap-0.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() =>
+                                        handleMoveOpenApp(index, "up")
+                                      }
+                                      disabled={index === 0}
+                                    >
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() =>
+                                        handleMoveOpenApp(index, "down")
+                                      }
+                                      disabled={
+                                        index === openAppDrafts.length - 1
+                                      }
+                                    >
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 hover:text-destructive"
+                                      onClick={() => handleDeleteOpenApp(index)}
+                                      disabled={openAppDrafts.length <= 1}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddOpenApp}
+                      >
+                        {t("settings.action.addApp")}
+                      </Button>
+                      <div className="text-xs text-muted-foreground">
+                        {t("settings.openApps.help")}
+                      </div>
+                    </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="codex" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.codex.title")}
+                    description={t("settings.codex.subtitle")}
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="codex-path">
+                        {t("settings.codex.path.label")}
+                      </Label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          id="codex-path"
+                          value={codexPathDraft}
+                          placeholder="codex"
+                          onChange={(event) =>
+                            setCodexPathDraft(event.target.value)
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleBrowseCodex}
+                        >
+                          {t("settings.action.browse")}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setCodexPathDraft("")}
+                        >
+                          {t("settings.action.usePath")}
+                        </Button>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {t("settings.codex.path.help")}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="codex-args">
+                        {t("settings.codex.args.label")}
+                      </Label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          id="codex-args"
+                          value={codexArgsDraft}
+                          placeholder="--profile personal"
+                          onChange={(event) =>
+                            setCodexArgsDraft(event.target.value)
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setCodexArgsDraft("")}
+                        >
+                          {t("settings.action.clear")}
+                        </Button>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {t("settings.codex.args.help")}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {codexDirty && (
+                        <Button
+                          type="button"
+                          onClick={handleSaveCodexSettings}
+                          disabled={isSavingSettings}
+                        >
+                          {isSavingSettings
+                            ? t("settings.action.saving")
+                            : t("settings.action.save")}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRunDoctor}
+                        disabled={doctorState.status === "running"}
+                      >
+                        <Stethoscope className="h-4 w-4" aria-hidden />
+                        {doctorState.status === "running"
+                          ? t("settings.action.running")
+                          : t("settings.action.runDoctor")}
+                      </Button>
+                    </div>
+                    {doctorState.result && (
+                      <div
+                        className={cn(
+                          "rounded-md border border-border/60 p-3 text-sm",
+                          doctorState.result.ok
+                            ? "border-emerald-500/40 bg-emerald-50/40"
+                            : "border-destructive/40 bg-destructive/10",
+                        )}
+                      >
+                        <div className="font-medium">
+                          {doctorState.result.ok
+                            ? t("settings.codex.doctor.okTitle")
+                            : t("settings.codex.doctor.errorTitle")}
+                        </div>
+                        <div className="mt-2 space-y-1 text-sm">
+                          <div>
+                            {t("settings.codex.doctor.version", {
+                              value:
+                                doctorState.result.version ??
+                                t("settings.codex.doctor.unknown"),
+                            })}
+                          </div>
+                          <div>
+                            {t("settings.codex.doctor.appServer", {
+                              value: doctorState.result.appServerOk
+                                ? t("settings.codex.doctor.ok")
+                                : t("settings.codex.doctor.failed"),
+                            })}
+                          </div>
+                          <div>
+                            {t("settings.codex.doctor.node", {
+                              value: doctorState.result.nodeOk
+                                ? t("settings.codex.doctor.okWithVersion", {
+                                  version:
+                                    doctorState.result.nodeVersion ??
+                                    t("settings.codex.doctor.unknown"),
+                                })
+                                : t("settings.codex.doctor.missing"),
+                            })}
+                          </div>
+                          {doctorState.result.details && (
+                            <div>{doctorState.result.details}</div>
+                          )}
+                          {doctorState.result.nodeDetails && (
+                            <div>{doctorState.result.nodeDetails}</div>
+                          )}
+                          {doctorState.result.path && (
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.codex.doctor.path", {
+                                value: doctorState.result.path,
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </SettingsSection>
+                  <SettingsSection
+                    title={t("settings.codex.workspaceOverrides.title")}
+                    description={t(
+                      "settings.codex.workspaceOverrides.subtitle",
+                    )}
+                  >
+                    <div className="space-y-3">
+                      {projects.map((workspace) => (
+                        <div
+                          key={workspace.id}
+                          className="rounded-md border border-border/60 p-3"
+                        >
+                          <div className="space-y-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {workspace.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {workspace.path}
+                              </div>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor={`override-bin-${workspace.id}`}>
+                                  {t(
+                                    "settings.codex.workspaceOverrides.binLabel",
+                                  )}
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id={`override-bin-${workspace.id}`}
+                                    value={
+                                      codexBinOverrideDrafts[workspace.id] ?? ""
+                                    }
+                                    placeholder={t(
+                                      "settings.codex.workspaceOverrides.binPlaceholder",
+                                    )}
+                                    onChange={(event) =>
+                                      setCodexBinOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: event.target.value,
+                                      }))
+                                    }
+                                    onBlur={() => {
+                                      void handleCommitCodexBinOverride(
+                                        workspace,
+                                      );
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.currentTarget.blur();
+                                      }
+                                    }}
+                                    aria-label={t(
+                                      "settings.codex.workspaceOverrides.binAria",
+                                      { name: workspace.name },
+                                    )}
+                                  />
+                                  {(() => {
+                                    const draft =
+                                      codexBinOverrideDrafts[workspace.id] ??
+                                      "";
+                                    const nextValue =
+                                      normalizeOverrideValue(draft);
+                                    const isDirty =
+                                      nextValue !==
+                                      (workspace.codex_bin ?? null);
+                                    const isSaving =
+                                      codexBinOverrideSaving[workspace.id] ??
+                                      false;
+                                    const savedAt =
+                                      codexBinOverrideSavedAt[workspace.id] ??
+                                      0;
+                                    const showSaved = savedAt > 0;
+                                    return isDirty ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() =>
+                                          void handleCommitCodexBinOverride(
+                                            workspace,
+                                          )
+                                        }
+                                        disabled={isSaving}
+                                      >
+                                        {isSaving
+                                          ? t("settings.action.saving")
+                                          : t("settings.action.save")}
+                                      </Button>
+                                    ) : showSaved ? (
+                                      <span className="text-xs text-muted-foreground">
+                                        {t(
+                                          "settings.codex.workspaceOverrides.saved",
+                                        )}
+                                      </span>
+                                    ) : null;
+                                  })()}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      setCodexBinOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: "",
+                                      }));
+                                      setCodexBinOverrideSaving((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: true,
+                                      }));
+                                      await onUpdateWorkspaceCodexBin(
+                                        workspace.id,
+                                        null,
+                                      );
+                                      setCodexBinOverrideSavedAt((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: Date.now(),
+                                      }));
+                                      window.setTimeout(() => {
+                                        setCodexBinOverrideSavedAt((prev) => {
+                                          if (!prev[workspace.id]) {
+                                            return prev;
+                                          }
+                                          const next = { ...prev };
+                                          delete next[workspace.id];
+                                          return next;
+                                        });
+                                      }, 2000);
+                                      setCodexBinOverrideSaving((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: false,
+                                      }));
+                                    }}
+                                    disabled={
+                                      codexBinOverrideSaving[workspace.id]
+                                    }
+                                  >
+                                    {t("settings.action.clear")}
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                  <span>
+                                    {t(
+                                      "settings.codex.workspaceOverrides.savedValue",
+                                      {
+                                        value:
+                                          workspace.codex_bin ??
+                                          t("settings.value.none"),
+                                      },
+                                    )}
+                                  </span>
+                                  <span>
+                                    {t(
+                                      "settings.codex.workspaceOverrides.effectiveBin",
+                                      {
+                                        value:
+                                          workspace.codex_bin ??
+                                          appSettings.codexBin ??
+                                          "codex",
+                                      },
+                                    )}
+                                  </span>
+                                  <span>
+                                    {t(
+                                      "settings.codex.workspaceOverrides.effectiveHome",
+                                      {
+                                        value:
+                                          workspace.settings.codexHome ??
+                                          t("settings.value.default"),
+                                      },
+                                    )}
+                                  </span>
+                                  <span>
+                                    {t(
+                                      "settings.codex.workspaceOverrides.effectiveArgs",
+                                      {
+                                        value:
+                                          workspace.settings.codexArgs ??
+                                          appSettings.codexArgs ??
+                                          t("settings.value.none"),
+                                      },
+                                    )}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2"
+                                    onClick={() =>
+                                      void handleRunWorkspaceDoctor(workspace)
+                                    }
+                                    disabled={
+                                      codexBinOverrideDoctor[workspace.id]
+                                        ?.status === "running"
+                                    }
+                                  >
+                                    {codexBinOverrideDoctor[workspace.id]
+                                      ?.status === "running"
+                                      ? t(
+                                        "settings.codex.workspaceOverrides.testRunning",
+                                      )
+                                      : t(
+                                        "settings.codex.workspaceOverrides.test",
+                                      )}
+                                  </Button>
+                                  {codexBinOverrideDoctor[workspace.id]
+                                    ?.status === "done" &&
+                                    (codexBinOverrideDoctor[workspace.id]
+                                      ?.result ? (
+                                      <span>
+                                        {codexBinOverrideDoctor[workspace.id]
+                                          ?.result?.ok
+                                          ? t(
+                                            "settings.codex.workspaceOverrides.testOk",
+                                          )
+                                          : t(
+                                            "settings.codex.workspaceOverrides.testFailed",
+                                          )}
+                                      </span>
+                                    ) : codexBinOverrideDoctor[workspace.id]
+                                      ?.error ? (
+                                      <span>
+                                        {t(
+                                          "settings.codex.workspaceOverrides.testFailed",
+                                        )}
+                                      </span>
+                                    ) : null)}
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor={`override-home-${workspace.id}`}
+                                >
+                                  {t(
+                                    "settings.codex.workspaceOverrides.homeLabel",
+                                  )}
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id={`override-home-${workspace.id}`}
+                                    value={
+                                      codexHomeOverrideDrafts[workspace.id] ??
+                                      ""
+                                    }
+                                    placeholder={t(
+                                      "settings.codex.workspaceOverrides.homePlaceholder",
+                                    )}
+                                    onChange={(event) =>
+                                      setCodexHomeOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: event.target.value,
+                                      }))
+                                    }
+                                    onBlur={async () => {
+                                      const draft =
+                                        codexHomeOverrideDrafts[workspace.id] ??
+                                        "";
+                                      const nextValue =
+                                        normalizeOverrideValue(draft);
+                                      if (
+                                        nextValue ===
+                                        (workspace.settings.codexHome ?? null)
+                                      ) {
+                                        return;
+                                      }
+                                      await onUpdateWorkspaceSettings(
+                                        workspace.id,
+                                        {
+                                          codexHome: nextValue,
+                                        },
+                                      );
+                                    }}
+                                    aria-label={t(
+                                      "settings.codex.workspaceOverrides.homeAria",
+                                      { name: workspace.name },
+                                    )}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      setCodexHomeOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: "",
+                                      }));
+                                      await onUpdateWorkspaceSettings(
+                                        workspace.id,
+                                        {
+                                          codexHome: null,
+                                        },
+                                      );
+                                    }}
+                                  >
+                                    {t("settings.action.clear")}
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="space-y-2 md:col-span-2">
+                                <Label
+                                  htmlFor={`override-args-${workspace.id}`}
+                                >
+                                  {t(
+                                    "settings.codex.workspaceOverrides.argsLabel",
+                                  )}
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id={`override-args-${workspace.id}`}
+                                    value={
+                                      codexArgsOverrideDrafts[workspace.id] ??
+                                      ""
+                                    }
+                                    placeholder={t(
+                                      "settings.codex.workspaceOverrides.argsPlaceholder",
+                                    )}
+                                    onChange={(event) =>
+                                      setCodexArgsOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: event.target.value,
+                                      }))
+                                    }
+                                    onBlur={async () => {
+                                      const draft =
+                                        codexArgsOverrideDrafts[workspace.id] ??
+                                        "";
+                                      const nextValue =
+                                        normalizeOverrideValue(draft);
+                                      if (
+                                        nextValue ===
+                                        (workspace.settings.codexArgs ?? null)
+                                      ) {
+                                        return;
+                                      }
+                                      await onUpdateWorkspaceSettings(
+                                        workspace.id,
+                                        {
+                                          codexArgs: nextValue,
+                                        },
+                                      );
+                                    }}
+                                    aria-label={t(
+                                      "settings.codex.workspaceOverrides.argsAria",
+                                      { name: workspace.name },
+                                    )}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      setCodexArgsOverrideDrafts((prev) => ({
+                                        ...prev,
+                                        [workspace.id]: "",
+                                      }));
+                                      await onUpdateWorkspaceSettings(
+                                        workspace.id,
+                                        {
+                                          codexArgs: null,
+                                        },
+                                      );
+                                    }}
+                                  >
+                                    {t("settings.action.clear")}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {projects.length === 0 && (
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.projects.project.empty")}
+                        </div>
+                      )}
+                    </div>
+                  </SettingsSection>
+                  <SettingsSection
+                    title={t("settings.codex.access.title")}
+                    description={t("settings.codex.access.subtitle")}
+                  >
+                    <div className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label htmlFor="default-access">
@@ -3590,7 +4040,8 @@ export function SettingsView({
                             onValueChange={(value) =>
                               void onUpdateAppSettings({
                                 ...appSettings,
-                                defaultAccessMode: value as AppSettings["defaultAccessMode"],
+                                defaultAccessMode:
+                                  value as AppSettings["defaultAccessMode"],
                               })
                             }
                           >
@@ -3619,7 +4070,8 @@ export function SettingsView({
                             onValueChange={(value) =>
                               void onUpdateAppSettings({
                                 ...appSettings,
-                                backendMode: value as AppSettings["backendMode"],
+                                backendMode:
+                                  value as AppSettings["backendMode"],
                               })
                             }
                           >
@@ -3649,7 +4101,9 @@ export function SettingsView({
                             <Input
                               value={remoteHostDraft}
                               placeholder="127.0.0.1:4732"
-                              onChange={(event) => setRemoteHostDraft(event.target.value)}
+                              onChange={(event) =>
+                                setRemoteHostDraft(event.target.value)
+                              }
                               onBlur={() => {
                                 void handleCommitRemoteHost();
                               }}
@@ -3664,8 +4118,12 @@ export function SettingsView({
                             <Input
                               type="password"
                               value={remoteTokenDraft}
-                              placeholder={t("settings.codex.remote.tokenPlaceholder")}
-                              onChange={(event) => setRemoteTokenDraft(event.target.value)}
+                              placeholder={t(
+                                "settings.codex.remote.tokenPlaceholder",
+                              )}
+                              onChange={(event) =>
+                                setRemoteTokenDraft(event.target.value)
+                              }
                               onBlur={() => {
                                 void handleCommitRemoteToken();
                               }}
@@ -3683,8 +4141,8 @@ export function SettingsView({
                           </div>
                         </div>
                       )}
-                      </div>
-                    </SettingsSection>
+                    </div>
+                  </SettingsSection>
                   <div className="space-y-4">
                     <FileEditorCard
                       title={t("settings.codex.fileAgents.title")}
@@ -3705,12 +4163,14 @@ export function SettingsView({
                       }}
                       helpText={
                         <>
-                          {t("settings.codex.fileLocation")} <code>~/.codex/AGENTS.md</code>.
+                          {t("settings.codex.fileLocation")}{" "}
+                          <code>~/.codex/AGENTS.md</code>.
                         </>
                       }
                       classNames={{
                         container: "rounded-md border border-border/60 p-4",
-                        header: "flex flex-wrap items-center justify-between gap-2",
+                        header:
+                          "flex flex-wrap items-center justify-between gap-2",
                         title: "text-sm font-medium",
                         actions: "flex flex-wrap items-center gap-2",
                         meta: "text-xs text-muted-foreground",
@@ -3741,12 +4201,14 @@ export function SettingsView({
                       }}
                       helpText={
                         <>
-                          {t("settings.codex.fileLocation")} <code>~/.codex/config.toml</code>.
+                          {t("settings.codex.fileLocation")}{" "}
+                          <code>~/.codex/config.toml</code>.
                         </>
                       }
                       classNames={{
                         container: "rounded-md border border-border/60 p-4",
-                        header: "flex flex-wrap items-center justify-between gap-2",
+                        header:
+                          "flex flex-wrap items-center justify-between gap-2",
                         title: "text-sm font-medium",
                         actions: "flex flex-wrap items-center gap-2",
                         meta: "text-xs text-muted-foreground",
@@ -3760,14 +4222,14 @@ export function SettingsView({
                     />
                   </div>
                 </div>
-                </TabsContent>
-                <TabsContent value="experimental" className="mt-0">
-                  <div className="space-y-4">
-                    <SettingsSection
-                      title={t("settings.experimental.title")}
-                      description={t("settings.experimental.subtitle")}
-                    >
-                      <div className="space-y-4">
+              </TabsContent>
+              <TabsContent value="experimental" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.experimental.title")}
+                    description={t("settings.experimental.subtitle")}
+                  >
+                    <div className="space-y-4">
                       {hasCodexHomeOverrides && (
                         <div className="text-sm text-muted-foreground">
                           {t("settings.experimental.overridesNotice")}
@@ -3784,12 +4246,18 @@ export function SettingsView({
                             })}
                           </div>
                         </div>
-                        <Button type="button" variant="outline" onClick={handleOpenConfig}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleOpenConfig}
+                        >
                           {openInFileManagerLabel}
                         </Button>
                       </div>
                       {openConfigError && (
-                        <div className="text-sm text-destructive">{openConfigError}</div>
+                        <div className="text-sm text-destructive">
+                          {openConfigError}
+                        </div>
                       )}
                       <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
@@ -3814,15 +4282,21 @@ export function SettingsView({
                       <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="experimental-collab-modes">
-                            {t("settings.experimental.collaborationModes.title")}
+                            {t(
+                              "settings.experimental.collaborationModes.title",
+                            )}
                           </Label>
                           <div className="text-sm text-muted-foreground">
-                            {t("settings.experimental.collaborationModes.subtitle")}
+                            {t(
+                              "settings.experimental.collaborationModes.subtitle",
+                            )}
                           </div>
                         </div>
                         <Switch
                           id="experimental-collab-modes"
-                          checked={appSettings.experimentalCollaborationModesEnabled}
+                          checked={
+                            appSettings.experimentalCollaborationModesEnabled
+                          }
                           onCheckedChange={(value) =>
                             void onUpdateAppSettings({
                               ...appSettings,
@@ -3834,10 +4308,14 @@ export function SettingsView({
                       <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
                         <div className="space-y-1">
                           <Label htmlFor="experimental-unified">
-                            {t("settings.experimental.backgroundTerminal.title")}
+                            {t(
+                              "settings.experimental.backgroundTerminal.title",
+                            )}
                           </Label>
                           <div className="text-sm text-muted-foreground">
-                            {t("settings.experimental.backgroundTerminal.subtitle")}
+                            {t(
+                              "settings.experimental.backgroundTerminal.subtitle",
+                            )}
                           </div>
                         </div>
                         <Switch
@@ -3891,17 +4369,21 @@ export function SettingsView({
                           }
                         />
                       </div>
-                        {appSettings.experimentalYunyiEnabled && (
-                          <div className="space-y-2 rounded-md border border-border/60 p-3">
-                            <Label htmlFor="experimental-yunyi-token">
-                              {t("settings.experimental.yunyi.token.label")}
-                            </Label>
+                      {appSettings.experimentalYunyiEnabled && (
+                        <div className="space-y-2 rounded-md border border-border/60 p-3">
+                          <Label htmlFor="experimental-yunyi-token">
+                            {t("settings.experimental.yunyi.token.label")}
+                          </Label>
                           <Input
                             id="experimental-yunyi-token"
                             type="password"
                             value={yunyiTokenDraft}
-                            placeholder={t("settings.experimental.yunyi.token.placeholder")}
-                            onChange={(event) => setYunyiTokenDraft(event.target.value)}
+                            placeholder={t(
+                              "settings.experimental.yunyi.token.placeholder",
+                            )}
+                            onChange={(event) =>
+                              setYunyiTokenDraft(event.target.value)
+                            }
                             onBlur={() => {
                               void handleCommitYunyiToken();
                             }}
@@ -3914,76 +4396,72 @@ export function SettingsView({
                           />
                           <div className="text-sm text-muted-foreground">
                             {t("settings.experimental.yunyi.token.help")}
-                            </div>
                           </div>
-                        )}
-                        <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="experimental-happy">
-                              {t("settings.experimental.happy.title")}
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-happy">
+                            {t("settings.experimental.happy.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.happy.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-happy"
+                          checked={appSettings.happyEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              happyEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      {appSettings.happyEnabled && (
+                        <div className="space-y-3 rounded-md border border-border/60 p-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="experimental-happy-server">
+                              {t("settings.experimental.happy.server.label")}
                             </Label>
-                            <div className="text-sm text-muted-foreground">
-                              {t("settings.experimental.happy.subtitle")}
-                            </div>
-                          </div>
-                          <Switch
-                            id="experimental-happy"
-                            checked={appSettings.happyEnabled}
-                            onCheckedChange={(value) =>
-                              void onUpdateAppSettings({
-                                ...appSettings,
-                                happyEnabled: value,
-                              })
-                            }
-                          />
-                        </div>
-                        {appSettings.happyEnabled && (
-                          <div className="space-y-3 rounded-md border border-border/60 p-3">
-                            <div className="space-y-2">
-                              <Label htmlFor="experimental-happy-server">
-                                {t("settings.experimental.happy.server.label")}
-                              </Label>
-                              <Input
-                                id="experimental-happy-server"
-                                type="url"
-                                value={happyServerDraft}
-                                placeholder={t(
-                                  "settings.experimental.happy.server.placeholder",
-                                )}
-                                onChange={(event) =>
-                                  setHappyServerDraft(event.target.value)
-                                }
-                                onBlur={() => {
+                            <Input
+                              id="experimental-happy-server"
+                              type="url"
+                              value={happyServerDraft}
+                              placeholder={t(
+                                "settings.experimental.happy.server.placeholder",
+                              )}
+                              onChange={(event) =>
+                                setHappyServerDraft(event.target.value)
+                              }
+                              onBlur={() => {
+                                void handleCommitHappyServer();
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
                                   void handleCommitHappyServer();
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    void handleCommitHappyServer();
-                                  }
-                                }}
-                              />
-                              <div className="text-sm text-muted-foreground">
-                                {t("settings.experimental.happy.server.help")}
-                              </div>
-                            </div>
+                                }
+                              }}
+                            />
                             <div className="text-sm text-muted-foreground">
-                              {t("settings.experimental.happy.credentialsHelp")}
+                              {t("settings.experimental.happy.server.help")}
                             </div>
                           </div>
-                        )}
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.experimental.happy.credentialsHelp")}
+                          </div>
                         </div>
-                      </SettingsSection>
+                      )}
                     </div>
-                </TabsContent>
-              </div>
-            </Tabs>
-          </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
       </div>
-    );
+    </div>
+  );
 }
-
-
-
-
