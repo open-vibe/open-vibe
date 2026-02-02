@@ -323,7 +323,7 @@ body {
 
 .titlebar-controls {
   position: absolute;
-  top: 0;
+  top: var(--thread-tabs-height, 0px);
   left: 0;
   right: 0;
   height: var(--main-topbar-height, 44px);

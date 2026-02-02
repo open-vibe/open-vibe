@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use serde_json::json;
@@ -1460,10 +1460,34 @@ pub(crate) async fn open_workspace_in(
         .unwrap_or_else(|| "target".to_string());
 
     let status = if let Some(command) = command {
-        let mut cmd = std::process::Command::new(command);
-        cmd.args(args).arg(path);
-        cmd.status()
-            .map_err(|error| format!("Failed to open app ({target_label}): {error}"))?
+        let run_command = |command_path: &std::ffi::OsStr| {
+            let mut cmd = std::process::Command::new(command_path);
+            cmd.args(&args).arg(&path);
+            cmd.status()
+        };
+        #[cfg(target_os = "windows")]
+        {
+            let result = if let Some(resolved) = resolve_windows_command(&command) {
+                if resolved.use_cmd {
+                    let mut cmd = std::process::Command::new("cmd");
+                    cmd.arg("/C")
+                        .arg(resolved.program)
+                        .args(&args)
+                        .arg(&path);
+                    cmd.status()
+                } else {
+                    run_command(resolved.program.as_os_str())
+                }
+            } else {
+                run_command(std::ffi::OsStr::new(&command))
+            };
+            result.map_err(|error| format!("Failed to open app ({target_label}): {error}"))?
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            run_command(std::ffi::OsStr::new(&command))
+                .map_err(|error| format!("Failed to open app ({target_label}): {error}"))?
+        }
     } else if let Some(app) = app {
         let mut cmd = std::process::Command::new("open");
         cmd.arg("-a").arg(app).arg(path);
@@ -1487,6 +1511,155 @@ pub(crate) async fn open_workspace_in(
     Err(format!(
         "Failed to open app ({target_label} returned {exit_detail})."
     ))
+}
+
+#[cfg(target_os = "windows")]
+struct ResolvedWindowsCommand {
+    program: PathBuf,
+    use_cmd: bool,
+}
+
+#[cfg(target_os = "windows")]
+fn resolve_windows_command(command: &str) -> Option<ResolvedWindowsCommand> {
+    let trimmed = command.trim().trim_matches('"');
+    if trimmed.is_empty() {
+        return None;
+    }
+    let path = PathBuf::from(trimmed);
+    if trimmed.contains('\\') || trimmed.contains('/') || trimmed.contains(':') {
+        if path.exists() {
+            let use_cmd = is_cmd_script(&path);
+            return Some(ResolvedWindowsCommand {
+                program: path,
+                use_cmd,
+            });
+        }
+        return None;
+    }
+    let entries = collect_windows_path_entries();
+    let candidates = build_windows_command_candidates(trimmed);
+    let mut found: Option<PathBuf> = None;
+    for entry in entries {
+        if entry.as_os_str().is_empty() {
+            continue;
+        }
+        for candidate in &candidates {
+            let path = entry.join(candidate);
+            if path.exists() {
+                found = Some(path);
+            }
+        }
+    }
+    found.map(|program| {
+        let use_cmd = is_cmd_script(&program);
+        ResolvedWindowsCommand { program, use_cmd }
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn is_cmd_script(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase()),
+        Some(ext) if ext == "cmd" || ext == "bat"
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn build_windows_command_candidates(command: &str) -> Vec<String> {
+    let base = command.trim().trim_matches('"');
+    if base.is_empty() {
+        return Vec::new();
+    }
+    if Path::new(base).extension().is_some() {
+        return vec![base.to_string()];
+    }
+    let pathext = std::env::var("PATHEXT")
+        .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
+    pathext
+        .split(';')
+        .filter_map(|ext| {
+            let trimmed = ext.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(format!("{base}{trimmed}"))
+            }
+        })
+        .collect()
+}
+
+#[cfg(target_os = "windows")]
+fn collect_windows_path_entries() -> Vec<PathBuf> {
+    let mut entries = Vec::new();
+    if let Some(value) = read_windows_registry_path(winreg::enums::HKEY_LOCAL_MACHINE) {
+        entries.extend(split_windows_path(&value));
+    }
+    if let Some(value) = read_windows_registry_path(winreg::enums::HKEY_CURRENT_USER) {
+        entries.extend(split_windows_path(&value));
+    }
+    if entries.is_empty() {
+        if let Some(env_path) = std::env::var_os("PATH") {
+            entries.extend(split_windows_path(&env_path.to_string_lossy()));
+        }
+    }
+    entries
+}
+
+#[cfg(target_os = "windows")]
+fn split_windows_path(path_value: &str) -> Vec<PathBuf> {
+    path_value
+        .split(';')
+        .map(|segment| segment.trim().trim_matches('"'))
+        .filter(|segment| !segment.is_empty())
+        .map(PathBuf::from)
+        .collect()
+}
+
+#[cfg(target_os = "windows")]
+fn read_windows_registry_path(root: winreg::HKEY) -> Option<String> {
+    use winreg::RegKey;
+    let subkey = if root == winreg::enums::HKEY_LOCAL_MACHINE {
+        "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"
+    } else {
+        "Environment"
+    };
+    let key = RegKey::predef(root).open_subkey(subkey).ok()?;
+    let raw: String = key.get_value("Path").ok()?;
+    Some(expand_windows_env_vars(&raw))
+}
+
+#[cfg(target_os = "windows")]
+fn expand_windows_env_vars(value: &str) -> String {
+    let mut out = String::new();
+    let mut chars = value.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch != '%' {
+            out.push(ch);
+            continue;
+        }
+        let mut var = String::new();
+        while let Some(next) = chars.next() {
+            if next == '%' {
+                break;
+            }
+            var.push(next);
+        }
+        if var.is_empty() {
+            out.push('%');
+            continue;
+        }
+        match std::env::var(&var) {
+            Ok(replacement) => out.push_str(&replacement),
+            Err(_) => {
+                out.push('%');
+                out.push_str(&var);
+                out.push('%');
+            }
+        }
+    }
+    out
 }
 
 

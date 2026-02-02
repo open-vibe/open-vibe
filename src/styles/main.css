@@ -320,7 +320,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 16px;
-  min-height: 64px;
+  min-height: var(--thread-tabs-height,45px);
   width: 100%;
 }
 
@@ -396,8 +396,8 @@
 
 .app.right-panel-collapsed .main-topbar {
   padding-right: calc(
-    var(--main-panel-padding)
-    + var(--titlebar-toggle-size, 28px)
+    /* var(--main-panel-padding) */
+    /* + var(--titlebar-toggle-size, 28px) */
     + var(--titlebar-toggle-side-gap, 12px)
   );
 }
@@ -1028,4 +1028,43 @@
   .right-panel-resizer {
     display: none;
   }
+}
+
+*::-webkit-scrollbar {
+  background-color: transparent;
+  height: 8px;
+  width: 8px
+}
+
+* {
+  scrollbar-width: thin
+}
+
+*::-webkit-scrollbar-thumb {
+  transition: background .2s ease-in-out;
+  border: 3px solid transparent;
+  -webkit-background-clip: content-box;
+  background-clip: content-box;
+  --tw-bg-opacity: 1;
+  background-color: rgba(229, 231, 235, var(--tw-bg-opacity));
+  border-radius: 9999px
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  --tw-bg-opacity: 1;
+  background-color: rgba(50, 50, 50, var(--tw-bg-opacity))
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(209, 213, 219, var(--tw-bg-opacity))
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(60, 60, 60, var(--tw-bg-opacity))
+}
+
+*::-webkit-scrollbar-corner {
+  background-color: transparent
 }

@@ -11,6 +11,7 @@ import {
   DEFAULT_OPEN_APP_TARGETS,
   OPEN_APP_STORAGE_KEY,
 } from "../constants";
+import { resolveOpenAppLaunch } from "../utils/openApp";
 import { GENERIC_APP_ICON, getKnownOpenAppIcon } from "../utils/openAppIcons";
 
 type OpenTarget = {
@@ -124,27 +125,28 @@ export function OpenAppMenu({
 
   const openWithTarget = async (target: OpenTarget) => {
     try {
-      if (target.target.kind === "finder") {
+      const resolved = resolveOpenAppLaunch(target.target);
+      if (resolved.kind === "finder") {
         await revealItemInDir(path);
         return;
       }
-      if (target.target.kind === "command") {
-        if (!target.target.command) {
+      if (resolved.kind === "command") {
+        if (!resolved.command) {
           return;
         }
         await openWorkspaceIn(path, {
-          command: target.target.command,
-          args: target.target.args,
+          command: resolved.command,
+          args: resolved.args,
         });
         return;
       }
-      const appName = target.target.appName || target.label;
+      const appName = resolved.appName || target.label;
       if (!appName) {
         return;
       }
       await openWorkspaceIn(path, {
         appName,
-        args: target.target.args,
+        args: resolved.args,
       });
     } catch (error) {
       reportOpenError(error, target);

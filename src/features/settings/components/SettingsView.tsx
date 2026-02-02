@@ -2956,29 +2956,29 @@ export function SettingsView({
                   </div>
                 </TabsContent>
                 <TabsContent value="open-apps" className="mt-0">
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <SettingsSection
                       title={t("settings.openApps.title")}
                       description={t("settings.openApps.subtitle")}
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {openAppDrafts.map((target, index) => {
                           const iconSrc =
                             getKnownOpenAppIcon(target.id) ??
                             openAppIconById[target.id] ??
                             GENERIC_APP_ICON;
                           return (
-                            <div key={target.id} className="rounded-md border border-border/60 p-3">
-                              <div className="flex flex-wrap items-start gap-3">
+                            <div key={target.id} className="rounded-md border border-border/60 p-2">
+                              <div className="flex flex-wrap items-start gap-2">
                                 <div
-                                  className="flex h-9 w-9 items-center justify-center rounded-md border border-border/60 bg-muted/20"
+                                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-muted/20"
                                   aria-hidden
                                 >
-                                  <img src={iconSrc} alt="" width={18} height={18} />
+                                  <img src={iconSrc} alt="" width={16} height={16} />
                                 </div>
-                                <div className="flex-1 space-y-3">
-                                  <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="space-y-2">
+                                <div className="flex-1 space-y-2">
+                                  <div className="grid gap-2 md:grid-cols-2">
+                                    <div className="space-y-1">
                                       <Label htmlFor={`open-app-label-${target.id}`}>
                                         {t("settings.openApps.label")}
                                       </Label>
@@ -2999,7 +2999,7 @@ export function SettingsView({
                                         })}
                                       />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
                                       <Label htmlFor={`open-app-kind-${target.id}`}>
                                         {t("settings.openApps.type")}
                                       </Label>
@@ -3027,7 +3027,7 @@ export function SettingsView({
                                       </Select>
                                     </div>
                                     {target.kind === "app" && (
-                                      <div className="space-y-2 md:col-span-2">
+                                      <div className="space-y-1 md:col-span-2">
                                         <Label htmlFor={`open-app-appname-${target.id}`}>
                                           {t("settings.openApps.appName")}
                                         </Label>
@@ -3050,7 +3050,7 @@ export function SettingsView({
                                       </div>
                                     )}
                                     {target.kind === "command" && (
-                                      <div className="space-y-2 md:col-span-2">
+                                      <div className="space-y-1 md:col-span-2">
                                         <Label htmlFor={`open-app-command-${target.id}`}>
                                           {t("settings.openApps.command")}
                                         </Label>
@@ -3073,7 +3073,7 @@ export function SettingsView({
                                       </div>
                                     )}
                                     {target.kind !== "finder" && (
-                                      <div className="space-y-2 md:col-span-2">
+                                      <div className="space-y-1 md:col-span-2">
                                         <Label htmlFor={`open-app-args-${target.id}`}>
                                           {t("settings.openApps.args")}
                                         </Label>
@@ -3150,11 +3150,11 @@ export function SettingsView({
                           );
                         })}
                       </div>
-                      <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <Button type="button" variant="outline" onClick={handleAddOpenApp}>
                           {t("settings.action.addApp")}
                         </Button>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           {t("settings.openApps.help")}
                         </div>
                       </div>

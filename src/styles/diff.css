@@ -206,6 +206,7 @@
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   padding-right: 2px;
   min-height: 0;

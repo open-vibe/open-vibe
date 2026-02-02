@@ -58,7 +58,6 @@ import { useRenameWorktreePrompt } from "./features/workspaces/hooks/useRenameWo
 import { useLayoutController } from "./features/app/hooks/useLayoutController";
 import { useWindowLabel } from "./features/layout/hooks/useWindowLabel";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { TitlebarExpandControls } from "./features/layout/components/SidebarToggleControls";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAppSettingsController } from "./features/app/hooks/useAppSettingsController";
@@ -1907,7 +1906,6 @@ function MainApp() {
         gitDiffViewStyle={effectiveGitDiffViewStyle}
         onSelectDiffViewStyle={effectiveSelectDiffViewStyle}
         isCompact={isCompact}
-        rightPanelCollapsed={rightPanelCollapsed}
         sidebarToggleProps={sidebarToggleProps}
       />
     ),
@@ -2238,7 +2236,7 @@ function MainApp() {
   ) : null;
 
   const threadTabsHeight = showThreadTabs ? "36px" : "0px";
-  const mainTopbarHeight = "64px";
+  const mainTopbarHeight = "45px";
 
   return (
     <I18nProvider language={appSettings.language}>
@@ -2264,7 +2262,6 @@ function MainApp() {
         }
       >
         <div className="drag-strip" id="titlebar" data-tauri-drag-region />
-        <TitlebarExpandControls {...sidebarToggleProps} />
         {shouldLoadGitHubPanelData ? (
           <Suspense fallback={null}>
             <GitHubPanelData

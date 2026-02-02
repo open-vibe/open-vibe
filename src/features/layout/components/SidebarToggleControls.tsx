@@ -39,20 +39,26 @@ export function RightPanelCollapseButton({
   isCompact,
   rightPanelCollapsed,
   onCollapseRightPanel,
+  onExpandRightPanel,
 }: SidebarToggleProps) {
-  if (isCompact || rightPanelCollapsed) {
+  if (isCompact) {
     return null;
   }
+  const isCollapsed = rightPanelCollapsed;
   return (
     <button
       type="button"
       className="ghost main-header-action"
-      onClick={onCollapseRightPanel}
+      onClick={isCollapsed ? onExpandRightPanel : onCollapseRightPanel}
       data-tauri-drag-region="false"
-      aria-label="Hide git sidebar"
-      title="Hide git sidebar"
+      aria-label={isCollapsed ? "Show git sidebar" : "Hide git sidebar"}
+      title={isCollapsed ? "Show git sidebar" : "Hide git sidebar"}
     >
-      <PanelRightClose size={14} aria-hidden />
+      {isCollapsed ? (
+        <PanelRightOpen size={14} aria-hidden />
+      ) : (
+        <PanelRightClose size={14} aria-hidden />
+      )}
     </button>
   );
 }

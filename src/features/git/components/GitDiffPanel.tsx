@@ -1077,9 +1077,13 @@ export function GitDiffPanel({
           </div>
         </>
       )}
-      {mode === "diff" || mode === "log" ? (
-        <div className="diff-branch">{branchName || "unknown"}</div>
-      ) : null}
+      {mode === "diff" || mode === "log"
+        ? hasGitRoot && (
+            <div className="diff-branch">
+              {branchName || t("git.branch.unknown")}
+            </div>
+          )
+        : null}
       {mode !== "issues" && hasGitRoot && (
         <div className="git-root-current">
           <span className="git-root-label">{t("git.path")}:</span>

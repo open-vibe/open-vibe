@@ -9,7 +9,6 @@ type MainHeaderActionsProps = {
   gitDiffViewStyle: "split" | "unified";
   onSelectDiffViewStyle: (style: "split" | "unified") => void;
   isCompact: boolean;
-  rightPanelCollapsed: boolean;
   sidebarToggleProps: SidebarToggleProps;
 };
 
@@ -18,7 +17,6 @@ export const MainHeaderActions = memo(function MainHeaderActions({
   gitDiffViewStyle,
   onSelectDiffViewStyle,
   isCompact,
-  rightPanelCollapsed,
   sidebarToggleProps,
 }: MainHeaderActionsProps) {
   return (
@@ -51,9 +49,7 @@ export const MainHeaderActions = memo(function MainHeaderActions({
           </button>
         </div>
       )}
-      {!isCompact && !rightPanelCollapsed ? (
-        <RightPanelCollapseButton {...sidebarToggleProps} />
-      ) : null}
+      {!isCompact ? <RightPanelCollapseButton {...sidebarToggleProps} /> : null}
     </>
   );
 });

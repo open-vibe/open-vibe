@@ -9,6 +9,7 @@ import { openWorkspaceIn } from "../../../services/tauri";
 import { pushErrorToast } from "../../../services/toasts";
 import { getRevealInFileManagerLabel } from "../../../utils/platform";
 import type { OpenAppTarget } from "../../../types";
+import { resolveOpenAppLaunch } from "../../app/utils/openApp";
 
 type OpenTarget = {
   id: string;
@@ -81,29 +82,30 @@ export function useFileLinkOpener(
       const resolvedPath = resolveFilePath(stripLineSuffix(rawPath), workspacePath);
 
       try {
-        if (target.kind === "finder") {
+        const resolved = resolveOpenAppLaunch(target);
+        if (resolved.kind === "finder") {
           await revealItemInDir(resolvedPath);
           return;
         }
 
-        if (target.kind === "command") {
-          if (!target.command) {
+        if (resolved.kind === "command") {
+          if (!resolved.command) {
             return;
           }
           await openWorkspaceIn(resolvedPath, {
-            command: target.command,
-            args: target.args,
+            command: resolved.command,
+            args: resolved.args,
           });
           return;
         }
 
-        const appName = (target.appName || target.label || "").trim();
+        const appName = (resolved.appName || target.label || "").trim();
         if (!appName) {
           return;
         }
         await openWorkspaceIn(resolvedPath, {
           appName,
-          args: target.args,
+          args: resolved.args,
         });
       } catch (error) {
         reportOpenError(error, {
@@ -130,11 +132,12 @@ export function useFileLinkOpener(
           openTargets[0]),
       };
       const resolvedPath = resolveFilePath(stripLineSuffix(rawPath), workspacePath);
-      const appName = (target.appName || target.label || "").trim();
+      const resolved = resolveOpenAppLaunch(target);
+      const appName = (resolved.appName || target.label || "").trim();
       const openLabel =
-        target.kind === "finder"
+        resolved.kind === "finder"
           ? getRevealInFileManagerLabel()
-          : target.kind === "command"
+          : resolved.kind === "command"
             ? `Open in ${target.label}`
             : appName
               ? `Open in ${appName}`

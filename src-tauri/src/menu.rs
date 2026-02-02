@@ -85,7 +85,7 @@ pub(crate) fn build_menu<R: tauri::Runtime>(
             &PredefinedMenuItem::hide(handle, None)?,
             &PredefinedMenuItem::hide_others(handle, None)?,
             &PredefinedMenuItem::separator(handle)?,
-            &PredefinedMenuItem::quit(handle, None)?,
+            &PredefinedMenuItem::quit(handle, Some("退出"))?,
         ],
     )?;
     #[cfg(not(target_os = "macos"))]
@@ -98,7 +98,7 @@ pub(crate) fn build_menu<R: tauri::Runtime>(
             &check_updates_item,
             &settings_item,
             &PredefinedMenuItem::separator(handle)?,
-            &PredefinedMenuItem::quit(handle, None)?,
+            &PredefinedMenuItem::quit(handle, Some("退出"))?,
         ],
     )?;
 
@@ -149,9 +149,9 @@ pub(crate) fn build_menu<R: tauri::Runtime>(
             &PredefinedMenuItem::separator(handle)?,
             &add_workspace_item,
             &PredefinedMenuItem::separator(handle)?,
-            &PredefinedMenuItem::close_window(handle, None)?,
+            &PredefinedMenuItem::close_window(handle, Some("关闭窗口"))?,
             #[cfg(not(target_os = "macos"))]
-            &PredefinedMenuItem::quit(handle, None)?,
+            &PredefinedMenuItem::quit(handle, Some("退出"))?,
         ],
     )?;
 
