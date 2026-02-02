@@ -557,16 +557,31 @@ const sendSessionMessage = async (thread, role, content, creds) => {
   if (!session) {
     attachSessionSocket(thread.threadId, sessionId, sessionKey, variant, creds);
   }
-  const message = {
-    role: role === "assistant" ? "agent" : "user",
-    content: {
-      type: "text",
-      text: content,
-    },
-    meta: {
-      sentFrom: "openvibe",
-    },
-  };
+  const isAssistant = role === "assistant";
+  const message = isAssistant
+    ? {
+        role: "agent",
+        content: {
+          type: "codex",
+          data: {
+            type: "message",
+            message: content,
+          },
+        },
+        meta: {
+          sentFrom: "openvibe",
+        },
+      }
+    : {
+        role: "user",
+        content: {
+          type: "text",
+          text: content,
+        },
+        meta: {
+          sentFrom: "openvibe",
+        },
+      };
   const encrypted = encodeBase64(encryptPayload(message, variant, sessionKey));
   sessions
     .get(thread.threadId)

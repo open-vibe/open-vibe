@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { Dispatch } from "react";
 import { buildConversationItem } from "../../../utils/threadItems";
 import { asString } from "../utils/threadNormalize";
@@ -37,6 +37,23 @@ export function useThreadItemEvents({
   onHappyBridgeCommand,
   applyCollabThreadLinks,
 }: UseThreadItemEventsOptions) {
+  const agentMessageBufferRef = useRef<Record<string, string>>({});
+
+  const mergeAgentDelta = useCallback((existing: string, delta: string) => {
+    if (!delta) {
+      return existing;
+    }
+    if (!existing) {
+      return delta;
+    }
+    if (delta.startsWith(existing)) {
+      return delta;
+    }
+    if (existing.startsWith(delta)) {
+      return existing;
+    }
+    return `${existing}${delta}`;
+  }, []);
   const handleItemUpdate = useCallback(
     (
       workspaceId: string,
@@ -111,6 +128,10 @@ export function useThreadItemEvents({
       itemId: string;
       delta: string;
     }) => {
+      agentMessageBufferRef.current[itemId] = mergeAgentDelta(
+        agentMessageBufferRef.current[itemId] ?? "",
+        delta,
+      );
       dispatch({ type: "ensureThread", workspaceId, threadId });
       markProcessing(threadId, true);
       const hasCustomName = Boolean(getCustomName(workspaceId, threadId));
@@ -123,7 +144,7 @@ export function useThreadItemEvents({
         hasCustomName,
       });
     },
-    [dispatch, getCustomName, markProcessing],
+    [dispatch, getCustomName, markProcessing, mergeAgentDelta],
   );
 
   const onAgentMessageCompleted = useCallback(
@@ -139,6 +160,9 @@ export function useThreadItemEvents({
       text: string;
     }) => {
       const timestamp = Date.now();
+      const bufferedText = agentMessageBufferRef.current[itemId] ?? "";
+      const resolvedText = text.trim() ? text : bufferedText;
+      delete agentMessageBufferRef.current[itemId];
       dispatch({ type: "ensureThread", workspaceId, threadId });
       const hasCustomName = Boolean(getCustomName(workspaceId, threadId));
       dispatch({
@@ -146,7 +170,7 @@ export function useThreadItemEvents({
         workspaceId,
         threadId,
         itemId,
-        text,
+        text: resolvedText,
         hasCustomName,
       });
       dispatch({
@@ -158,10 +182,10 @@ export function useThreadItemEvents({
       dispatch({
         type: "setLastAgentMessage",
         threadId,
-        text,
+        text: resolvedText,
         timestamp,
       });
-      if (onHappyBridgeCommand && text.trim()) {
+      if (onHappyBridgeCommand && resolvedText.trim()) {
         const workspacePath = getWorkspacePath?.(workspaceId) ?? "";
         const threadName = getCustomName(workspaceId, threadId) ?? null;
         onHappyBridgeCommand({
@@ -171,7 +195,7 @@ export function useThreadItemEvents({
           workspacePath,
           threadName,
           role: "assistant",
-          content: text,
+          content: resolvedText,
           createdAt: timestamp,
         });
       }

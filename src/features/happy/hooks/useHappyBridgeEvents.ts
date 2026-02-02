@@ -12,7 +12,7 @@ type UseHappyBridgeEventsOptions = {
     threadId: string,
     text: string,
     images?: string[],
-    options?: { skipPromptExpansion?: boolean },
+    options?: { skipPromptExpansion?: boolean; skipHappyBridgeEcho?: boolean },
   ) => Promise<void>;
 };
 
@@ -43,6 +43,7 @@ export function useHappyBridgeEvents({
       }
       void sendUserMessageToThread(workspace, event.threadId, event.content, [], {
         skipPromptExpansion: true,
+        skipHappyBridgeEcho: true,
       });
     },
     [enabled, getWorkspaceIdForThread, sendUserMessageToThread, workspaces],

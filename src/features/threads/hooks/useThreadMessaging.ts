@@ -23,6 +23,7 @@ import type { ThreadAction, ThreadState } from "./useThreadsReducer";
 
 type SendMessageOptions = {
   skipPromptExpansion?: boolean;
+  skipHappyBridgeEcho?: boolean;
   model?: string | null;
   effort?: string | null;
   collaborationMode?: Record<string, unknown> | null;
@@ -154,7 +155,7 @@ export function useThreadMessaging({
         },
       });
       const timestamp = Date.now();
-      if (onHappyBridgeCommand && finalText) {
+      if (onHappyBridgeCommand && finalText && !options?.skipHappyBridgeEcho) {
         const threadName = getCustomName(workspace.id, threadId) ?? null;
         onHappyBridgeCommand({
           type: "thread-message",

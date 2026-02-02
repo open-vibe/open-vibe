@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type {
   AppServerEvent,
   ApprovalRequest,
@@ -139,8 +139,92 @@ function extractTokenUsageFromParams(params: Record<string, unknown> | null) {
   return null;
 }
 
+function extractAgentMessageText(item: Record<string, unknown>) {
+  const rawText = item.text;
+  if (typeof rawText === "string" && rawText.trim()) {
+    return rawText;
+  }
+  const content = item.content;
+  if (Array.isArray(content)) {
+    const text = content
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return "";
+        }
+        const typed = entry as Record<string, unknown>;
+        if (typed.type === "text" && typeof typed.text === "string") {
+          return typed.text;
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("");
+    if (text.trim()) {
+      return text;
+    }
+  }
+  if (content && typeof content === "object") {
+    const typed = content as Record<string, unknown>;
+    if (typed.type === "text" && typeof typed.text === "string") {
+      return typed.text;
+    }
+    if (typed.type === "output" && typed.data && typeof typed.data === "object") {
+      const data = typed.data as Record<string, unknown>;
+      const message = data.message as Record<string, unknown> | undefined;
+      const messageContent = message?.content;
+      if (Array.isArray(messageContent)) {
+        const text = messageContent
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") {
+              return "";
+            }
+            const typedEntry = entry as Record<string, unknown>;
+            return typedEntry.type === "text" && typeof typedEntry.text === "string"
+              ? typedEntry.text
+              : "";
+          })
+          .filter(Boolean)
+          .join("");
+        if (text.trim()) {
+          return text;
+        }
+      }
+      if (typeof messageContent === "string" && messageContent.trim()) {
+        return messageContent;
+      }
+    }
+  }
+  return "";
+}
+
 export function useAppServerEvents(handlers: AppServerEventHandlers) {
+  const completedAgentItemsRef = useRef(new Set<string>());
+
   useEffect(() => {
+    const handleAgentCompletion = (
+      workspaceId: string,
+      threadId: string,
+      item: Record<string, unknown>,
+    ) => {
+      const itemId = String(
+        item.id ?? item.itemId ?? item.item_id ?? "",
+      ).trim();
+      if (!itemId || completedAgentItemsRef.current.has(itemId)) {
+        return;
+      }
+      const text = extractAgentMessageText(item);
+      if (!text.trim()) {
+        return;
+      }
+      completedAgentItemsRef.current.add(itemId);
+      handlers.onAgentMessageCompleted?.({
+        workspaceId,
+        threadId,
+        itemId,
+        text,
+      });
+    };
+
     const unlisten = subscribeAppServerEvents((payload) => {
       handlers.onAppServerEvent?.(payload);
 
@@ -275,6 +359,16 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const turnId = String(turn?.id ?? params.turnId ?? params.turn_id ?? "");
         if (threadId) {
           handlers.onTurnCompleted?.(workspace_id, threadId, turnId);
+          const items = Array.isArray(turn?.items)
+            ? (turn?.items as Record<string, unknown>[])
+            : [];
+          const agentItem = items
+            .slice()
+            .reverse()
+            .find((entry) => entry?.type === "agentMessage");
+          if (agentItem) {
+            handleAgentCompletion(workspace_id, threadId, agentItem);
+          }
         }
         return;
       }
@@ -330,6 +424,17 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         return;
       }
 
+      if (method === "item/agentMessage/completed" || method === "item/agentMessage/complete") {
+        const params = message.params as Record<string, unknown>;
+        const threadId = getThreadIdFromParams(params);
+        const item =
+          (params.item as Record<string, unknown> | undefined) ?? params;
+        if (threadId && item) {
+          handleAgentCompletion(workspace_id, threadId, item);
+        }
+        return;
+      }
+
       if (method === "item/completed") {
         const params = message.params as Record<string, unknown>;
         const threadId = String(params.threadId ?? params.thread_id ?? "");
@@ -338,16 +443,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
           handlers.onItemCompleted?.(workspace_id, threadId, item);
         }
         if (threadId && item?.type === "agentMessage") {
-          const itemId = String(item.id ?? "");
-          const text = String(item.text ?? "");
-          if (itemId) {
-            handlers.onAgentMessageCompleted?.({
-              workspaceId: workspace_id,
-              threadId,
-              itemId,
-              text,
-            });
-          }
+          handleAgentCompletion(workspace_id, threadId, item);
         }
         return;
       }

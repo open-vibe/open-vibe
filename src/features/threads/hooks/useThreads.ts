@@ -55,6 +55,7 @@ export function useThreads({
   const loadedThreadsRef = useRef<Record<string, boolean>>({});
   const replaceOnResumeRef = useRef<Record<string, boolean>>({});
   const pendingInterruptsRef = useRef<Set<string>>(new Set());
+  const threadWorkspaceByIdRef = useRef<Map<string, string>>(new Map());
   const { approvalAllowlistRef, handleApprovalDecision, handleApprovalRemember } =
     useThreadApprovals({ dispatch, onDebug });
   const { handleUserInputSubmit } = useThreadUserInput({ dispatch });
@@ -96,6 +97,9 @@ export function useThreads({
     async (command: HappyBridgeCommand) => {
       if (!happyEnabled) {
         return;
+      }
+      if ("threadId" in command && "workspaceId" in command) {
+        threadWorkspaceByIdRef.current.set(command.threadId, command.workspaceId);
       }
       try {
         await sendHappyBridgeCommand(command);
@@ -325,10 +329,15 @@ export function useThreads({
 
   const getWorkspaceIdForThread = useCallback(
     (threadId: string) => {
+      const mappedWorkspaceId = threadWorkspaceByIdRef.current.get(threadId);
+      if (mappedWorkspaceId) {
+        return mappedWorkspaceId;
+      }
       for (const [workspaceId, threads] of Object.entries(
         state.threadsByWorkspace,
       )) {
         if (threads.some((thread) => thread.id === threadId)) {
+          threadWorkspaceByIdRef.current.set(threadId, workspaceId);
           return workspaceId;
         }
       }
