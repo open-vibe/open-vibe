@@ -170,7 +170,7 @@
 
 .message:hover .message-copy-button {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(-15px);
 }
 
 .message-copy-icon {

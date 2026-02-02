@@ -260,7 +260,7 @@ export function ComposerMetaBar({
             {
               "--context-free": contextFreePercent ?? 0,
               background: `radial-gradient(circle, var(--surface-card-strong) 52%, transparent 55%), 
-               conic-gradient(from 180deg, var(--border-accent) calc(var(--context-free) * 1%), var(--surface-control) 0)`,
+               conic-gradient(from 180deg, var(--primary) calc(var(--context-free) * 1%), var(--surface-control) 0)`,
               boxShadow: "inset 0 0 0 1px var(--border-subtle)",
             } as CSSProperties
           }

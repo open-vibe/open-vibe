@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  Label,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  RadialBar,
+  RadialBarChart,
+} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 
 const API_URL = "https://yunyi.cfd/user/api/v1/me";
 const REFRESH_MS = 5 * 60 * 1000;
@@ -60,19 +69,6 @@ const computeResetText = (
     return t("sidebar.yunyi.reset.minutes", { minutes });
   }
   return t("sidebar.yunyi.reset.hoursMinutes", { hours, minutes });
-};
-
-const getBillingLabel = (
-  billingType: string | null,
-  t: ReturnType<typeof useI18n>["t"],
-) => {
-  if (billingType === "duration") {
-    return t("sidebar.yunyi.billing.duration");
-  }
-  if (billingType === "amount" || billingType === "money") {
-    return t("sidebar.yunyi.billing.amount");
-  }
-  return t("sidebar.yunyi.billing.quota");
 };
 
 const parseQuota = (payload: unknown): YunyiQuotaData | null => {
@@ -182,35 +178,39 @@ export function YunyiQuotaCard({
 
   if (!normalizedToken) {
     return (
-      <div
+      <Card
         className={cn(
-          "rounded-md border border-border/60 bg-sidebar/30 px-3 py-2 text-xs text-muted-foreground",
+          "yunyi-card border-[color:var(--border)] bg-sidebar text-sidebar-foreground shadow-none",
           className,
         )}
       >
-        {t("sidebar.yunyi.missingToken")}
-      </div>
+        <CardContent className="p-3 text-xs text-muted-foreground">
+          {t("sidebar.yunyi.missingToken")}
+        </CardContent>
+      </Card>
     );
   }
 
   if (status === "loading" && !data) {
     return (
-      <div
+      <Card
         className={cn(
-          "space-y-3 rounded-md border border-border/60 bg-sidebar/30 p-3",
+          "yunyi-card border-[color:var(--border)] bg-sidebar text-sidebar-foreground shadow-none",
           className,
         )}
       >
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-3 w-32" />
+        <CardContent className="space-y-3 p-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
           </div>
-        </div>
-        <Skeleton className="h-3 w-24" />
-      </div>
+          <Skeleton className="h-3 w-24" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -218,45 +218,94 @@ export function YunyiQuotaCard({
   const percentLabel = `${Math.round(percent)}%`;
   const dailyValue = data ? formatCurrency(data.dailyLeftCents) : "--";
   const resetText = computeResetText(data?.nextResetAt ?? null, now, t);
-  const billingLabel = getBillingLabel(data?.billingType ?? null, t);
   const updatedLabel = updatedAt
     ? t("sidebar.yunyi.updatedAt", { time: formatTime(updatedAt) })
     : "--";
+  const chartConfig = {
+    quota: {
+      label: t("sidebar.yunyi.dailyQuota"),
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig;
+  const chartData = [
+    {
+      name: "quota",
+      value: percent,
+      fill: "var(--color-quota)",
+    },
+  ];
 
   return (
-    <div
+    <Card
       className={cn(
-        "yunyi-card space-y-2 rounded-md border border-border/60 bg-sidebar/30 p-3 text-sidebar-foreground",
+        "yunyi-card border-[color:var(--border)] bg-sidebar text-sidebar-foreground shadow-none",
         className,
       )}
     >
-      <div className="summary">
-        <div
-          className="summary-icon"
-          style={
-            {
-              "--accent": "var(--chart-2)",
-              "--percent": percent / 100,
-            } as React.CSSProperties
-          }
-        >
-          <span className="summary-icon-text">{percentLabel}</span>
+      <CardContent className="space-y-3 p-3">
+        <ChartContainer config={chartConfig} className="yunyi-chart">
+          <RadialBarChart
+            data={chartData}
+            startAngle={90}
+            endAngle={-270}
+            innerRadius={45}
+            outerRadius={55}
+          >
+            <PolarAngleAxis
+              type="number"
+              domain={[0, 100]}
+              tick={false}
+              axisLine={false}
+            />
+            <RadialBar
+              dataKey="value"
+              background={{ fill: "var(--sidebar-accent)" }}
+              cornerRadius={5}
+            />
+            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+              <Label
+                content={({ viewBox }) => {
+                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                    return (
+                      <text
+                        x={viewBox.cx}
+                        y={viewBox.cy}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        <tspan
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          className="fill-foreground text-[18px] font-semibold"
+                        >
+                          {percentLabel}
+                        </tspan>
+                        <tspan
+                          x={viewBox.cx}
+                          y={(viewBox.cy || 0) + 20}
+                          className="fill-muted-foreground text-[12px]"
+                        >
+                          {dailyValue}
+                        </tspan>
+                      </text>
+                    );
+                  }
+                  return null;
+                }}
+              />
+            </PolarRadiusAxis>
+          </RadialBarChart>
+        </ChartContainer>
+        <div className="yunyi-card-footer">
+          <span className="yunyi-card-sub">{resetText || "--"}</span>
+          <span className="yunyi-card-updated">{updatedLabel}</span>
         </div>
-        <div className="summary-meta">
-          <div className="summary-title">{t("sidebar.yunyi.dailyQuota")}</div>
-          <div className="summary-value tabular-nums">{dailyValue}</div>
-          <div className="summary-sub">{billingLabel}</div>
-        </div>
-      </div>
-      <div className="summary-footer">
-        <div className="summary-sub">{resetText || "--"}</div>
-        <div className="summary-updated">{updatedLabel}</div>
-      </div>
-      {status === "error" && (
-        <div className="text-xs text-destructive">
-          {t("sidebar.yunyi.error")}
-        </div>
-      )}
-    </div>
+        {status === "error" && (
+          <div className="text-xs text-destructive">
+            {t("sidebar.yunyi.error")}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
