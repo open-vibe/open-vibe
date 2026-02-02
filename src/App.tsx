@@ -107,6 +107,8 @@ import { DebugErrorBoundary } from "./features/app/components/DebugErrorBoundary
 import type {
   AccessMode,
   ComposerEditorSettings,
+  ThemeColor,
+  ThemePreference,
   WorkspaceInfo,
 } from "./types";
 import { OPEN_APP_STORAGE_KEY } from "./features/app/constants";
@@ -968,6 +970,42 @@ function MainApp() {
     [queueSaveSettings, setAppSettings],
   );
 
+  const handleToggleTheme = useCallback(() => {
+    setAppSettings((current) => {
+      const isDark =
+        typeof document !== "undefined"
+          ? document.documentElement.classList.contains("dark")
+          : current.theme === "dark";
+      const nextTheme: ThemePreference = isDark ? "light" : "dark";
+      if (current.theme === nextTheme) {
+        return current;
+      }
+      const nextSettings = {
+        ...current,
+        theme: nextTheme,
+      };
+      void queueSaveSettings(nextSettings);
+      return nextSettings;
+    });
+  }, [queueSaveSettings, setAppSettings]);
+
+  const handleSelectThemeColor = useCallback(
+    (color: ThemeColor) => {
+      setAppSettings((current) => {
+        if (current.themeColor === color) {
+          return current;
+        }
+        const nextSettings = {
+          ...current,
+          themeColor: color,
+        };
+        void queueSaveSettings(nextSettings);
+        return nextSettings;
+      });
+    },
+    [queueSaveSettings, setAppSettings],
+  );
+
   const openAppIconById = useOpenAppIcons(appSettings.openAppTargets);
 
   const persistProjectCopiesFolder = useCallback(
@@ -1778,6 +1816,10 @@ function MainApp() {
     onOpenDictationSettings: () => openSettings("dictation"),
     onOpenDebug: handleDebugClick,
     showDebugButton,
+    themePreference: appSettings.theme,
+    themeColor: appSettings.themeColor,
+    onToggleTheme: handleToggleTheme,
+    onSelectThemeColor: handleSelectThemeColor,
     onAddWorkspace: handleAddWorkspace,
     onSelectHome: () => {
       resetPullRequestSelection();

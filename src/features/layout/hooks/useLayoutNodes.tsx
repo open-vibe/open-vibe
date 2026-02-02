@@ -42,6 +42,8 @@ import type {
   RequestUserInputRequest,
   RequestUserInputResponse,
   SkillOption,
+  ThemeColor,
+  ThemePreference,
   ThreadSummary,
   ThreadTokenUsage,
   TurnPlan,
@@ -134,6 +136,10 @@ type LayoutNodesOptions = {
   onOpenDictationSettings?: () => void;
   onOpenDebug: () => void;
   showDebugButton: boolean;
+  themePreference: ThemePreference;
+  themeColor: ThemeColor;
+  onToggleTheme: () => void;
+  onSelectThemeColor: (color: ThemeColor) => void;
   onAddWorkspace: () => void;
   onSelectHome: () => void;
   onSelectWorkspace: (workspaceId: string) => void;
@@ -442,6 +448,10 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       onOpenSettings={options.onOpenSettings}
       onOpenDebug={options.onOpenDebug}
       showDebugButton={options.showDebugButton}
+      themePreference={options.themePreference}
+      themeColor={options.themeColor}
+      onToggleTheme={options.onToggleTheme}
+      onSelectThemeColor={options.onSelectThemeColor}
       onAddWorkspace={options.onAddWorkspace}
       onSelectHome={options.onSelectHome}
       onSelectWorkspace={options.onSelectWorkspace}

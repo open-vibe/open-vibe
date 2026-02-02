@@ -1,4 +1,10 @@
-import type { RateLimitSnapshot, ThreadSummary, WorkspaceInfo } from "../../../types";
+import type {
+  RateLimitSnapshot,
+  ThemeColor,
+  ThemePreference,
+  ThreadSummary,
+  WorkspaceInfo,
+} from "../../../types";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
@@ -65,6 +71,10 @@ type SidebarProps = {
   accountRateLimits: RateLimitSnapshot | null;
   experimentalYunyiEnabled: boolean;
   experimentalYunyiToken: string;
+  themePreference: ThemePreference;
+  themeColor: ThemeColor;
+  onToggleTheme: () => void;
+  onSelectThemeColor: (color: ThemeColor) => void;
   onOpenSettings: () => void;
   onOpenDebug: () => void;
   showDebugButton: boolean;
@@ -113,6 +123,10 @@ export function Sidebar({
   accountRateLimits,
   experimentalYunyiEnabled,
   experimentalYunyiToken,
+  themePreference,
+  themeColor,
+  onToggleTheme,
+  onSelectThemeColor,
   onOpenSettings,
   onOpenDebug,
   showDebugButton,
@@ -611,6 +625,10 @@ export function Sidebar({
               email: t("sidebar.user.localWorkspace"),
               avatar: "",
             }}
+            themePreference={themePreference}
+            themeColor={themeColor}
+            onToggleTheme={onToggleTheme}
+            onSelectThemeColor={onSelectThemeColor}
             onOpenSettings={onOpenSettings}
             onOpenDebug={onOpenDebug}
             showDebugButton={showDebugButton}

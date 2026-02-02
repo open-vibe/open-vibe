@@ -18,6 +18,16 @@ import { normalizeOpenAppTargets } from "../../app/utils/openApp";
 import { getDefaultInterruptShortcut } from "../../../utils/shortcuts";
 
 const allowedThemes = new Set(["system", "light", "dark"]);
+const allowedThemeColors = new Set([
+  "default",
+  "blue",
+  "green",
+  "orange",
+  "red",
+  "rose",
+  "violet",
+  "yellow",
+]);
 const allowedLanguages = new Set(["system", "en", "zh-CN"]);
 const DEFAULT_HAPPY_SERVER_URL = "https://api.cluster-fluster.com";
 
@@ -53,6 +63,7 @@ const defaultSettings: AppSettings = {
   lastComposerReasoningEffort: null,
   uiScale: UI_SCALE_DEFAULT,
   theme: "system",
+  themeColor: "blue",
   language: "system",
   uiFontFamily: DEFAULT_UI_FONT_FAMILY,
   codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
@@ -113,6 +124,9 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     happySecret: settings.happySecret?.trim() ? settings.happySecret.trim() : null,
     uiScale: clampUiScale(settings.uiScale),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
+    themeColor: allowedThemeColors.has(settings.themeColor)
+      ? settings.themeColor
+      : "blue",
     language: allowedLanguages.has(settings.language) ? settings.language : "system",
     uiFontFamily: normalizeFontFamily(
       settings.uiFontFamily,

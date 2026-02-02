@@ -224,7 +224,7 @@ export function YunyiQuotaCard({
   const chartConfig = {
     quota: {
       label: t("sidebar.yunyi.dailyQuota"),
-      color: "var(--chart-2)",
+      color: "var(--primary)",
     },
   } satisfies ChartConfig;
   const chartData = [

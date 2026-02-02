@@ -131,6 +131,15 @@ export type ReviewTarget =
 export type AccessMode = "read-only" | "current" | "full-access";
 export type BackendMode = "local" | "remote";
 export type ThemePreference = "system" | "light" | "dark";
+export type ThemeColor =
+  | "default"
+  | "blue"
+  | "green"
+  | "orange"
+  | "red"
+  | "rose"
+  | "violet"
+  | "yellow";
 export type AppLanguage = "system" | "en" | "zh-CN";
 
 
@@ -188,6 +197,7 @@ export type AppSettings = {
   lastComposerReasoningEffort: string | null;
   uiScale: number;
   theme: ThemePreference;
+  themeColor: ThemeColor;
   language: AppLanguage;
   uiFontFamily: string;
   codeFontFamily: string;

@@ -1,4 +1,5 @@
 import { useThemePreference } from "../../layout/hooks/useThemePreference";
+import { useThemeColorPreference } from "../../layout/hooks/useThemeColorPreference";
 import { useTransparencyPreference } from "../../layout/hooks/useTransparencyPreference";
 import { useUiScaleShortcuts } from "../../layout/hooks/useUiScaleShortcuts";
 import { useAppSettings } from "../../settings/hooks/useAppSettings";
@@ -13,6 +14,7 @@ export function useAppSettingsController() {
   } = useAppSettings();
 
   useThemePreference(appSettings.theme);
+  useThemeColorPreference(appSettings.themeColor);
   const { reduceTransparency, setReduceTransparency } =
     useTransparencyPreference();
 
