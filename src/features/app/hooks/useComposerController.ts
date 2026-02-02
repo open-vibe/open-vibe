@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { QueuedMessage, WorkspaceInfo } from "../../../types";
 import { useComposerImages } from "../../composer/hooks/useComposerImages";
 import { useQueuedSend } from "../../threads/hooks/useQueuedSend";
@@ -24,9 +24,7 @@ export function useComposerController({
   sendUserMessage: (text: string, images?: string[]) => Promise<void>;
   startReview: (text: string) => Promise<void>;
 }) {
-  const [composerDraftsByThread, setComposerDraftsByThread] = useState<
-    Record<string, string>
-  >({});
+  const draftsRef = useRef<Record<string, string>>({});
   const [prefillDraft, setPrefillDraft] = useState<QueuedMessage | null>(null);
   const [composerInsert, setComposerInsert] = useState<QueuedMessage | null>(
     null,
@@ -59,21 +57,21 @@ export function useComposerController({
     clearActiveImages,
   });
 
-  const activeDraft = useMemo(
-    () =>
-      activeThreadId ? composerDraftsByThread[activeThreadId] ?? "" : "",
-    [activeThreadId, composerDraftsByThread],
-  );
+  const [, setDraftVersion] = useState(0);
+  const activeDraft = activeThreadId ? draftsRef.current[activeThreadId] ?? "" : "";
 
   const handleDraftChange = useCallback(
-    (next: string) => {
+    (next: string, options?: { immediate?: boolean }) => {
       if (!activeThreadId) {
         return;
       }
-      setComposerDraftsByThread((prev) => ({
-        ...prev,
-        [activeThreadId]: next,
-      }));
+      if (draftsRef.current[activeThreadId] === next) {
+        return;
+      }
+      draftsRef.current[activeThreadId] = next;
+      if (options?.immediate) {
+        setDraftVersion((prev) => prev + 1);
+      }
     },
     [activeThreadId],
   );
@@ -111,13 +109,10 @@ export function useComposerController({
   );
 
   const clearDraftForThread = useCallback((threadId: string) => {
-    setComposerDraftsByThread((prev) => {
-      if (!(threadId in prev)) {
-        return prev;
-      }
-      const { [threadId]: _, ...rest } = prev;
-      return rest;
-    });
+    if (draftsRef.current[threadId] !== undefined) {
+      delete draftsRef.current[threadId];
+      setDraftVersion((prev) => prev + 1);
+    }
   }, []);
 
   return {

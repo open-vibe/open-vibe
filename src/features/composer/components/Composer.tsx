@@ -52,7 +52,7 @@ type ComposerProps = {
   onDeleteQueued?: (id: string) => void;
   sendLabel?: string;
   draftText?: string;
-  onDraftChange?: (text: string) => void;
+  onDraftChange?: (text: string, options?: { immediate?: boolean }) => void;
   historyKey?: string | null;
   attachedImages?: string[];
   onPickImages?: () => void;

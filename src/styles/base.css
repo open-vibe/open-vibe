@@ -309,7 +309,15 @@ body {
   position: relative;
   --main-topbar-height: 64px;
   transition: grid-template-columns 220ms ease;
+  will-change: grid-template-columns;
   font-family: var(--ui-font-family);
+}
+
+[data-slot="sidebar-gap"],
+[data-slot="sidebar-container"] {
+  will-change: width, left, right, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .drag-strip {

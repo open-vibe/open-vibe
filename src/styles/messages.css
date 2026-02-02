@@ -4,6 +4,7 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
+  contain: layout paint;
 }
 
 .messages-full {
@@ -127,6 +128,9 @@
 .message {
   display: flex;
   margin-bottom: 12px;
+  content-visibility: auto;
+  contain: layout paint;
+  contain-intrinsic-size: 120px 400px;
 }
 
 .message.user {

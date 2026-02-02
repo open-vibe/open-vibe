@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 type UseComposerInsertArgs = {
   activeThreadId: string | null;
   draftText: string;
-  onDraftChange: (next: string) => void;
+  onDraftChange: (next: string, options?: { immediate?: boolean }) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 };
 
@@ -20,7 +20,7 @@ export function useComposerInsert({
         return;
       }
       const textarea = textareaRef.current;
-      const currentText = draftText ?? "";
+      const currentText = textarea?.value ?? draftText ?? "";
       const start = textarea?.selectionStart ?? currentText.length;
       const end = textarea?.selectionEnd ?? start;
       const before = currentText.slice(0, start);
@@ -30,7 +30,7 @@ export function useComposerInsert({
       const prefix = needsSpaceBefore ? " " : "";
       const suffix = needsSpaceAfter ? " " : "";
       const nextText = `${before}${prefix}${insertText}${suffix}${after}`;
-      onDraftChange(nextText);
+      onDraftChange(nextText, { immediate: true });
       requestAnimationFrame(() => {
         const node = textareaRef.current;
         if (!node) {

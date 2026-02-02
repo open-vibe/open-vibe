@@ -883,7 +883,8 @@
 .content-layer {
   position: absolute;
   inset: 0;
-  top: calc(var(--main-topbar-height) + var(--thread-tabs-height, 0px));
+  /* top: calc(var(--main-topbar-height) + var(--thread-tabs-height, 0px)); */
+  top: calc(var(--main-topbar-height));
   display: flex;
   min-height: 0;
   min-width: 0;

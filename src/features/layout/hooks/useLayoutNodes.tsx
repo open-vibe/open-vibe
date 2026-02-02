@@ -333,7 +333,7 @@ type LayoutNodesOptions = {
   activeTokenUsage: ThreadTokenUsage | null;
   activeQueue: QueuedMessage[];
   draftText: string;
-  onDraftChange: (next: string) => void;
+  onDraftChange: (next: string, options?: { immediate?: boolean }) => void;
   activeImages: string[];
   onPickImages: () => void | Promise<void>;
   onAttachImages: (paths: string[]) => void;
