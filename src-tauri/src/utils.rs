@@ -1,7 +1,6 @@
 use std::env;
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::process::Command;
 
 pub(crate) fn normalize_git_path(path: &str) -> String {
     path.replace('\\', "/")
@@ -85,14 +84,25 @@ pub(crate) fn git_env_path() -> String {
     joined.to_string_lossy().to_string()
 }
 
-pub(crate) fn apply_background_command_flags(command: &mut Command) {
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
+#[cfg(windows)]
+pub(crate) fn apply_background_command_flags_std(command: &mut std::process::Command) {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    command.creation_flags(CREATE_NO_WINDOW);
 }
+
+#[cfg(not(windows))]
+pub(crate) fn apply_background_command_flags_std(_command: &mut std::process::Command) {}
+
+#[cfg(windows)]
+pub(crate) fn apply_background_command_flags_tokio(command: &mut tokio::process::Command) {
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    use std::os::windows::process::CommandExt;
+    command.as_std_mut().creation_flags(CREATE_NO_WINDOW);
+}
+
+#[cfg(not(windows))]
+pub(crate) fn apply_background_command_flags_tokio(_command: &mut tokio::process::Command) {}
 
 #[cfg(test)]
 mod tests {

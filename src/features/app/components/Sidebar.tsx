@@ -587,26 +587,21 @@ export function Sidebar({
               {t("sidebar.empty")}
             </div>
           )}
-          {(sessionPercent !== null ||
-            weeklyPercent !== null ||
-            creditsLabel ||
-            showWeekly) && (
-            <SidebarGroup className="mt-2 px-0">
-              <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                {t("sidebar.usage")}
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="px-1">
-                <SidebarFooter
-                  sessionPercent={sessionPercent}
-                  weeklyPercent={weeklyPercent}
-                  sessionResetLabel={sessionResetLabel}
-                  weeklyResetLabel={weeklyResetLabel}
-                  creditsLabel={creditsLabel}
-                  showWeekly={showWeekly}
-                />
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
+          <SidebarGroup className="mt-2 px-0">
+            <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              {t("sidebar.usage")}
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="px-1">
+              <SidebarFooter
+                sessionPercent={sessionPercent}
+                weeklyPercent={weeklyPercent}
+                sessionResetLabel={sessionResetLabel}
+                weeklyResetLabel={weeklyResetLabel}
+                creditsLabel={creditsLabel}
+                showWeekly={showWeekly}
+              />
+            </SidebarGroupContent>
+          </SidebarGroup>
           {experimentalYunyiEnabled && (
             <SidebarGroup className="mt-2 px-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
               <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">

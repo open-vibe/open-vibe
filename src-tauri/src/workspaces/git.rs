@@ -6,7 +6,9 @@ use crate::utils::{git_env_path, resolve_git_binary};
 
 pub(crate) async fn run_git_command(repo_path: &PathBuf, args: &[&str]) -> Result<String, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let output = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args(args)
         .current_dir(repo_path)
         .env("PATH", git_env_path())
@@ -40,7 +42,9 @@ pub(crate) async fn run_git_command_bytes(
     args: &[&str],
 ) -> Result<Vec<u8>, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let output = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args(args)
         .current_dir(repo_path)
         .env("PATH", git_env_path())
@@ -67,7 +71,9 @@ pub(crate) async fn run_git_command_bytes(
 
 pub(crate) async fn run_git_diff(repo_path: &PathBuf, args: &[&str]) -> Result<Vec<u8>, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let output = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args(args)
         .current_dir(repo_path)
         .env("PATH", git_env_path())
@@ -94,7 +100,9 @@ pub(crate) async fn run_git_diff(repo_path: &PathBuf, args: &[&str]) -> Result<V
 
 pub(crate) async fn git_branch_exists(repo_path: &PathBuf, branch: &str) -> Result<bool, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let status = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let status = command
         .args(["show-ref", "--verify", &format!("refs/heads/{branch}")])
         .current_dir(repo_path)
         .env("PATH", git_env_path())
@@ -106,7 +114,9 @@ pub(crate) async fn git_branch_exists(repo_path: &PathBuf, branch: &str) -> Resu
 
 pub(crate) async fn git_remote_exists(repo_path: &PathBuf, remote: &str) -> Result<bool, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let status = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let status = command
         .args(["remote", "get-url", remote])
         .current_dir(repo_path)
         .env("PATH", git_env_path())
@@ -122,7 +132,9 @@ pub(crate) async fn git_remote_branch_exists(
     branch: &str,
 ) -> Result<bool, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let output = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args([
             "ls-remote",
             "--heads",

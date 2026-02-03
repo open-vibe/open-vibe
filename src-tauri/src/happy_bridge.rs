@@ -94,7 +94,7 @@ pub(crate) async fn apply_settings(
 
     let script = resolve_bridge_script(app)?;
     let mut command = Command::new("node");
-    crate::utils::apply_background_command_flags(&mut command);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
     command.arg(script);
     command.env("HAPPY_BRIDGE_SERVER_URL", &config.server_url);
     command.env(

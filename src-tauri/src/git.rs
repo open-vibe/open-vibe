@@ -47,7 +47,9 @@ fn read_image_base64(path: &Path) -> Option<String> {
 
 async fn run_git_command(repo_root: &Path, args: &[&str]) -> Result<(), String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let output = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args(args)
         .current_dir(repo_root)
         .env("PATH", git_env_path())
@@ -1127,7 +1129,9 @@ pub(crate) async fn get_github_issues(
     let repo_root = resolve_git_root(&entry)?;
     let repo_name = github_repo_from_path(&repo_root)?;
 
-    let output = Command::new("gh")
+    let mut command = Command::new("gh");
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args([
             "issue",
             "list",
@@ -1162,17 +1166,20 @@ pub(crate) async fn get_github_issues(
 
     let search_query = format!("repo:{repo_name} is:issue is:open");
     let search_query = search_query.replace(' ', "+");
-    let total = match Command::new("gh")
-        .args([
-            "api",
-            &format!("/search/issues?q={search_query}"),
-            "--jq",
-            ".total_count",
-        ])
-        .current_dir(&repo_root)
-        .output()
-        .await
-    {
+    let total = match {
+        let mut command = Command::new("gh");
+        crate::utils::apply_background_command_flags_tokio(&mut command);
+        command
+            .args([
+                "api",
+                &format!("/search/issues?q={search_query}"),
+                "--jq",
+                ".total_count",
+            ])
+            .current_dir(&repo_root)
+            .output()
+            .await
+    } {
         Ok(output) if output.status.success() => String::from_utf8_lossy(&output.stdout)
             .trim()
             .parse::<usize>()
@@ -1197,7 +1204,9 @@ pub(crate) async fn get_github_pull_requests(
     let repo_root = resolve_git_root(&entry)?;
     let repo_name = github_repo_from_path(&repo_root)?;
 
-    let output = Command::new("gh")
+    let mut command = Command::new("gh");
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args([
             "pr",
             "list",
@@ -1234,17 +1243,20 @@ pub(crate) async fn get_github_pull_requests(
 
     let search_query = format!("repo:{repo_name} is:pr is:open");
     let search_query = search_query.replace(' ', "+");
-    let total = match Command::new("gh")
-        .args([
-            "api",
-            &format!("/search/issues?q={search_query}"),
-            "--jq",
-            ".total_count",
-        ])
-        .current_dir(&repo_root)
-        .output()
-        .await
-    {
+    let total = match {
+        let mut command = Command::new("gh");
+        crate::utils::apply_background_command_flags_tokio(&mut command);
+        command
+            .args([
+                "api",
+                &format!("/search/issues?q={search_query}"),
+                "--jq",
+                ".total_count",
+            ])
+            .current_dir(&repo_root)
+            .output()
+            .await
+    } {
         Ok(output) if output.status.success() => String::from_utf8_lossy(&output.stdout)
             .trim()
             .parse::<usize>()
@@ -1273,7 +1285,9 @@ pub(crate) async fn get_github_pull_request_diff(
     let repo_root = resolve_git_root(&entry)?;
     let repo_name = github_repo_from_path(&repo_root)?;
 
-    let output = Command::new("gh")
+    let mut command = Command::new("gh");
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args([
             "pr",
             "diff",
@@ -1325,7 +1339,9 @@ pub(crate) async fn get_github_pull_request_comments(
         format!("/repos/{repo_name}/issues/{pr_number}/comments?per_page=30");
     let jq_filter = r#"[.[] | {id, body, createdAt: .created_at, url: .html_url, author: (if .user then {login: .user.login} else null end)}]"#;
 
-    let output = Command::new("gh")
+    let mut command = Command::new("gh");
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let output = command
         .args(["api", &comments_endpoint, "--jq", jq_filter])
         .current_dir(&repo_root)
         .output()

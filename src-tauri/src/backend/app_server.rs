@@ -146,7 +146,7 @@ pub(crate) fn build_codex_command_with_bin(codex_bin: Option<String>) -> Command
     } else {
         Command::new(&bin)
     };
-    crate::utils::apply_background_command_flags(&mut command);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
     let path_env = if codex_bin.is_some() {
         build_codex_path_env(Some(&bin))
     } else {

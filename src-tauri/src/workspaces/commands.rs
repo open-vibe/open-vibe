@@ -1048,7 +1048,9 @@ pub(crate) async fn apply_worktree_changes(
     }
 
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
-    let mut child = Command::new(git_bin)
+    let mut command = Command::new(git_bin);
+    crate::utils::apply_background_command_flags_tokio(&mut command);
+    let mut child = command
         .args(["apply", "--3way", "--whitespace=nowarn", "-"])
         .current_dir(&parent_root)
         .env("PATH", git_env_path())
@@ -1462,6 +1464,7 @@ pub(crate) async fn open_workspace_in(
     let status = if let Some(command) = command {
         let run_command = |command_path: &std::ffi::OsStr| {
             let mut cmd = std::process::Command::new(command_path);
+            crate::utils::apply_background_command_flags_std(&mut cmd);
             cmd.args(&args).arg(&path);
             cmd.status()
         };
@@ -1470,6 +1473,7 @@ pub(crate) async fn open_workspace_in(
             let result = if let Some(resolved) = resolve_windows_command(&command) {
                 if resolved.use_cmd {
                     let mut cmd = std::process::Command::new("cmd");
+                    crate::utils::apply_background_command_flags_std(&mut cmd);
                     cmd.arg("/C")
                         .arg(resolved.program)
                         .args(&args)
@@ -1490,6 +1494,7 @@ pub(crate) async fn open_workspace_in(
         }
     } else if let Some(app) = app {
         let mut cmd = std::process::Command::new("open");
+        crate::utils::apply_background_command_flags_std(&mut cmd);
         cmd.arg("-a").arg(app).arg(path);
         if !args.is_empty() {
             cmd.arg("--args").args(args);
