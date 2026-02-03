@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 #[allow(dead_code)]
 #[path = "../backend/mod.rs"]
 mod backend;
@@ -955,6 +957,7 @@ impl DaemonState {
         &self,
         id: String,
         codex_bin: Option<String>,
+        client_version: String,
     ) -> Result<WorkspaceInfo, String> {
         let (previous_entry, entry_snapshot, parent_entry, list) = {
             let mut workspaces = self.workspaces.lock().await;
@@ -1005,7 +1008,7 @@ impl DaemonState {
                 default_bin,
                 codex_args,
                 codex_home,
-                self.client_version.clone(),
+                client_version,
                 self.event_sink.clone(),
             )
             .await
@@ -1780,20 +1783,20 @@ fn default_data_dir() -> PathBuf {
     if let Ok(xdg) = env::var("XDG_DATA_HOME") {
         let trimmed = xdg.trim();
         if !trimmed.is_empty() {
-            return PathBuf::from(trimmed).join("codex-monitor-daemon");
+            return PathBuf::from(trimmed).join("open-vibe-daemon");
         }
     }
     let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
     PathBuf::from(home)
         .join(".local")
         .join("share")
-        .join("codex-monitor-daemon")
+        .join("open-vibe-daemon")
 }
 
 fn usage() -> String {
     format!(
         "\
-USAGE:\n  codex-monitor-daemon [--listen <addr>] [--data-dir <path>] [--token <token> | --insecure-no-auth]\n\n\
+USAGE:\n  open-vibe-daemon [--listen <addr>] [--data-dir <path>] [--token <token> | --insecure-no-auth]\n\n\
 OPTIONS:\n  --listen <addr>        Bind address (default: {DEFAULT_LISTEN_ADDR})\n  --data-dir <path>      Data dir holding workspaces.json/settings.json\n  --token <token>        Shared token required by clients\n  --insecure-no-auth      Disable auth (dev only)\n  -h, --help             Show this help\n"
     )
 }
@@ -2070,7 +2073,9 @@ async fn handle_rpc_request(
         "update_workspace_codex_bin" => {
             let id = parse_string(&params, "id")?;
             let codex_bin = parse_optional_string(&params, "codex_bin");
-            let workspace = state.update_workspace_codex_bin(id, codex_bin).await?;
+            let workspace = state
+                .update_workspace_codex_bin(id, codex_bin, client_version)
+                .await?;
             serde_json::to_value(workspace).map_err(|err| err.to_string())
         }
         "list_workspace_files" => {
@@ -2383,7 +2388,7 @@ fn main() {
             .await
             .unwrap_or_else(|err| panic!("failed to bind {}: {err}", config.listen));
         eprintln!(
-            "codex-monitor-daemon listening on {} (data dir: {})",
+            "open-vibe-daemon listening on {} (data dir: {})",
             config.listen,
             state
                 .storage_path

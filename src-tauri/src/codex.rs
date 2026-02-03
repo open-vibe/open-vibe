@@ -75,6 +75,7 @@ pub(crate) async fn codex_doctor(
     };
     let (node_ok, node_version, node_details) = {
         let mut node_command = Command::new("node");
+        crate::utils::apply_background_command_flags(&mut node_command);
         if let Some(ref path_env) = path_env {
             node_command.env("PATH", path_env);
         }

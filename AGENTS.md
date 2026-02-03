@@ -119,7 +119,7 @@ npm run test:watch
 - App-server event handling: edit `src/features/app/hooks/useAppServerEvents.ts`.
 - Tauri IPC: add wrappers in `src/services/tauri.ts` and implement in `src-tauri/src/lib.rs`.
 - App settings or updater behavior: `src/features/settings/hooks/useAppSettings.ts`, `src/features/update/hooks/useUpdater.ts`, and `src/features/settings/components/SettingsView.tsx`.
-- Experimental feature toggles: UI state in `src/features/settings/components/SettingsView.tsx`, shared types in `src/types.ts`, and sync to Codex `config.toml` via `src-tauri/src/codex_config.rs` + `src-tauri/src/settings.rs` (daemon mirror in `src-tauri/src/bin/codex_monitor_daemon.rs`).
+- Experimental feature toggles: UI state in `src/features/settings/components/SettingsView.tsx`, shared types in `src/types.ts`, and sync to Codex `config.toml` via `src-tauri/src/codex_config.rs` + `src-tauri/src/settings.rs` (daemon mirror in `src-tauri/src/bin/open_vibe_daemon.rs`).
 - Git diff behavior: `src/features/git/hooks/useGitStatus.ts` (polling + activity refresh) and `src-tauri/src/lib.rs` (libgit2 status).
 - GitHub issues panel: `src/features/git/hooks/useGitHubIssues.ts` + `src-tauri/src/git.rs`.
 - Thread history rendering: `src/features/threads/hooks/useThreads.ts` merges `thread/resume` turns into UI items.
