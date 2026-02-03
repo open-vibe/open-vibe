@@ -43,6 +43,7 @@ type ThreadActivityStatus = {
   isProcessing: boolean;
   hasUnread: boolean;
   isReviewing: boolean;
+  isLoading: boolean;
   processingStartedAt?: number | null;
   lastDurationMs?: number | null;
 };
@@ -805,6 +806,14 @@ export function ThreadTabView({
           />
         </div>
       </div>
+      {threadStatus?.isLoading ? (
+        <div className="thread-loading-overlay" role="status" aria-live="polite">
+          <div className="thread-loading-card">
+            <span className="working-spinner" aria-hidden />
+            <span className="thread-loading-text">{t("messages.loading")}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

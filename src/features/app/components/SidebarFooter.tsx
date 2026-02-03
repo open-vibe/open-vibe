@@ -29,7 +29,7 @@ export function SidebarFooter({
               )}
             </span>
             <span className="text-muted-foreground">
-              {sessionPercent === null ? "--" : `${sessionPercent}%`}
+              {sessionPercent === null ? "" : `${sessionPercent}%`}
             </span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted">
@@ -51,7 +51,7 @@ export function SidebarFooter({
                 )}
               </span>
               <span className="text-muted-foreground">
-                {weeklyPercent === null ? "--" : `${weeklyPercent}%`}
+                {weeklyPercent === null ? "" : `${weeklyPercent}%`}
               </span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-muted">

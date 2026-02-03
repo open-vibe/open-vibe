@@ -4,14 +4,12 @@ import type { WorkspaceInfo } from "../../../types";
 type WorkspaceRestoreOptions = {
   workspaces: WorkspaceInfo[];
   hasLoaded: boolean;
-  connectWorkspace: (workspace: WorkspaceInfo) => Promise<void>;
   listThreadsForWorkspace: (workspace: WorkspaceInfo) => Promise<void>;
 };
 
 export function useWorkspaceRestore({
   workspaces,
   hasLoaded,
-  connectWorkspace,
   listThreadsForWorkspace,
 }: WorkspaceRestoreOptions) {
   const restoredWorkspaces = useRef(new Set<string>());
@@ -27,14 +25,17 @@ export function useWorkspaceRestore({
       restoredWorkspaces.current.add(workspace.id);
       void (async () => {
         try {
-          if (!workspace.connected) {
-            await connectWorkspace(workspace);
-          }
           await listThreadsForWorkspace(workspace);
         } catch {
           // Silent: connection errors show in debug panel.
         }
       })();
     });
-  }, [connectWorkspace, hasLoaded, listThreadsForWorkspace, workspaces]);
+    return () => {
+    };
+  }, [
+    hasLoaded,
+    listThreadsForWorkspace,
+    workspaces,
+  ]);
 }

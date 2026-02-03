@@ -34,12 +34,13 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 use ignore::WalkBuilder;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::process::Command;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, mpsc, Mutex, OnceCell};
 use uuid::Uuid;
 use utils::{git_env_path, resolve_git_binary};
 
@@ -101,6 +102,7 @@ struct DaemonState {
     data_dir: PathBuf,
     workspaces: Mutex<HashMap<String, WorkspaceEntry>>,
     sessions: Mutex<HashMap<String, Arc<WorkspaceSession>>>,
+    global_session: OnceCell<Arc<WorkspaceSession>>,
     storage_path: PathBuf,
     settings_path: PathBuf,
     app_settings: Mutex<AppSettings>,
@@ -123,6 +125,7 @@ impl DaemonState {
             data_dir: config.data_dir.clone(),
             workspaces: Mutex::new(workspaces),
             sessions: Mutex::new(HashMap::new()),
+            global_session: OnceCell::new(),
             storage_path,
             settings_path,
             app_settings: Mutex::new(app_settings),
@@ -1116,6 +1119,54 @@ impl DaemonState {
             .ok_or("workspace not connected".to_string())
     }
 
+    async fn ensure_global_session(
+        &self,
+        client_version: &str,
+    ) -> Result<Arc<WorkspaceSession>, String> {
+        if let Some(existing) = self.global_session.get() {
+            return Ok(existing.clone());
+        }
+
+        let (default_bin, codex_args) = {
+            let settings = self.app_settings.lock().await;
+            (settings.codex_bin.clone(), settings.codex_args.clone())
+        };
+        let cwd = {
+            let workspaces = self.workspaces.lock().await;
+            workspaces
+                .values()
+                .find(|entry| std::path::Path::new(&entry.path).is_dir())
+                .map(|entry| entry.path.clone())
+                .unwrap_or_else(|| self.data_dir.to_string_lossy().to_string())
+        };
+        let entry = WorkspaceEntry {
+            id: "__global__".to_string(),
+            name: "Global".to_string(),
+            path: cwd,
+            codex_bin: None,
+            kind: WorkspaceKind::Main,
+            parent_id: None,
+            worktree: None,
+            settings: WorkspaceSettings::default(),
+        };
+        let codex_home = codex_home::resolve_default_codex_home();
+        let session = spawn_workspace_session(
+            entry,
+            default_bin,
+            codex_args,
+            codex_home,
+            client_version.to_string(),
+            self.event_sink.clone(),
+        )
+        .await?;
+        if self.global_session.set(session.clone()).is_err() {
+            if let Some(existing) = self.global_session.get() {
+                return Ok(existing.clone());
+            }
+        }
+        Ok(session)
+    }
+
     async fn list_workspace_files(&self, workspace_id: String) -> Result<Vec<String>, String> {
         let entry = {
             let workspaces = self.workspaces.lock().await;
@@ -1230,6 +1281,50 @@ impl DaemonState {
             "limit": limit
         });
         session.send_request("thread/list", params).await
+    }
+
+    async fn list_threads_global(&self, client_version: String) -> Result<Value, String> {
+        let start = Instant::now();
+        let session = self.ensure_global_session(&client_version).await?;
+        let mut all_threads: Vec<Value> = Vec::new();
+        let mut cursor: Option<String> = None;
+        let mut pages = 0;
+        loop {
+            pages += 1;
+            let params = json!({
+                "cursor": cursor,
+                "limit": 2000,
+            });
+            let response = session.send_request("thread/list", params).await?;
+            let result = response.get("result").unwrap_or(&response);
+            let data = result
+                .get("data")
+                .and_then(|value| value.as_array())
+                .cloned()
+                .unwrap_or_default();
+            let next_cursor = result
+                .get("nextCursor")
+                .or_else(|| result.get("next_cursor"))
+                .and_then(|value| value.as_str())
+                .map(|value| value.to_string());
+            if !data.is_empty() {
+                all_threads.extend(data);
+            }
+            cursor = next_cursor;
+            if cursor.is_none() {
+                break;
+            }
+        }
+        eprintln!(
+            "[perf] list_threads_global total={} pages={} ms={}",
+            all_threads.len(),
+            pages,
+            start.elapsed().as_millis()
+        );
+        Ok(json!({
+            "data": all_threads,
+            "nextCursor": Value::Null
+        }))
     }
 
     async fn archive_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
@@ -2173,6 +2268,7 @@ async fn handle_rpc_request(
             let limit = parse_optional_u32(&params, "limit");
             state.list_threads(workspace_id, cursor, limit).await
         }
+        "list_threads_global" => state.list_threads_global(client_version).await,
         "archive_thread" => {
             let workspace_id = parse_string(&params, "workspaceId")?;
             let thread_id = parse_string(&params, "threadId")?;

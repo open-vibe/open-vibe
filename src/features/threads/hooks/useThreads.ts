@@ -31,6 +31,7 @@ type UseThreadsOptions = {
   collaborationMode?: Record<string, unknown> | null;
   accessMode?: "read-only" | "current" | "full-access";
   steerEnabled?: boolean;
+  resumeStreamingEnabled?: boolean;
   customPrompts?: CustomPromptOption[];
   onMessageActivity?: () => void;
   happyEnabled?: boolean;
@@ -46,6 +47,7 @@ export function useThreads({
   collaborationMode,
   accessMode,
   steerEnabled = false,
+  resumeStreamingEnabled = false,
   customPrompts = [],
   onMessageActivity,
   happyEnabled = false,
@@ -229,6 +231,7 @@ export function useThreads({
     replaceOnResumeRef,
     applyCollabThreadLinksFromThread,
     refreshThreadTokenUsage,
+    resumeStreamingEnabled,
   });
 
   const startThread = useCallback(async () => {

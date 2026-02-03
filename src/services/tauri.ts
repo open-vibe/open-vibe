@@ -717,8 +717,27 @@ export async function listThreads(
   return invoke<any>("list_threads", { workspaceId, cursor, limit });
 }
 
+export async function listThreadsGlobal() {
+  return invoke<any>("list_threads_global");
+}
+
 export async function resumeThread(workspaceId: string, threadId: string) {
   return invoke<any>("resume_thread", { workspaceId, threadId });
+}
+
+export async function startThreadHistoryStream(
+  workspaceId: string,
+  threadId: string,
+  path: string,
+) {
+  return invoke<string>("stream_thread_history", { workspaceId, threadId, path });
+}
+
+export async function stopThreadHistoryStream(
+  threadId: string,
+  streamId?: string | null,
+) {
+  return invoke<void>("stop_thread_history_stream", { threadId, streamId });
 }
 
 export async function archiveThread(workspaceId: string, threadId: string) {

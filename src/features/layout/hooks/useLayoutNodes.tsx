@@ -25,6 +25,7 @@ import type {
   CollaborationModeOption,
   ConversationItem,
   ComposerEditorSettings,
+  ComposerSendBehavior,
   CustomPromptOption,
   DebugEntry,
   DictationSessionState,
@@ -58,6 +59,7 @@ type ThreadActivityStatus = {
   isProcessing: boolean;
   hasUnread: boolean;
   isReviewing: boolean;
+  isLoading: boolean;
   processingStartedAt?: number | null;
   lastDurationMs?: number | null;
 };
@@ -118,6 +120,7 @@ type LayoutNodesOptions = {
   openAppIconById: Record<string, string>;
   selectedOpenAppId: string;
   onSelectOpenAppId: (id: string) => void;
+  composerSendBehavior: ComposerSendBehavior;
   approvals: ApprovalRequest[];
   userInputRequests: RequestUserInputRequest[];
   handleApprovalDecision: (
@@ -516,6 +519,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
         options.composerSendLabel ??
         (options.isProcessing && !options.steerEnabled ? "Queue" : "Send")
       }
+      sendBehavior={options.composerSendBehavior}
       steerEnabled={options.steerEnabled}
       isProcessing={options.isProcessing}
       draftText={options.draftText}

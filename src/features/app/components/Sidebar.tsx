@@ -564,6 +564,7 @@ export function Sidebar({
                           isExpanded={isExpanded}
                           nextCursor={nextCursor}
                           isPaging={isPaging}
+                          showLoadOlder={false}
                           activeWorkspaceId={activeWorkspaceId}
                           activeThreadId={activeThreadId}
                           threadStatusById={threadStatusById}

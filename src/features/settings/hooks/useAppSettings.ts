@@ -29,6 +29,7 @@ const allowedThemeColors = new Set([
   "yellow",
 ]);
 const allowedLanguages = new Set(["system", "en", "zh-CN"]);
+const allowedComposerSendBehaviors = new Set(["enter", "ctrl-enter", "smart"]);
 const DEFAULT_HAPPY_SERVER_URL = "https://api.cluster-fluster.com";
 
 const defaultSettings: AppSettings = {
@@ -73,6 +74,7 @@ const defaultSettings: AppSettings = {
   experimentalCollaborationModesEnabled: false,
   experimentalSteerEnabled: false,
   experimentalUnifiedExecEnabled: false,
+  experimentalThreadResumeStreamingEnabled: false,
   experimentalYunyiEnabled: false,
   experimentalYunyiToken: "",
   dictationEnabled: false,
@@ -80,6 +82,7 @@ const defaultSettings: AppSettings = {
   dictationPreferredLanguage: null,
   dictationHoldKey: "alt",
   composerEditorPreset: "default",
+  composerSendBehavior: "enter",
   composerFenceExpandOnSpace: false,
   composerFenceExpandOnEnter: false,
   composerFenceLanguageTags: false,
@@ -138,6 +141,11 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     ),
     codeFontSize: clampCodeFontSize(settings.codeFontSize),
     experimentalYunyiToken: settings.experimentalYunyiToken?.trim() ?? "",
+    composerSendBehavior: allowedComposerSendBehaviors.has(
+      settings.composerSendBehavior,
+    )
+      ? settings.composerSendBehavior
+      : "enter",
     openAppTargets: normalizedTargets,
     selectedOpenAppId,
   };

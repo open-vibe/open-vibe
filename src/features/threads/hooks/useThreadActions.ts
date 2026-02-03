@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { Dispatch, MutableRefObject } from "react";
 import type {
   ConversationItem,
@@ -9,11 +9,15 @@ import type {
 import {
   archiveThread as archiveThreadService,
   listThreads as listThreadsService,
+  listThreadsGlobal as listThreadsGlobalService,
   resumeThread as resumeThreadService,
+  startThreadHistoryStream as startThreadHistoryStreamService,
+  stopThreadHistoryStream as stopThreadHistoryStreamService,
   startThread as startThreadService,
 } from "../../../services/tauri";
 import {
   buildItemsFromThread,
+  buildConversationItemFromThreadItem,
   getThreadTimestamp,
   isReviewingFromThread,
   mergeThreadItems,
@@ -25,7 +29,11 @@ import {
   normalizeTokenUsage,
   normalizeRootPath,
 } from "../utils/threadNormalize";
-import { saveThreadActivity } from "../utils/threadStorage";
+import {
+  loadThreadSummariesForWorkspace,
+  saveThreadActivity,
+  saveThreadSummariesForWorkspace,
+} from "../utils/threadStorage";
 import type { ThreadAction, ThreadState } from "./useThreadsReducer";
 
 type UseThreadActionsOptions = {
@@ -45,6 +53,7 @@ type UseThreadActionsOptions = {
     thread: Record<string, unknown>,
   ) => void;
   refreshThreadTokenUsage?: (workspaceId: string, threadId: string) => void;
+  resumeStreamingEnabled?: boolean;
 };
 
 function extractTokenUsageFromTurns(
@@ -74,6 +83,120 @@ function extractTokenUsageFromTurns(
   return null;
 }
 
+type ThreadListResponse = {
+  data: Record<string, unknown>[];
+  nextCursor: string | null;
+};
+
+function getNowMs() {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function parseThreadListResponse(response: unknown): ThreadListResponse {
+  if (!response || typeof response !== "object" || Array.isArray(response)) {
+    return { data: [], nextCursor: null };
+  }
+  const record = response as Record<string, unknown>;
+  const result =
+    record.result && typeof record.result === "object" && !Array.isArray(record.result)
+      ? (record.result as Record<string, unknown>)
+      : record;
+  const data = Array.isArray(result.data)
+    ? (result.data as Record<string, unknown>[])
+    : [];
+  const rawCursor = result.nextCursor ?? result.next_cursor ?? null;
+  const nextCursor = typeof rawCursor === "string" ? rawCursor : null;
+  return { data, nextCursor };
+}
+
+function yieldToMainThread() {
+  return new Promise<void>((resolve) => {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+}
+
+async function streamThreadItems({
+  thread,
+  threadId,
+  localItems,
+  shouldReplace,
+  dispatch,
+  onFirstChunk,
+  onChunk,
+}: {
+  thread: Record<string, unknown>;
+  threadId: string;
+  localItems: ConversationItem[];
+  shouldReplace: boolean;
+  dispatch: Dispatch<ThreadAction>;
+  onFirstChunk?: () => void;
+  onChunk?: (itemsCount: number) => void;
+}) {
+  const turns = Array.isArray(thread.turns) ? thread.turns : [];
+  const remoteItems: ConversationItem[] = [];
+  const batchSize = 120;
+  let lastFlushCount = 0;
+  let firstChunkSent = false;
+  const shouldMerge = localItems.length > 0 && !shouldReplace;
+
+  const flush = () => {
+    if (remoteItems.length === lastFlushCount) {
+      return;
+    }
+    let nextItems = remoteItems;
+    if (shouldMerge) {
+      nextItems = mergeThreadItems(remoteItems, localItems);
+    }
+    if (nextItems.length > 0 || localItems.length > 0) {
+      dispatch({ type: "setThreadItems", threadId, items: nextItems });
+    }
+    lastFlushCount = remoteItems.length;
+    if (!firstChunkSent) {
+      firstChunkSent = true;
+      onFirstChunk?.();
+    }
+    onChunk?.(remoteItems.length);
+  };
+
+  for (const turn of turns) {
+    if (!turn || typeof turn !== "object" || Array.isArray(turn)) {
+      continue;
+    }
+    const turnRecord = turn as Record<string, unknown>;
+    const turnItems = Array.isArray(turnRecord.items)
+      ? (turnRecord.items as Record<string, unknown>[])
+      : [];
+    for (const item of turnItems) {
+      const converted = buildConversationItemFromThreadItem(item);
+      if (converted) {
+        remoteItems.push(converted);
+      }
+      if (remoteItems.length - lastFlushCount >= batchSize) {
+        flush();
+        await yieldToMainThread();
+      }
+    }
+  }
+
+  flush();
+  const finalItems =
+    remoteItems.length > 0
+      ? shouldReplace
+        ? remoteItems
+        : shouldMerge
+          ? mergeThreadItems(remoteItems, localItems)
+          : remoteItems
+      : localItems;
+  return { items: finalItems };
+}
+
 export function useThreadActions({
   dispatch,
   itemsByThread,
@@ -88,7 +211,10 @@ export function useThreadActions({
   replaceOnResumeRef,
   applyCollabThreadLinksFromThread,
   refreshThreadTokenUsage,
+  resumeStreamingEnabled = false,
 }: UseThreadActionsOptions) {
+  const globalListInFlightRef = useRef<Promise<ThreadListResponse> | null>(null);
+  const threadPathByIdRef = useRef<Record<string, string>>({});
   const startThreadForWorkspace = useCallback(
     async (workspaceId: string, options?: { activate?: boolean }) => {
       const shouldActivate = options?.activate !== false;
@@ -164,18 +290,73 @@ export function useThreadActions({
         label: "thread/resume",
         payload: { workspaceId, threadId },
       });
+      const resumeStarted = getNowMs();
+      dispatch({ type: "setThreadLoading", threadId, isLoading: true });
+      let historyStreamId: string | null = null;
+      let shouldForceReplace = replaceLocal;
+      if (resumeStreamingEnabled) {
+        const historyPath = threadPathByIdRef.current[threadId];
+        if (historyPath) {
+          try {
+            historyStreamId = await startThreadHistoryStreamService(
+              workspaceId,
+              threadId,
+              historyPath,
+            );
+            shouldForceReplace = true;
+            onDebug?.({
+              id: `${Date.now()}-client-thread-history-stream-start`,
+              timestamp: Date.now(),
+              source: "client",
+              label: "thread/history stream start",
+              payload: { workspaceId, threadId, streamId: historyStreamId },
+            });
+            if (typeof console !== "undefined") {
+              console.info("[thread/history stream start]", {
+                workspaceId,
+                threadId,
+                streamId: historyStreamId,
+              });
+            }
+          } catch (error) {
+            onDebug?.({
+              id: `${Date.now()}-client-thread-history-stream-error`,
+              timestamp: Date.now(),
+              source: "error",
+              label: "thread/history stream error",
+              payload: error instanceof Error ? error.message : String(error),
+            });
+          }
+        } else {
+          onDebug?.({
+            id: `${Date.now()}-client-thread-history-stream-missing`,
+            timestamp: Date.now(),
+            source: "client",
+            label: "thread/history stream missing path",
+            payload: { workspaceId, threadId },
+          });
+        }
+      }
       try {
         const response =
           (await resumeThreadService(workspaceId, threadId)) as
             | Record<string, unknown>
             | null;
+        const resumeDurationMs = Math.round(getNowMs() - resumeStarted);
         onDebug?.({
           id: `${Date.now()}-server-thread-resume`,
           timestamp: Date.now(),
           source: "server",
           label: "thread/resume response",
-          payload: response,
+          payload: { response, durationMs: resumeDurationMs },
         });
+        if (typeof console !== "undefined") {
+          console.info("[thread/resume]", {
+            workspaceId,
+            threadId,
+            durationMs: resumeDurationMs,
+          });
+        }
         const result = (response?.result ?? response) as
           | Record<string, unknown>
           | null;
@@ -205,10 +386,9 @@ export function useThreadActions({
             }
           }
           applyCollabThreadLinksFromThread(threadId, thread);
-          const items = buildItemsFromThread(thread);
           const localItems = itemsByThread[threadId] ?? [];
           const shouldReplace =
-            replaceLocal || replaceOnResumeRef.current[threadId] === true;
+            shouldForceReplace || replaceOnResumeRef.current[threadId] === true;
           if (shouldReplace) {
             replaceOnResumeRef.current[threadId] = false;
           }
@@ -216,20 +396,64 @@ export function useThreadActions({
             loadedThreadsRef.current[threadId] = true;
             return threadId;
           }
-          const hasOverlap =
-            items.length > 0 &&
-            localItems.length > 0 &&
-            items.some((item) => localItems.some((local) => local.id === item.id));
-          const mergedItems =
-            items.length > 0
-              ? shouldReplace
-                ? items
-                : localItems.length > 0 && !hasOverlap
-                  ? localItems
-                  : mergeThreadItems(items, localItems)
-              : localItems;
-          if (mergedItems.length > 0) {
-            dispatch({ type: "setThreadItems", threadId, items: mergedItems });
+          let mergedItems: ConversationItem[] = localItems;
+          if (resumeStreamingEnabled && !historyStreamId) {
+            const streamStarted = getNowMs();
+            const streamed = await streamThreadItems({
+              thread,
+              threadId,
+              localItems,
+              shouldReplace,
+              dispatch,
+              onFirstChunk: () => {
+                dispatch({
+                  type: "setThreadLoading",
+                  threadId,
+                  isLoading: false,
+                });
+              },
+            });
+            mergedItems = streamed.items;
+            const streamDurationMs = Math.round(getNowMs() - streamStarted);
+            onDebug?.({
+              id: `${Date.now()}-client-thread-resume-stream`,
+              timestamp: Date.now(),
+              source: "client",
+              label: "thread/resume stream",
+              payload: {
+                workspaceId,
+                threadId,
+                items: mergedItems.length,
+                durationMs: streamDurationMs,
+              },
+            });
+            if (typeof console !== "undefined") {
+              console.info("[thread/resume stream]", {
+                workspaceId,
+                threadId,
+                items: mergedItems.length,
+                durationMs: streamDurationMs,
+              });
+            }
+          } else {
+            const items = buildItemsFromThread(thread);
+            const hasOverlap =
+              items.length > 0 &&
+              localItems.length > 0 &&
+              items.some((item) =>
+                localItems.some((local) => local.id === item.id),
+              );
+            mergedItems =
+              items.length > 0
+                ? shouldReplace
+                  ? items
+                  : localItems.length > 0 && !hasOverlap
+                    ? localItems
+                    : mergeThreadItems(items, localItems)
+                : localItems;
+            if (mergedItems.length > 0) {
+              dispatch({ type: "setThreadItems", threadId, items: mergedItems });
+            }
           }
           dispatch({
             type: "markReviewing",
@@ -275,6 +499,21 @@ export function useThreadActions({
           payload: error instanceof Error ? error.message : String(error),
         });
         return null;
+      } finally {
+        if (historyStreamId) {
+          try {
+            await stopThreadHistoryStreamService(threadId, historyStreamId);
+          } catch (error) {
+            onDebug?.({
+              id: `${Date.now()}-client-thread-history-stream-stop-error`,
+              timestamp: Date.now(),
+              source: "error",
+              label: "thread/history stream stop error",
+              payload: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+        dispatch({ type: "setThreadLoading", threadId, isLoading: false });
       }
     },
     [
@@ -285,6 +524,7 @@ export function useThreadActions({
       loadedThreadsRef,
       onDebug,
       replaceOnResumeRef,
+      resumeStreamingEnabled,
       refreshThreadTokenUsage,
       threadStatusById,
     ],
@@ -300,6 +540,59 @@ export function useThreadActions({
     },
     [replaceOnResumeRef, resumeThreadForWorkspace],
   );
+
+  const fetchGlobalThreadList = useCallback(async () => {
+    if (globalListInFlightRef.current) {
+      return globalListInFlightRef.current;
+    }
+    const promise = (async () => {
+      const startedAt = getNowMs();
+      try {
+        const response = await listThreadsGlobalService();
+        const parsed = parseThreadListResponse(response);
+        parsed.data.forEach((thread) => {
+          const id = String(thread?.id ?? "");
+          const path = asString(thread?.path ?? "").trim();
+          if (id && path) {
+            threadPathByIdRef.current[id] = path;
+          }
+        });
+        const durationMs = Math.round(getNowMs() - startedAt);
+        onDebug?.({
+          id: `${Date.now()}-client-thread-list-global`,
+          timestamp: Date.now(),
+          source: "client",
+          label: "thread/list global",
+          payload: {
+            totalFetched: parsed.data.length,
+            durationMs,
+          },
+        });
+        if (typeof console !== "undefined") {
+          console.info("[thread/list global]", {
+            totalFetched: parsed.data.length,
+            durationMs,
+          });
+        }
+        return parsed;
+      } catch (error) {
+        onDebug?.({
+          id: `${Date.now()}-client-thread-list-global-error`,
+          timestamp: Date.now(),
+          source: "error",
+          label: "thread/list global error",
+          payload: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+    })();
+    globalListInFlightRef.current = promise;
+    try {
+      return await promise;
+    } finally {
+      globalListInFlightRef.current = null;
+    }
+  }, [onDebug]);
 
   const resetWorkspaceThreads = useCallback(
     (workspaceId: string) => {
@@ -320,6 +613,15 @@ export function useThreadActions({
   const listThreadsForWorkspace = useCallback(
     async (workspace: WorkspaceInfo) => {
       const workspacePath = normalizeRootPath(workspace.path);
+      const cachedThreads = loadThreadSummariesForWorkspace(workspace.id);
+      const existingThreads = threadsByWorkspace[workspace.id] ?? [];
+      if (existingThreads.length === 0 && cachedThreads.length > 0) {
+        dispatch({
+          type: "setThreads",
+          workspaceId: workspace.id,
+          threads: cachedThreads,
+        });
+      }
       dispatch({
         type: "setThreadListLoading",
         workspaceId: workspace.id,
@@ -338,78 +640,46 @@ export function useThreadActions({
         payload: { workspaceId: workspace.id, path: workspace.path },
       });
       try {
-        const knownActivityByThread = threadActivityRef.current[workspace.id] ?? {};
-        const hasKnownActivity = Object.keys(knownActivityByThread).length > 0;
-        const matchingThreads: Record<string, unknown>[] = [];
-        const targetCount = 20;
-        const pageSize = 20;
-        const maxPagesWithoutMatch = hasKnownActivity ? Number.POSITIVE_INFINITY : 5;
-        let pagesFetched = 0;
-        let cursor: string | null = null;
-        do {
-          pagesFetched += 1;
-          const response =
-            (await listThreadsService(
-              workspace.id,
-              cursor,
-              pageSize,
-            )) as Record<string, unknown>;
-          onDebug?.({
-            id: `${Date.now()}-server-thread-list`,
-            timestamp: Date.now(),
-            source: "server",
-            label: "thread/list response",
-            payload: response,
+        const fetchStarted = getNowMs();
+        const { data } = await fetchGlobalThreadList();
+        const fetchDurationMs = Math.round(getNowMs() - fetchStarted);
+        const sampleCwds = Array.from(
+          new Set(
+            data
+              .map((thread) => String(thread?.cwd ?? ""))
+              .filter((cwd) => cwd.length > 0),
+          ),
+        ).slice(0, 5);
+        const matchingThreads = data.filter(
+          (thread) =>
+            normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath,
+        );
+        onDebug?.({
+          id: `${Date.now()}-client-thread-list-summary`,
+          timestamp: Date.now(),
+          source: "client",
+          label: "thread/list summary",
+          payload: {
+            workspaceId: workspace.id,
+            workspacePath,
+            totalFetched: data.length,
+            matched: matchingThreads.length,
+            sampleCwds,
+            fetchDurationMs,
+          },
+        });
+        if (typeof console !== "undefined") {
+          console.info("[thread/list]", {
+            workspaceId: workspace.id,
+            workspacePath,
+            totalFetched: data.length,
+            matched: matchingThreads.length,
+            sampleCwds,
+            fetchDurationMs,
           });
-          const result = (response.result ?? response) as Record<string, unknown>;
-          const data = Array.isArray(result?.data)
-            ? (result.data as Record<string, unknown>[])
-            : [];
-          const nextCursor =
-            (result?.nextCursor ?? result?.next_cursor ?? null) as string | null;
-          const sampleCwds = Array.from(
-            new Set(
-              data
-                .map((thread) => String(thread?.cwd ?? ""))
-                .filter((cwd) => cwd.length > 0),
-            ),
-          ).slice(0, 5);
-          matchingThreads.push(
-            ...data.filter(
-              (thread) =>
-                normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath,
-            ),
-          );
-          if (pagesFetched === 1) {
-            onDebug?.({
-              id: `${Date.now()}-client-thread-list-summary`,
-              timestamp: Date.now(),
-              source: "client",
-              label: "thread/list summary",
-              payload: {
-                workspaceId: workspace.id,
-                workspacePath,
-                totalFetched: data.length,
-                matched: matchingThreads.length,
-                sampleCwds,
-              },
-            });
-            if (typeof console !== "undefined") {
-              console.info("[thread/list]", {
-                workspaceId: workspace.id,
-                workspacePath,
-                totalFetched: data.length,
-                matched: matchingThreads.length,
-                sampleCwds,
-              });
-            }
-          }
-          cursor = nextCursor;
-          if (matchingThreads.length === 0 && pagesFetched >= maxPagesWithoutMatch) {
-            break;
-          }
-        } while (cursor && matchingThreads.length < targetCount);
+        }
 
+        const applyStarted = getNowMs();
         const uniqueById = new Map<string, Record<string, unknown>>();
         matchingThreads.forEach((thread) => {
           const id = String(thread?.id ?? "");
@@ -425,6 +695,10 @@ export function useThreadActions({
           const threadId = String(thread?.id ?? "");
           if (!threadId) {
             return;
+          }
+          const path = asString(thread?.path ?? "").trim();
+          if (path) {
+            threadPathByIdRef.current[threadId] = path;
           }
           const timestamp = getThreadTimestamp(thread);
           if (timestamp > (nextActivityByThread[threadId] ?? 0)) {
@@ -450,7 +724,6 @@ export function useThreadActions({
           return bActivity - aActivity;
         });
         const summaries = uniqueThreads
-          .slice(0, targetCount)
           .map((thread, index) => {
             const id = String(thread?.id ?? "");
             const preview = asString(thread?.preview ?? "").trim();
@@ -470,29 +743,46 @@ export function useThreadActions({
             };
           })
           .filter((entry) => entry.id);
-        dispatch({
-          type: "setThreads",
-          workspaceId: workspace.id,
-          threads: summaries,
-        });
+        const shouldUpdateThreads =
+          summaries.length > 0 || (!cachedThreads.length && !existingThreads.length);
+        if (shouldUpdateThreads) {
+          dispatch({
+            type: "setThreads",
+            workspaceId: workspace.id,
+            threads: summaries,
+          });
+          if (summaries.length > 0) {
+            saveThreadSummariesForWorkspace(workspace.id, summaries);
+          }
+        }
         dispatch({
           type: "setThreadListCursor",
           workspaceId: workspace.id,
-          cursor,
+          cursor: null,
         });
-        uniqueThreads.forEach((thread) => {
-          const threadId = String(thread?.id ?? "");
-          const preview = asString(thread?.preview ?? "").trim();
-          if (!threadId || !preview) {
-            return;
-          }
-          dispatch({
-            type: "setLastAgentMessage",
-            threadId,
-            text: preview,
-            timestamp: getThreadTimestamp(thread),
+        const applyDurationMs = Math.round(getNowMs() - applyStarted);
+        if (typeof console !== "undefined") {
+          console.info("[thread/list apply]", {
+            workspaceId: workspace.id,
+            matched: matchingThreads.length,
+            durationMs: applyDurationMs,
           });
-        });
+        }
+        if (shouldUpdateThreads) {
+          uniqueThreads.forEach((thread) => {
+            const threadId = String(thread?.id ?? "");
+            const preview = asString(thread?.preview ?? "").trim();
+            if (!threadId || !preview) {
+              return;
+            }
+            dispatch({
+              type: "setLastAgentMessage",
+              threadId,
+              text: preview,
+              timestamp: getThreadTimestamp(thread),
+            });
+          });
+        }
       } catch (error) {
         onDebug?.({
           id: `${Date.now()}-client-thread-list-error`,
@@ -509,7 +799,14 @@ export function useThreadActions({
         });
       }
     },
-    [dispatch, getCustomName, onDebug, threadActivityRef],
+    [
+      dispatch,
+      fetchGlobalThreadList,
+      getCustomName,
+      onDebug,
+      threadActivityRef,
+      threadsByWorkspace,
+    ],
   );
 
   const loadOlderThreadsForWorkspace = useCallback(
@@ -558,6 +855,13 @@ export function useThreadActions({
           const data = Array.isArray(result?.data)
             ? (result.data as Record<string, unknown>[])
             : [];
+          data.forEach((thread) => {
+            const id = String(thread?.id ?? "");
+            const path = asString(thread?.path ?? "").trim();
+            if (id && path) {
+              threadPathByIdRef.current[id] = path;
+            }
+          });
           const next =
             (result?.nextCursor ?? result?.next_cursor ?? null) as string | null;
           matchingThreads.push(
@@ -594,11 +898,13 @@ export function useThreadActions({
         });
 
         if (additions.length > 0) {
+          const nextThreads = [...existing, ...additions];
           dispatch({
             type: "setThreads",
             workspaceId: workspace.id,
-            threads: [...existing, ...additions],
+            threads: nextThreads,
           });
+          saveThreadSummariesForWorkspace(workspace.id, nextThreads);
         }
         dispatch({
           type: "setThreadListCursor",

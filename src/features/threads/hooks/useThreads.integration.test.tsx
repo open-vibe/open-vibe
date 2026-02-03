@@ -6,7 +6,7 @@ import type { useAppServerEvents } from "../../app/hooks/useAppServerEvents";
 import { useThreadRows } from "../../app/hooks/useThreadRows";
 import {
   interruptTurn,
-  listThreads,
+  listThreadsGlobal,
   resumeThread,
 } from "../../../services/tauri";
 import { useThreads } from "./useThreads";
@@ -29,6 +29,7 @@ vi.mock("../../../services/tauri", () => ({
   startReview: vi.fn(),
   startThread: vi.fn(),
   listThreads: vi.fn(),
+  listThreadsGlobal: vi.fn(),
   resumeThread: vi.fn(),
   archiveThread: vi.fn(),
   getAccountRateLimits: vi.fn(),
@@ -367,7 +368,7 @@ describe("useThreads UX integration", () => {
   });
 
   it("orders thread lists, applies custom names, and keeps pin ordering stable", async () => {
-    const listThreadsMock = vi.mocked(listThreads);
+    const listThreadsMock = vi.mocked(listThreadsGlobal);
     listThreadsMock.mockResolvedValue({
       result: {
         data: [

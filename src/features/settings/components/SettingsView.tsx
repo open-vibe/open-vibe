@@ -2077,6 +2077,47 @@ export function SettingsView({
                     </div>
                     <Separator />
                     <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">
+                          {t("settings.composer.sendMode.title")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.composer.sendMode.subtitle")}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="composer-send-mode">
+                          {t("settings.composer.sendMode.label")}
+                        </Label>
+                        <Select
+                          value={appSettings.composerSendBehavior}
+                          onValueChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              composerSendBehavior:
+                                value as AppSettings["composerSendBehavior"],
+                            })
+                          }
+                        >
+                          <SelectTrigger id="composer-send-mode">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="enter">
+                              {t("settings.composer.sendMode.enter")}
+                            </SelectItem>
+                            <SelectItem value="ctrl-enter">
+                              {t("settings.composer.sendMode.ctrlEnter")}
+                            </SelectItem>
+                            <SelectItem value="smart">
+                              {t("settings.composer.sendMode.smart")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
                       <div className="text-sm font-medium">
                         {t("settings.composer.codeFences.title")}
                       </div>
@@ -4325,6 +4366,32 @@ export function SettingsView({
                             void onUpdateAppSettings({
                               ...appSettings,
                               experimentalUnifiedExecEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="experimental-thread-resume-stream">
+                            {t(
+                              "settings.experimental.threadResumeStreaming.title",
+                            )}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t(
+                              "settings.experimental.threadResumeStreaming.subtitle",
+                            )}
+                          </div>
+                        </div>
+                        <Switch
+                          id="experimental-thread-resume-stream"
+                          checked={
+                            appSettings.experimentalThreadResumeStreamingEnabled
+                          }
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              experimentalThreadResumeStreamingEnabled: value,
                             })
                           }
                         />

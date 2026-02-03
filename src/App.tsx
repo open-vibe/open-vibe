@@ -656,6 +656,7 @@ function MainApp() {
     collaborationMode: collaborationModePayload,
     accessMode,
     steerEnabled: appSettings.experimentalSteerEnabled,
+    resumeStreamingEnabled: appSettings.experimentalThreadResumeStreamingEnabled,
     customPrompts: prompts,
     onMessageActivity: queueGitStatusRefresh,
     happyEnabled,
@@ -1447,8 +1448,7 @@ function MainApp() {
   useWorkspaceRestore({
     workspaces,
     hasLoaded,
-    connectWorkspace,
-    listThreadsForWorkspace
+    listThreadsForWorkspace,
   });
   useWorkspaceRefreshOnFocus({
     workspaces,
@@ -1835,6 +1835,10 @@ function MainApp() {
       setHomeView(false);
       selectWorkspace(workspaceId);
       setActiveThreadId(null, workspaceId);
+      const workspace = workspacesById.get(workspaceId);
+      if (workspace && !workspace.connected) {
+        void connectWorkspace(workspace);
+      }
     },
     onConnectWorkspace: async (workspace) => {
       await connectWorkspace(workspace);
@@ -1858,8 +1862,18 @@ function MainApp() {
       exitDiffView();
       resetPullRequestSelection();
       setHomeView(false);
-      selectWorkspace(workspaceId);
-      openThreadTabForWorkspace(workspaceId, threadId);
+      const workspace = workspacesById.get(workspaceId);
+      void (async () => {
+        if (workspace && !workspace.connected) {
+          try {
+            await connectWorkspace(workspace);
+          } catch {
+            // Ignore connect errors; thread list will still open.
+          }
+        }
+        selectWorkspace(workspaceId);
+        openThreadTabForWorkspace(workspaceId, threadId);
+      })();
     },
     onDeleteThread: (workspaceId, threadId) => {
       removeThread(workspaceId, threadId);
@@ -1917,8 +1931,18 @@ function MainApp() {
     onUsageWorkspaceChange: setUsageWorkspaceId,
     onSelectHomeThread: (workspaceId, threadId) => {
       exitDiffView();
-      selectWorkspace(workspaceId);
-      openThreadTabForWorkspace(workspaceId, threadId);
+      const workspace = workspacesById.get(workspaceId);
+      void (async () => {
+        if (workspace && !workspace.connected) {
+          try {
+            await connectWorkspace(workspace);
+          } catch {
+            // Ignore connect errors; thread list will still open.
+          }
+        }
+        selectWorkspace(workspaceId);
+        openThreadTabForWorkspace(workspaceId, threadId);
+      })();
       if (isCompact) {
         setActiveTab("codex");
       }
@@ -2110,6 +2134,7 @@ function MainApp() {
     composerEditorSettings,
     composerEditorExpanded,
     onToggleComposerEditorExpanded: toggleComposerEditorExpanded,
+    composerSendBehavior: appSettings.composerSendBehavior,
     dictationEnabled: appSettings.dictationEnabled && dictationReady,
     dictationState,
     dictationLevel,

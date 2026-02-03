@@ -1,1 +1,15 @@
-/* Legacy sidebar styles removed in shadcn migration. */
+.open-vibe-app-icon {
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.open-vibe-app-icon__image {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.dark .open-vibe-app-icon {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}

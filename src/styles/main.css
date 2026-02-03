@@ -880,6 +880,34 @@
   position: relative;
 }
 
+.thread-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-messages);
+  background: color-mix(in srgb, var(--surface-messages) 88%, transparent);
+  -webkit-app-region: no-drag;
+}
+
+.thread-loading-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-right-panel);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.thread-loading-text {
+  white-space: nowrap;
+}
+
 .content-layer {
   position: absolute;
   inset: 0;

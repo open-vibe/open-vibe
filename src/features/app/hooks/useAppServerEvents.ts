@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type {
   AppServerEvent,
   ApprovalRequest,
+  ConversationItem,
   RequestUserInputRequest,
 } from "../../../types";
 import { subscribeAppServerEvents } from "../../../services/events";
@@ -28,6 +29,17 @@ type AppServerEventHandlers = {
   onAgentMessageDelta?: (event: AgentDelta) => void;
   onAgentMessageCompleted?: (event: AgentCompleted) => void;
   onAppServerEvent?: (event: AppServerEvent) => void;
+  onThreadHistoryChunk?: (
+    workspaceId: string,
+    threadId: string,
+    streamId: string,
+    items: ConversationItem[],
+  ) => void;
+  onThreadHistoryCompleted?: (
+    workspaceId: string,
+    threadId: string,
+    streamId: string,
+  ) => void;
   onTurnStarted?: (workspaceId: string, threadId: string, turnId: string) => void;
   onTurnCompleted?: (workspaceId: string, threadId: string, turnId: string) => void;
   onTurnError?: (
@@ -231,6 +243,31 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
       const { workspace_id, message } = payload;
       const method = String(message.method ?? "");
       const params = (message.params as Record<string, unknown>) ?? null;
+
+      if (method === "openvibe/thread_history/chunk") {
+        const threadId = String(params?.threadId ?? params?.thread_id ?? "");
+        const streamId = String(params?.streamId ?? "");
+        const items = Array.isArray(params?.items)
+          ? (params?.items as ConversationItem[])
+          : [];
+        if (threadId && streamId && items.length > 0) {
+          handlers.onThreadHistoryChunk?.(
+            workspace_id,
+            threadId,
+            streamId,
+            items,
+          );
+        }
+        return;
+      }
+      if (method === "openvibe/thread_history/done") {
+        const threadId = String(params?.threadId ?? params?.thread_id ?? "");
+        const streamId = String(params?.streamId ?? "");
+        if (threadId && streamId) {
+          handlers.onThreadHistoryCompleted?.(workspace_id, threadId, streamId);
+        }
+        return;
+      }
 
       let tokenUsageHandled = false;
       const usageCandidate = extractTokenUsageFromParams(params);

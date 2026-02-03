@@ -98,6 +98,7 @@ describe("threadReducer", () => {
             isProcessing: false,
             hasUnread: false,
             isReviewing: false,
+            isLoading: false,
             processingStartedAt: null,
             lastDurationMs: null,
           },

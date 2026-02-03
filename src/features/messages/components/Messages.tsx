@@ -24,6 +24,7 @@ import { languageFromPath } from "../../../utils/syntax";
 import { cleanCommandText } from "../../../utils/commandText";
 import { useFileLinkOpener } from "../hooks/useFileLinkOpener";
 import { RequestUserInputMessage } from "../../app/components/RequestUserInputMessage";
+import { useI18n } from "../../../i18n";
 
 type MessagesProps = {
   items: ConversationItem[];
@@ -839,6 +840,7 @@ export const Messages = memo(function Messages({
   userInputRequests = [],
   onUserInputSubmit,
 }: MessagesProps) {
+  const { t } = useI18n();
   const SCROLL_THRESHOLD_PX = 120;
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1105,7 +1107,7 @@ export const Messages = memo(function Messages({
       />
       {!items.length && !userInputNode && (
         <div className="empty messages-empty">
-          Start a thread and send a prompt to the agent.
+          {t("messages.empty")}
         </div>
       )}
       <div ref={bottomRef} />

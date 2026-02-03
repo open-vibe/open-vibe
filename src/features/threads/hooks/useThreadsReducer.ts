@@ -111,6 +111,7 @@ type ThreadActivityStatus = {
   isProcessing: boolean;
   hasUnread: boolean;
   isReviewing: boolean;
+  isLoading: boolean;
   processingStartedAt: number | null;
   lastDurationMs: number | null;
 };
@@ -138,6 +139,7 @@ export type ThreadAction =
   | { type: "ensureThread"; workspaceId: string; threadId: string }
   | { type: "removeThread"; workspaceId: string; threadId: string }
   | { type: "setThreadParent"; threadId: string; parentId: string }
+  | { type: "setThreadLoading"; threadId: string; isLoading: boolean }
   | {
       type: "markProcessing";
       threadId: string;
@@ -347,6 +349,8 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
                 hasUnread: false,
                 isReviewing:
                   state.threadStatusById[action.threadId]?.isReviewing ?? false,
+                isLoading:
+                  state.threadStatusById[action.threadId]?.isLoading ?? false,
                 processingStartedAt:
                   state.threadStatusById[action.threadId]?.processingStartedAt ??
                   null,
@@ -378,6 +382,7 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
             isProcessing: false,
             hasUnread: false,
             isReviewing: false,
+            isLoading: false,
             processingStartedAt: null,
             lastDurationMs: null,
           },
@@ -447,6 +452,7 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
               isProcessing: true,
               hasUnread: previous?.hasUnread ?? false,
               isReviewing: previous?.isReviewing ?? false,
+              isLoading: previous?.isLoading ?? false,
               processingStartedAt:
                 wasProcessing && startedAt ? startedAt : action.timestamp,
               lastDurationMs,
@@ -466,6 +472,7 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
             isProcessing: false,
             hasUnread: previous?.hasUnread ?? false,
             isReviewing: previous?.isReviewing ?? false,
+            isLoading: previous?.isLoading ?? false,
             processingStartedAt: null,
             lastDurationMs: nextDuration,
           },
@@ -490,6 +497,7 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
               state.threadStatusById[action.threadId]?.isProcessing ?? false,
             hasUnread: state.threadStatusById[action.threadId]?.hasUnread ?? false,
             isReviewing: action.isReviewing,
+            isLoading: state.threadStatusById[action.threadId]?.isLoading ?? false,
             processingStartedAt:
               state.threadStatusById[action.threadId]?.processingStartedAt ?? null,
             lastDurationMs:
@@ -508,6 +516,7 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
             hasUnread: action.hasUnread,
             isReviewing:
               state.threadStatusById[action.threadId]?.isReviewing ?? false,
+            isLoading: state.threadStatusById[action.threadId]?.isLoading ?? false,
             processingStartedAt:
               state.threadStatusById[action.threadId]?.processingStartedAt ?? null,
             lastDurationMs:
@@ -515,6 +524,23 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
           },
         },
       };
+    case "setThreadLoading": {
+      const previous = state.threadStatusById[action.threadId];
+      return {
+        ...state,
+        threadStatusById: {
+          ...state.threadStatusById,
+          [action.threadId]: {
+            isProcessing: previous?.isProcessing ?? false,
+            hasUnread: previous?.hasUnread ?? false,
+            isReviewing: previous?.isReviewing ?? false,
+            isLoading: action.isLoading,
+            processingStartedAt: previous?.processingStartedAt ?? null,
+            lastDurationMs: previous?.lastDurationMs ?? null,
+          },
+        },
+      };
+    }
     case "addAssistantMessage": {
       const list = state.itemsByThread[action.threadId] ?? [];
       const message: ConversationItem = {

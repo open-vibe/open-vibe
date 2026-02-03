@@ -1,3 +1,4 @@
+use std::time::Instant;
 use tauri::Manager;
 #[cfg(target_os = "macos")]
 use tauri::{RunEvent, WindowEvent};
@@ -76,6 +77,25 @@ pub fn run() {
                     eprintln!("happy bridge apply failed: {error}");
                 }
             });
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<state::AppState>();
+                if remote_backend::is_remote_mode(&*state).await {
+                    return;
+                }
+                let start = Instant::now();
+                match codex::ensure_global_session(&state, &app_handle).await {
+                    Ok(_) => {
+                        eprintln!(
+                            "[perf] global app-server ready ms={}",
+                            start.elapsed().as_millis()
+                        );
+                    }
+                    Err(error) => {
+                        eprintln!("[perf] global app-server failed: {error}");
+                    }
+                }
+            });
             #[cfg(desktop)]
             {
                 app.handle()
@@ -126,6 +146,9 @@ pub fn run() {
             codex::generate_run_metadata,
             codex::resume_thread,
             codex::list_threads,
+            codex::list_threads_global,
+            codex::stream_thread_history,
+            codex::stop_thread_history_stream,
             codex::archive_thread,
             codex::collaboration_mode_list,
             workspaces::connect_workspace,

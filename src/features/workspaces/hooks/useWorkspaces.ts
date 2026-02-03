@@ -375,8 +375,18 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
       label: "workspace/connect",
       payload: { workspaceId: entry.id, path: entry.path },
     });
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
     try {
       await connectWorkspaceService(entry.id);
+      const durationMs = Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
+      );
+      if (typeof console !== "undefined") {
+        console.info("[workspace/connect]", {
+          workspaceId: entry.id,
+          durationMs,
+        });
+      }
     } catch (error) {
       onDebug?.({
         id: `${Date.now()}-client-connect-workspace-error`,

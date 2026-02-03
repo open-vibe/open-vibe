@@ -437,6 +437,11 @@ pub(crate) struct AppSettings {
     )]
     pub(crate) experimental_unified_exec_enabled: bool,
     #[serde(
+        default = "default_experimental_thread_resume_streaming_enabled",
+        rename = "experimentalThreadResumeStreamingEnabled"
+    )]
+    pub(crate) experimental_thread_resume_streaming_enabled: bool,
+    #[serde(
         default = "default_experimental_yunyi_enabled",
         rename = "experimentalYunyiEnabled"
     )]
@@ -462,6 +467,11 @@ pub(crate) struct AppSettings {
     pub(crate) dictation_hold_key: String,
     #[serde(default = "default_composer_editor_preset", rename = "composerEditorPreset")]
     pub(crate) composer_editor_preset: String,
+    #[serde(
+        default = "default_composer_send_behavior",
+        rename = "composerSendBehavior"
+    )]
+    pub(crate) composer_send_behavior: String,
     #[serde(default = "default_composer_fence_expand_on_space", rename = "composerFenceExpandOnSpace")]
     pub(crate) composer_fence_expand_on_space: bool,
     #[serde(default = "default_composer_fence_expand_on_enter", rename = "composerFenceExpandOnEnter")]
@@ -640,6 +650,10 @@ fn default_experimental_unified_exec_enabled() -> bool {
     false
 }
 
+fn default_experimental_thread_resume_streaming_enabled() -> bool {
+    false
+}
+
 fn default_experimental_yunyi_enabled() -> bool {
     false
 }
@@ -662,6 +676,10 @@ fn default_dictation_hold_key() -> String {
 
 fn default_composer_editor_preset() -> String {
     "default".to_string()
+}
+
+fn default_composer_send_behavior() -> String {
+    "enter".to_string()
 }
 
 fn default_composer_fence_expand_on_space() -> bool {
@@ -801,6 +819,7 @@ impl Default for AppSettings {
             experimental_collaboration_modes_enabled: false,
             experimental_steer_enabled: false,
             experimental_unified_exec_enabled: false,
+            experimental_thread_resume_streaming_enabled: false,
             experimental_yunyi_enabled: false,
             experimental_yunyi_token: default_experimental_yunyi_token(),
             dictation_enabled: false,
@@ -808,6 +827,7 @@ impl Default for AppSettings {
             dictation_preferred_language: None,
             dictation_hold_key: default_dictation_hold_key(),
             composer_editor_preset: default_composer_editor_preset(),
+            composer_send_behavior: default_composer_send_behavior(),
             composer_fence_expand_on_space: default_composer_fence_expand_on_space(),
             composer_fence_expand_on_enter: default_composer_fence_expand_on_enter(),
             composer_fence_language_tags: default_composer_fence_language_tags(),
@@ -902,6 +922,7 @@ mod tests {
         assert_eq!(settings.code_font_size, 11);
         assert!(settings.notification_sounds_enabled);
         assert!(!settings.experimental_steer_enabled);
+        assert!(!settings.experimental_thread_resume_streaming_enabled);
         assert!(!settings.experimental_yunyi_enabled);
         assert!(settings.experimental_yunyi_token.is_empty());
         assert!(!settings.dictation_enabled);
@@ -909,6 +930,7 @@ mod tests {
         assert!(settings.dictation_preferred_language.is_none());
         assert_eq!(settings.dictation_hold_key, "alt");
         assert_eq!(settings.composer_editor_preset, "default");
+        assert_eq!(settings.composer_send_behavior, "enter");
         assert!(!settings.composer_fence_expand_on_space);
         assert!(!settings.composer_fence_expand_on_enter);
         assert!(!settings.composer_fence_language_tags);

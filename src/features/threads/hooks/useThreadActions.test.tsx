@@ -5,6 +5,7 @@ import type { ConversationItem, WorkspaceInfo } from "../../../types";
 import {
   archiveThread,
   listThreads,
+  listThreadsGlobal,
   resumeThread,
   startThread,
 } from "../../../services/tauri";
@@ -28,12 +29,16 @@ vi.mock("../../../services/tauri", () => ({
   startThread: vi.fn(),
   resumeThread: vi.fn(),
   listThreads: vi.fn(),
+  listThreadsGlobal: vi.fn(),
   archiveThread: vi.fn(),
+  startThreadHistoryStream: vi.fn(),
+  stopThreadHistoryStream: vi.fn(),
   getThreadTokenUsage: vi.fn(),
 }));
 
 vi.mock("../../../utils/threadItems", () => ({
   buildItemsFromThread: vi.fn(),
+  buildConversationItemFromThreadItem: vi.fn(),
   getThreadTimestamp: vi.fn(),
   isReviewingFromThread: vi.fn(),
   mergeThreadItems: vi.fn(),
@@ -42,6 +47,8 @@ vi.mock("../../../utils/threadItems", () => ({
 
 vi.mock("../utils/threadStorage", () => ({
   saveThreadActivity: vi.fn(),
+  loadThreadSummariesForWorkspace: vi.fn(() => []),
+  saveThreadSummariesForWorkspace: vi.fn(),
 }));
 
 describe("useThreadActions", () => {
@@ -164,6 +171,7 @@ describe("useThreadActions", () => {
           isProcessing: true,
           hasUnread: false,
           isReviewing: false,
+          isLoading: false,
           processingStartedAt: 123,
           lastDurationMs: null,
         },
@@ -250,7 +258,7 @@ describe("useThreadActions", () => {
   });
 
   it("lists threads for a workspace and persists activity", async () => {
-    vi.mocked(listThreads).mockResolvedValue({
+    vi.mocked(listThreadsGlobal).mockResolvedValue({
       result: {
         data: [
           {
@@ -284,7 +292,7 @@ describe("useThreadActions", () => {
       await result.current.listThreadsForWorkspace(workspace);
     });
 
-    expect(listThreads).toHaveBeenCalled();
+    expect(listThreadsGlobal).toHaveBeenCalled();
     expect(dispatch).toHaveBeenCalledWith({
       type: "setThreadListLoading",
       workspaceId: "ws-1",
@@ -304,7 +312,7 @@ describe("useThreadActions", () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: "setThreadListCursor",
       workspaceId: "ws-1",
-      cursor: "cursor-1",
+      cursor: null,
     });
     expect(saveThreadActivity).toHaveBeenCalledWith({
       "ws-1": { "thread-1": 5000 },

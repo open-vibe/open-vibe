@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ClipboardEvent } from "react";
 import type {
   ComposerEditorSettings,
+  ComposerSendBehavior,
   CustomPromptOption,
   DictationTranscript,
   QueuedMessage,
@@ -51,6 +52,7 @@ type ComposerProps = {
   onEditQueued?: (item: QueuedMessage) => void;
   onDeleteQueued?: (id: string) => void;
   sendLabel?: string;
+  sendBehavior?: ComposerSendBehavior;
   draftText?: string;
   onDraftChange?: (text: string, options?: { immediate?: boolean }) => void;
   historyKey?: string | null;
@@ -118,6 +120,7 @@ export function Composer({
   onEditQueued,
   onDeleteQueued,
   sendLabel = "Send",
+  sendBehavior: sendBehaviorProp = "enter",
   draftText = "",
   onDraftChange,
   historyKey = null,
@@ -154,6 +157,10 @@ export function Composer({
   const { t } = useI18n();
   const dictationUnavailableMessage = t("composer.dictation.unavailable");
   const canSend = text.trim().length > 0 || attachedImages.length > 0;
+  const sendBehavior = sendBehaviorProp ?? "enter";
+  const hasNewline = text.includes("\n");
+  const shouldSendOnEnter =
+    sendBehavior === "enter" || (sendBehavior === "smart" && !hasNewline);
   const {
     expandFenceOnSpace,
     expandFenceOnEnter,
@@ -536,6 +543,19 @@ export function Composer({
             return;
           }
           if (
+            event.key === "Enter" &&
+            (event.ctrlKey || event.metaKey) &&
+            !event.shiftKey
+          ) {
+            if (isDictationBusy) {
+              event.preventDefault();
+              return;
+            }
+            event.preventDefault();
+            handleSend();
+            return;
+          }
+          if (
             event.key === "Tab" &&
             !event.shiftKey &&
             steerEnabled &&
@@ -564,6 +584,19 @@ export function Composer({
             }
             if (isDictationBusy) {
               event.preventDefault();
+              return;
+            }
+            if (!shouldSendOnEnter) {
+              event.preventDefault();
+              const textarea = textareaRef.current;
+              if (!textarea) {
+                return;
+              }
+              const start = textarea.selectionStart ?? text.length;
+              const end = textarea.selectionEnd ?? start;
+              const nextText = `${text.slice(0, start)}\n${text.slice(end)}`;
+              const nextCursor = start + 1;
+              applyTextInsertion(nextText, nextCursor);
               return;
             }
             event.preventDefault();

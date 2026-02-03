@@ -1,19 +1,24 @@
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::io::ErrorKind;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, State};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
 use tokio::time::timeout;
+use uuid::Uuid;
 
 pub(crate) use crate::backend::app_server::WorkspaceSession;
 use crate::backend::app_server::{
     build_codex_command_with_bin, build_codex_path_env, check_codex_installation,
     spawn_workspace_session as spawn_workspace_session_inner,
 };
+use crate::backend::events::EventSink;
 use crate::codex_args::apply_codex_args;
 use crate::codex_config;
 use crate::codex_home::{resolve_default_codex_home, resolve_workspace_codex_home};
@@ -21,7 +26,111 @@ use crate::event_sink::TauriEventSink;
 use crate::remote_backend;
 use crate::rules;
 use crate::state::AppState;
-use crate::types::WorkspaceEntry;
+use crate::types::{WorkspaceEntry, WorkspaceKind, WorkspaceSettings};
+
+const GLOBAL_WORKSPACE_ID: &str = "__global__";
+
+#[derive(Clone)]
+pub(crate) struct HistoryStreamState {
+    pub(crate) stream_id: String,
+    pub(crate) cancel: Arc<AtomicBool>,
+}
+
+#[derive(Deserialize)]
+struct RolloutLine {
+    #[serde(rename = "type")]
+    kind: Option<String>,
+    payload: Option<Value>,
+}
+
+#[derive(Serialize)]
+struct StreamMessage {
+    id: String,
+    kind: String,
+    role: String,
+    text: String,
+}
+
+fn extract_response_item_text(payload: &Value) -> Option<String> {
+    if let Some(content) = payload.get("content") {
+        if let Some(arr) = content.as_array() {
+            let parts: Vec<String> = arr
+                .iter()
+                .filter_map(|entry| {
+                    entry
+                        .get("text")
+                        .and_then(|text| text.as_str())
+                        .map(|text| text.to_string())
+                })
+                .filter(|text| !text.trim().is_empty())
+                .collect();
+            if !parts.is_empty() {
+                return Some(if parts.len() == 1 {
+                    parts[0].clone()
+                } else {
+                    parts.join("\n")
+                });
+            }
+        } else if let Some(text) = content.as_str() {
+            if !text.trim().is_empty() {
+                return Some(text.to_string());
+            }
+        }
+    }
+    payload
+        .get("text")
+        .and_then(|text| text.as_str())
+        .map(|text| text.to_string())
+}
+
+fn build_stream_message(
+    thread_id: &str,
+    message_index: &mut u64,
+    role: &str,
+    text: &str,
+) -> Option<StreamMessage> {
+    if role != "user" && role != "assistant" {
+        return None;
+    }
+    if text.trim().is_empty() {
+        return None;
+    }
+    *message_index = message_index.saturating_add(1);
+    Some(StreamMessage {
+        id: format!("history-{thread_id}-{message_index}"),
+        kind: "message".to_string(),
+        role: role.to_string(),
+        text: text.to_string(),
+    })
+}
+
+fn extract_event_stream_message(
+    payload: &Value,
+    thread_id: &str,
+    message_index: &mut u64,
+) -> Option<StreamMessage> {
+    let event_type = payload.get("type")?.as_str()?;
+    let (role, text) = match event_type {
+        "user_message" => ("user", payload.get("message")?.as_str()?),
+        "agent_message" => ("assistant", payload.get("message")?.as_str()?),
+        _ => return None,
+    };
+    build_stream_message(thread_id, message_index, role, text)
+}
+
+fn extract_response_item_stream_message(
+    payload: &Value,
+    thread_id: &str,
+    message_index: &mut u64,
+) -> Option<StreamMessage> {
+    if payload.get("type")?.as_str()? != "message" {
+        return None;
+    }
+    let role = payload.get("role")?.as_str()?;
+    let text = extract_response_item_text(payload)?;
+    build_stream_message(thread_id, message_index, role, &text)
+}
+
 
 pub(crate) async fn spawn_workspace_session(
     entry: WorkspaceEntry,
@@ -41,6 +150,72 @@ pub(crate) async fn spawn_workspace_session(
         event_sink,
     )
     .await
+}
+
+pub(crate) async fn ensure_global_session(
+    state: &AppState,
+    app_handle: &AppHandle,
+) -> Result<Arc<WorkspaceSession>, String> {
+    if remote_backend::is_remote_mode(state).await {
+        return Err("global session unavailable in remote backend mode".to_string());
+    }
+    if let Some(existing) = state.global_session.get() {
+        return Ok(existing.clone());
+    }
+
+    let (default_bin, codex_args) = {
+        let settings = state.app_settings.lock().await;
+        (settings.codex_bin.clone(), settings.codex_args.clone())
+    };
+    let cwd = {
+        let workspaces = state.workspaces.lock().await;
+        workspaces
+            .values()
+            .find(|entry| std::path::Path::new(&entry.path).is_dir())
+            .map(|entry| entry.path.clone())
+            .or_else(|| std::env::current_dir().ok().and_then(|path| path.to_str().map(|value| value.to_string())))
+            .unwrap_or_else(|| ".".to_string())
+    };
+    let entry = WorkspaceEntry {
+        id: GLOBAL_WORKSPACE_ID.to_string(),
+        name: "Global".to_string(),
+        path: cwd,
+        codex_bin: None,
+        kind: WorkspaceKind::Main,
+        parent_id: None,
+        worktree: None,
+        settings: WorkspaceSettings::default(),
+    };
+    let codex_home = resolve_default_codex_home();
+    let session = spawn_workspace_session(
+        entry,
+        default_bin,
+        codex_args,
+        app_handle.clone(),
+        codex_home,
+    )
+    .await?;
+    if state.global_session.set(session.clone()).is_err() {
+        if let Some(existing) = state.global_session.get() {
+            return Ok(existing.clone());
+        }
+    }
+    Ok(session)
+}
+
+fn extract_thread_list_data(response: &Value) -> (Vec<Value>, Option<String>) {
+    let result = response.get("result").unwrap_or(response);
+    let data = result
+        .get("data")
+        .and_then(|value| value.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let next_cursor = result
+        .get("nextCursor")
+        .or_else(|| result.get("next_cursor"))
+        .and_then(|value| value.as_str())
+        .map(|value| value.to_string());
+    (data, next_cursor)
 }
 
 #[tauri::command]
@@ -223,6 +398,229 @@ pub(crate) async fn list_threads(
         "limit": limit,
     });
     session.send_request("thread/list", params).await
+}
+
+#[tauri::command]
+pub(crate) async fn list_threads_global(
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<Value, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        return remote_backend::call_remote(&*state, app, "list_threads_global", json!({})).await;
+    }
+
+    let start = Instant::now();
+    let session = ensure_global_session(&state, &app).await?;
+    let mut all_threads: Vec<Value> = Vec::new();
+    let mut cursor: Option<String> = None;
+    let mut pages = 0;
+    loop {
+        pages += 1;
+        let params = json!({
+            "cursor": cursor,
+            "limit": 2000,
+        });
+        let response = session.send_request("thread/list", params).await?;
+        let (data, next_cursor) = extract_thread_list_data(&response);
+        if !data.is_empty() {
+            all_threads.extend(data);
+        }
+        cursor = next_cursor;
+        if cursor.is_none() {
+            break;
+        }
+    }
+    eprintln!(
+        "[perf] list_threads_global total={} pages={} ms={}",
+        all_threads.len(),
+        pages,
+        start.elapsed().as_millis()
+    );
+    Ok(json!({
+        "data": all_threads,
+        "nextCursor": Value::Null
+    }))
+}
+
+#[tauri::command]
+pub(crate) async fn stream_thread_history(
+    workspace_id: String,
+    thread_id: String,
+    path: Option<String>,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<String, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        return Err(
+            "thread history streaming is unavailable in remote backend mode".to_string(),
+        );
+    }
+
+    let resolved_path = path
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "thread history path unavailable".to_string())?;
+
+    let stream_id = Uuid::new_v4().to_string();
+    let cancel = Arc::new(AtomicBool::new(false));
+    {
+        let mut streams = state.history_streams.lock().await;
+        if let Some(existing) = streams.insert(
+            thread_id.clone(),
+            HistoryStreamState {
+                stream_id: stream_id.clone(),
+                cancel: cancel.clone(),
+            },
+        ) {
+            existing.cancel.store(true, Ordering::SeqCst);
+        }
+    }
+
+    let event_sink = TauriEventSink::new(app);
+    let stream_id_for_task = stream_id.clone();
+    tokio::spawn(async move {
+        let file = match tokio::fs::File::open(&resolved_path).await {
+            Ok(file) => file,
+            Err(err) => {
+                let payload = crate::backend::events::AppServerEvent {
+                    workspace_id,
+                    message: json!({
+                        "method": "openvibe/thread_history/error",
+                        "params": {
+                            "threadId": thread_id,
+                            "streamId": stream_id_for_task,
+                            "message": err.to_string(),
+                        }
+                    }),
+                };
+                event_sink.emit_app_server_event(payload);
+                return;
+            }
+        };
+
+        let mut lines = BufReader::new(file).lines();
+        let mut buffer: Vec<StreamMessage> = Vec::new();
+        let mut pending_response_items: Vec<StreamMessage> = Vec::new();
+        let mut message_index = 0u64;
+        let mut seen_event_message = false;
+        let chunk_size = 40usize;
+
+        while let Ok(Some(line)) = lines.next_line().await {
+            if cancel.load(Ordering::SeqCst) {
+                break;
+            }
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let value: Value = match serde_json::from_str(trimmed) {
+                Ok(value) => value,
+                Err(_) => continue,
+            };
+            let line: RolloutLine = match serde_json::from_value(value) {
+                Ok(line) => line,
+                Err(_) => continue,
+            };
+            let Some(kind) = line.kind.as_deref() else {
+                continue;
+            };
+            let Some(payload) = line.payload.as_ref() else {
+                continue;
+            };
+
+            match kind {
+                "event_msg" => {
+                    if let Some(item) =
+                        extract_event_stream_message(payload, &thread_id, &mut message_index)
+                    {
+                        if !seen_event_message {
+                            seen_event_message = true;
+                            pending_response_items.clear();
+                        }
+                        buffer.push(item);
+                    }
+                }
+                "response_item" => {
+                    if seen_event_message {
+                        continue;
+                    }
+                    if let Some(item) =
+                        extract_response_item_stream_message(payload, &thread_id, &mut message_index)
+                    {
+                        pending_response_items.push(item);
+                    }
+                }
+                _ => {}
+            }
+            if buffer.len() >= chunk_size {
+                let payload = crate::backend::events::AppServerEvent {
+                    workspace_id: workspace_id.clone(),
+                    message: json!({
+                        "method": "openvibe/thread_history/chunk",
+                        "params": {
+                            "threadId": thread_id,
+                            "streamId": stream_id_for_task,
+                            "items": buffer,
+                        }
+                    }),
+                };
+                event_sink.emit_app_server_event(payload);
+                buffer = Vec::new();
+            }
+        }
+
+        if !seen_event_message && !pending_response_items.is_empty() {
+            buffer.extend(pending_response_items.drain(..));
+        }
+
+        if !buffer.is_empty() {
+            let payload = crate::backend::events::AppServerEvent {
+                workspace_id: workspace_id.clone(),
+                message: json!({
+                    "method": "openvibe/thread_history/chunk",
+                    "params": {
+                        "threadId": thread_id,
+                        "streamId": stream_id_for_task,
+                        "items": buffer,
+                    }
+                }),
+            };
+            event_sink.emit_app_server_event(payload);
+        }
+
+        let payload = crate::backend::events::AppServerEvent {
+            workspace_id,
+            message: json!({
+                "method": "openvibe/thread_history/done",
+                "params": {
+                    "threadId": thread_id,
+                    "streamId": stream_id_for_task,
+                }
+            }),
+        };
+        event_sink.emit_app_server_event(payload);
+    });
+
+    Ok(stream_id)
+}
+
+#[tauri::command]
+pub(crate) async fn stop_thread_history_stream(
+    thread_id: String,
+    stream_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let streams = state.history_streams.lock().await;
+    if let Some(entry) = streams.get(&thread_id) {
+        if stream_id
+            .as_deref()
+            .map(|value| value == entry.stream_id)
+            .unwrap_or(true)
+        {
+            entry.cancel.store(true, Ordering::SeqCst);
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]

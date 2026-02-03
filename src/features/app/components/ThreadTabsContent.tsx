@@ -17,6 +17,7 @@ type ThreadActivityStatus = {
   isProcessing: boolean;
   hasUnread: boolean;
   isReviewing: boolean;
+  isLoading: boolean;
   processingStartedAt?: number | null;
   lastDurationMs?: number | null;
 };

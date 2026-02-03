@@ -77,6 +77,14 @@ const en = {
   "settings.composer.presets.label": "Preset",
   "settings.composer.presets.help":
     "Presets update the toggles below. Customize any setting after selecting.",
+  "settings.composer.sendMode.title": "Send behavior",
+  "settings.composer.sendMode.subtitle": "Choose how Enter sends messages.",
+  "settings.composer.sendMode.label": "Enter key",
+  "settings.composer.sendMode.enter": "Enter sends",
+  "settings.composer.sendMode.ctrlEnter": "Ctrl/Cmd+Enter sends",
+  "settings.composer.sendMode.smart": "Smart: Enter sends unless multiline",
+  "messages.empty": "Start a thread and send a prompt to the agent.",
+  "messages.loading": "Loading conversation…",
   "settings.composer.codeFences.title": "Code fences",
   "settings.composer.codeFences.expandSpace.title": "Expand fences on Space",
   "settings.composer.codeFences.expandSpace.subtitle":
@@ -392,6 +400,9 @@ const en = {
   "settings.experimental.backgroundTerminal.title": "Background terminal",
   "settings.experimental.backgroundTerminal.subtitle":
     "Run long-running terminal commands in the background.",
+  "settings.experimental.threadResumeStreaming.title": "Stream thread resume",
+  "settings.experimental.threadResumeStreaming.subtitle":
+    "Render large conversation histories progressively when opening a thread.",
   "settings.experimental.steer.title": "Steer mode",
   "settings.experimental.steer.subtitle":
     "Send messages immediately. Use Tab to queue while a run is active.",
@@ -599,6 +610,14 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.composer.presets.subtitle": "选择起点并微调下方的开关。",
   "settings.composer.presets.label": "预设",
   "settings.composer.presets.help": "预设会更新下方开关，仍可继续自定义。",
+  "settings.composer.sendMode.title": "发送方式",
+  "settings.composer.sendMode.subtitle": "选择回车的发送行为。",
+  "settings.composer.sendMode.label": "回车键",
+  "settings.composer.sendMode.enter": "回车发送",
+  "settings.composer.sendMode.ctrlEnter": "Ctrl/Cmd+Enter 发送",
+  "settings.composer.sendMode.smart": "智能：单行回车发送，多行 Ctrl+Enter 发送",
+  "messages.empty": "开始一个会话并向助手发送提示。",
+  "messages.loading": "正在加载对话…",
   "settings.composer.codeFences.title": "代码围栏",
   "settings.composer.codeFences.expandSpace.title": "空格自动展开围栏",
   "settings.composer.codeFences.expandSpace.subtitle": "输入 ``` 后按空格插入代码围栏。",
@@ -891,6 +910,9 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.experimental.collaborationModes.subtitle": "启用协作模式预设（Code、Plan）。",
   "settings.experimental.backgroundTerminal.title": "后台终端",
   "settings.experimental.backgroundTerminal.subtitle": "在后台运行耗时的终端命令。",
+  "settings.experimental.threadResumeStreaming.title": "流式加载对话",
+  "settings.experimental.threadResumeStreaming.subtitle":
+    "打开会话时逐步渲染历史内容。",
   "settings.experimental.steer.title": "Steer 模式",
   "settings.experimental.steer.subtitle": "立即发送消息。运行中时可用 Tab 排队。",
   "settings.experimental.yunyi.title": "云驿统计",

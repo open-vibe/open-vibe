@@ -141,6 +141,7 @@ export type ThemeColor =
   | "violet"
   | "yellow";
 export type AppLanguage = "system" | "en" | "zh-CN";
+export type ComposerSendBehavior = "enter" | "ctrl-enter" | "smart";
 
 
 export type ComposerEditorPreset = "default" | "helpful" | "smart";
@@ -207,6 +208,7 @@ export type AppSettings = {
   experimentalCollaborationModesEnabled: boolean;
   experimentalSteerEnabled: boolean;
   experimentalUnifiedExecEnabled: boolean;
+  experimentalThreadResumeStreamingEnabled: boolean;
   experimentalYunyiEnabled: boolean;
   experimentalYunyiToken: string;
   dictationEnabled: boolean;
@@ -214,6 +216,7 @@ export type AppSettings = {
   dictationPreferredLanguage: string | null;
   dictationHoldKey: string | null;
   composerEditorPreset: ComposerEditorPreset;
+  composerSendBehavior: ComposerSendBehavior;
   composerFenceExpandOnSpace: boolean;
   composerFenceExpandOnEnter: boolean;
   composerFenceLanguageTags: boolean;

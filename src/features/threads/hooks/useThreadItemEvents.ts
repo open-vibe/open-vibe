@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import type { Dispatch } from "react";
 import { buildConversationItem } from "../../../utils/threadItems";
 import { asString } from "../utils/threadNormalize";
-import type { HappyBridgeCommand } from "../../../types";
+import type { ConversationItem, HappyBridgeCommand } from "../../../types";
 import type { ThreadAction } from "./useThreadsReducer";
 
 type UseThreadItemEventsOptions = {
@@ -38,6 +38,9 @@ export function useThreadItemEvents({
   applyCollabThreadLinks,
 }: UseThreadItemEventsOptions) {
   const agentMessageBufferRef = useRef<Record<string, string>>({});
+  const historyStreamRef = useRef<
+    Record<string, { streamId: string; items: ConversationItem[] }>
+  >({});
 
   const mergeAgentDelta = useCallback((existing: string, delta: string) => {
     if (!delta) {
@@ -267,6 +270,44 @@ export function useThreadItemEvents({
     [handleToolOutputDelta],
   );
 
+  const onThreadHistoryChunk = useCallback(
+    (
+      workspaceId: string,
+      threadId: string,
+      streamId: string,
+      items: ConversationItem[],
+    ) => {
+      if (!items.length) {
+        return;
+      }
+      const existing = historyStreamRef.current[threadId];
+      if (!existing || existing.streamId !== streamId) {
+        historyStreamRef.current[threadId] = {
+          streamId,
+          items: [...items],
+        };
+      } else {
+        existing.items.push(...items);
+      }
+      const nextItems = historyStreamRef.current[threadId].items;
+      dispatch({ type: "ensureThread", workspaceId, threadId });
+      dispatch({ type: "setThreadItems", threadId, items: nextItems });
+      dispatch({ type: "setThreadLoading", threadId, isLoading: false });
+      safeMessageActivity();
+    },
+    [dispatch, safeMessageActivity],
+  );
+
+  const onThreadHistoryCompleted = useCallback(
+    (threadId: string, streamId: string) => {
+      const existing = historyStreamRef.current[threadId];
+      if (existing && existing.streamId === streamId) {
+        delete historyStreamRef.current[threadId];
+      }
+    },
+    [],
+  );
+
   return {
     onAgentMessageDelta,
     onAgentMessageCompleted,
@@ -277,5 +318,7 @@ export function useThreadItemEvents({
     onCommandOutputDelta,
     onTerminalInteraction,
     onFileChangeOutputDelta,
+    onThreadHistoryChunk,
+    onThreadHistoryCompleted,
   };
 }

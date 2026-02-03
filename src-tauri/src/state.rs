@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, OnceCell};
 
 use crate::dictation::DictationState;
 use crate::happy_bridge::HappyBridgeState;
@@ -12,9 +12,12 @@ use crate::types::{AppSettings, WorkspaceEntry};
 pub(crate) struct AppState {
     pub(crate) workspaces: Mutex<HashMap<String, WorkspaceEntry>>,
     pub(crate) sessions: Mutex<HashMap<String, Arc<crate::codex::WorkspaceSession>>>,
+    pub(crate) global_session: OnceCell<Arc<crate::codex::WorkspaceSession>>,
     pub(crate) terminal_sessions:
         Mutex<HashMap<String, Arc<crate::terminal::TerminalSession>>>,
     pub(crate) remote_backend: Mutex<Option<crate::remote_backend::RemoteBackend>>,
+    pub(crate) history_streams:
+        Mutex<HashMap<String, crate::codex::HistoryStreamState>>,
     pub(crate) storage_path: PathBuf,
     pub(crate) settings_path: PathBuf,
     pub(crate) app_settings: Mutex<AppSettings>,
@@ -35,8 +38,10 @@ impl AppState {
         Self {
             workspaces: Mutex::new(workspaces),
             sessions: Mutex::new(HashMap::new()),
+            global_session: OnceCell::new(),
             terminal_sessions: Mutex::new(HashMap::new()),
             remote_backend: Mutex::new(None),
+            history_streams: Mutex::new(HashMap::new()),
             storage_path,
             settings_path,
             app_settings: Mutex::new(app_settings),

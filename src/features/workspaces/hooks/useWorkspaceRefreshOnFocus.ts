@@ -24,9 +24,8 @@ export function useWorkspaceRefreshOnFocus({
         } catch {
           // Silent: refresh errors show in debug panel.
         }
-        const connected = latestWorkspaces.filter((entry) => entry.connected);
         await Promise.allSettled(
-          connected.map((workspace) => listThreadsForWorkspace(workspace)),
+          latestWorkspaces.map((workspace) => listThreadsForWorkspace(workspace)),
         );
       })();
     };
