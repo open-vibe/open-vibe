@@ -86,6 +86,7 @@ import { useMenuAcceleratorController } from "./features/app/hooks/useMenuAccele
 import { useAppMenuEvents } from "./features/app/hooks/useAppMenuEvents";
 import { useWorkspaceActions } from "./features/app/hooks/useWorkspaceActions";
 import { useWorkspaceCycling } from "./features/app/hooks/useWorkspaceCycling";
+import { useStickyRateLimits } from "./features/app/hooks/useStickyRateLimits";
 import { useThreadRows } from "./features/app/hooks/useThreadRows";
 import { useInterruptShortcut } from "./features/app/hooks/useInterruptShortcut";
 import { useArchiveShortcut } from "./features/app/hooks/useArchiveShortcut";
@@ -1092,9 +1093,11 @@ function MainApp() {
     [hasLoaded, threadListLoadingByWorkspace, workspaces]
   );
 
-  const activeRateLimits = activeWorkspaceId
-    ? rateLimitsByWorkspace[activeWorkspaceId] ?? null
-    : null;
+  const { getRateLimits } = useStickyRateLimits(
+    rateLimitsByWorkspace,
+    workspaces.map((workspace) => workspace.id),
+  );
+  const activeRateLimits = getRateLimits(activeWorkspaceId);
   const activeTokenUsage = activeThreadId
     ? tokenUsageByThread[activeThreadId] ?? null
     : null;
