@@ -157,3 +157,7 @@ Frontend calls live in `src/services/tauri.ts` and map to commands in `src-tauri
 - Threads: `start_thread`, `list_threads`, `resume_thread`, `archive_thread`, `send_user_message`, `turn_interrupt`, `respond_to_server_request`.
 - Reviews + models: `start_review`, `model_list`, `account_rate_limits`, `skills_list`.
 - Git + files: `get_git_status`, `get_git_diffs`, `get_git_log`, `get_git_remote`, `list_git_branches`, `checkout_git_branch`, `create_git_branch`, `list_workspace_files`.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=open-vibe/open-vibe&type=date&legend=top-left)](https://www.star-history.com/#open-vibe/open-vibe&type=date&legend=top-left)
