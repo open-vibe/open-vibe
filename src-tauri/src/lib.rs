@@ -1,7 +1,8 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tauri::Manager;
+use tauri::{Manager, RunEvent};
 #[cfg(target_os = "macos")]
-use tauri::{RunEvent, WindowEvent};
+use tauri::WindowEvent;
 
 mod backend;
 mod codex;
@@ -39,6 +40,8 @@ mod utils;
 mod window;
 mod workspaces;
 
+static EXITING: AtomicBool = AtomicBool::new(false);
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "linux")]
@@ -67,6 +70,16 @@ pub fn run() {
         .setup(|app| {
             let state = state::AppState::load(&app.handle());
             app.manage(state);
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<state::AppState>();
+                let settings = state.app_settings.lock().await.clone();
+                if let Err(error) =
+                    menu::apply_menu_language(&app_handle, settings.language.as_str())
+                {
+                    eprintln!("menu language apply failed: {error}");
+                }
+            });
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<state::AppState>();
@@ -209,12 +222,56 @@ pub fn run() {
         .expect("error while running tauri application");
 
     app.run(|app_handle, event| {
-        #[cfg(target_os = "macos")]
-        if let RunEvent::Reopen { .. } = event {
-            if let Some(window) = app_handle.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
+        match event {
+            RunEvent::ExitRequested { api, .. } => {
+                if EXITING.swap(true, Ordering::SeqCst) {
+                    return;
+                }
+                api.prevent_exit();
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    shutdown_children(&app_handle).await;
+                    app_handle.exit(0);
+                });
             }
+            #[cfg(target_os = "macos")]
+            RunEvent::Reopen { .. } => {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
         }
     });
+}
+
+async fn shutdown_children(app_handle: &tauri::AppHandle) {
+    let state = app_handle.state::<state::AppState>();
+    happy_bridge::shutdown(&state).await;
+
+    let sessions = {
+        let guard = state.sessions.lock().await;
+        guard.values().cloned().collect::<Vec<_>>()
+    };
+    for session in sessions {
+        let mut child = session.child.lock().await;
+        let _ = child.kill().await;
+        let _ = child.wait().await;
+    }
+
+    if let Some(session) = state.global_session.get() {
+        let mut child = session.child.lock().await;
+        let _ = child.kill().await;
+        let _ = child.wait().await;
+    }
+
+    let terminals = {
+        let guard = state.terminal_sessions.lock().await;
+        guard.values().cloned().collect::<Vec<_>>()
+    };
+    for terminal in terminals {
+        let mut child = terminal.child.lock().await;
+        let _ = child.kill();
+    }
 }

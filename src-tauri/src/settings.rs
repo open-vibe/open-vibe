@@ -2,6 +2,7 @@ use tauri::{Manager, State, Window};
 
 use crate::codex_config;
 use crate::happy_bridge;
+use crate::menu;
 use crate::state::AppState;
 use crate::storage::write_settings;
 use crate::types::AppSettings;
@@ -28,6 +29,10 @@ pub(crate) async fn get_app_settings(
         settings.experimental_unified_exec_enabled = unified_exec_enabled;
     }
     let _ = window::apply_window_appearance(&window, settings.theme.as_str());
+    let app_handle = window.app_handle();
+    if let Err(error) = menu::apply_menu_language(&app_handle, settings.language.as_str()) {
+        eprintln!("menu language apply failed: {error}");
+    }
     Ok(settings)
 }
 
@@ -49,6 +54,9 @@ pub(crate) async fn update_app_settings(
     let _ = window::apply_window_appearance(&window, settings.theme.as_str());
     let app_handle = window.app_handle();
     let _ = happy_bridge::apply_settings(&app_handle, &state, &settings).await;
+    if let Err(error) = menu::apply_menu_language(&app_handle, settings.language.as_str()) {
+        eprintln!("menu language apply failed: {error}");
+    }
     Ok(settings)
 }
 

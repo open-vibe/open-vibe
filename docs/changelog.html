@@ -3,24 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Codex Monitor - Changelog</title>
+    <title>Open Vibe - Changelog</title>
     <meta
+      id="meta-description"
       name="description"
-      content="Release notes for Codex Monitor. See what's new in every version."
+      content="Release notes for Open Vibe. See what's new in every version."
     />
-    <meta property="og:title" content="Codex Monitor — Changelog" />
+    <meta id="meta-og-title" property="og:title" content="Open Vibe — Changelog" />
     <meta
+      id="meta-og-description"
       property="og:description"
-      content="Release notes for Codex Monitor. See what's new in every version."
+      content="Release notes for Open Vibe. See what's new in every version."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://dimillian.github.io/CodexMonitor/changelog.html" />
+    <meta property="og:url" content="https://github.com/open-vibe/open-vibe/releases" />
     <meta property="og:image" content="https://www.codexmonitor.app/assets/main.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Codex Monitor — Changelog" />
     <meta
+      id="meta-twitter-title"
+      name="twitter:title"
+      content="Open Vibe — Changelog"
+    />
+    <meta
+      id="meta-twitter-description"
       name="twitter:description"
-      content="Release notes for Codex Monitor. See what's new in every version."
+      content="Release notes for Open Vibe. See what's new in every version."
     />
     <meta name="twitter:image" content="https://www.codexmonitor.app/assets/main.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,19 +46,35 @@
     <header class="site-header">
       <div class="container nav">
         <div class="logo">
-          <img class="logo-mark" src="assets/app-icon.png" alt="Codex Monitor app icon" />
-          Codex Monitor
+          <img class="logo-mark" src="assets/app-icon.png" alt="Open Vibe app icon" />
+          Open Vibe
         </div>
         <nav class="nav-links">
-          <a href="index.html#features">Features</a>
-          <a href="index.html#screens">Screens</a>
-          <a href="index.html#workflow">Workflow</a>
-          <a href="changelog.html">Changelog</a>
-          <a href="index.html#cta">Get started</a>
+          <a href="index.html#features" data-i18n="nav.features">Features</a>
+          <a href="index.html#screens" data-i18n="nav.screens">Screens</a>
+          <a href="index.html#workflow" data-i18n="nav.workflow">Workflow</a>
+          <a href="changelog.html" data-i18n="nav.changelog">Changelog</a>
+          <a href="index.html#cta" data-i18n="nav.getStarted">Get started</a>
         </nav>
         <div class="nav-actions">
-          <a class="btn ghost" href="https://github.com/Dimillian/CodexMonitor" target="_blank" rel="noreferrer">GitHub</a>
-          <a class="btn primary" href="https://github.com/Dimillian/CodexMonitor/releases" target="_blank" rel="noreferrer">Download</a>
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button class="lang-btn" type="button" data-lang="en">EN</button>
+            <button class="lang-btn" type="button" data-lang="zh">中文</button>
+          </div>
+          <a
+            class="btn ghost"
+            href="https://github.com/open-vibe/open-vibe"
+            target="_blank"
+            rel="noreferrer"
+            data-i18n="nav.github"
+          >GitHub</a>
+          <a
+            class="btn primary"
+            href="https://github.com/open-vibe/open-vibe/releases"
+            target="_blank"
+            rel="noreferrer"
+            data-i18n="nav.download"
+          >Download</a>
         </div>
       </div>
     </header>
@@ -60,15 +83,15 @@
       <section class="hero changelog-hero">
         <div class="container">
           <div class="hero-copy">
-            <div class="eyebrow">Release notes</div>
-            <h1>Changelog</h1>
+            <div class="eyebrow" data-i18n="changelog.eyebrow">Release notes</div>
+            <h1 data-i18n="changelog.title">Changelog</h1>
           </div>
         </div>
       </section>
 
       <section class="section section-tight">
         <div class="container">
-          <div id="release-status" class="release-status">Loading releases...</div>
+          <div id="release-status" class="release-status" data-i18n="changelog.loading">Loading releases...</div>
           <div id="release-list" class="changelog-list" aria-live="polite"></div>
         </div>
       </section>
@@ -78,36 +101,150 @@
       <div class="container footer-grid">
         <div>
           <div class="logo">
-            <img class="logo-mark" src="assets/app-icon.png" alt="Codex Monitor app icon" />
-            Codex Monitor
+            <img class="logo-mark" src="assets/app-icon.png" alt="Open Vibe app icon" />
+            Open Vibe
           </div>
-          <p>macOS Codex agents orchestration, built by and for individuals who ship fast.</p>
+          <p data-i18n="footer.subtitle">
+            Codex agents orchestration, built by and for teams who ship fast.
+          </p>
         </div>
         <div class="footer-links">
-          <a href="index.html#features">Features</a>
-          <a href="index.html#screens">Screenshots</a>
-          <a href="index.html#workflow">Workflow</a>
-          <a href="changelog.html">Changelog</a>
-          <a href="https://github.com/Dimillian/CodexMonitor" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="index.html#features" data-i18n="nav.features">Features</a>
+          <a href="index.html#screens" data-i18n="footer.screens">Screenshots</a>
+          <a href="index.html#workflow" data-i18n="nav.workflow">Workflow</a>
+          <a href="changelog.html" data-i18n="nav.changelog">Changelog</a>
+          <a
+            href="https://github.com/open-vibe/open-vibe"
+            target="_blank"
+            rel="noreferrer"
+            data-i18n="nav.github"
+          >GitHub</a>
         </div>
       </div>
       <div class="container footer-meta">
-        <span>© 2026 Codex Monitor. Made with ❤️ by Codex &amp; <a href="https://x.com/dimillian" target="_blank" rel="noreferrer">Dimillian</a>.</span>
+        <span data-i18n="footer.meta">© 2026 Open Vibe. Built on Codex.</span>
       </div>
     </footer>
 
     <script>
       const releaseStatus = document.getElementById("release-status");
       const releaseList = document.getElementById("release-list");
-      const apiUrl = "https://api.github.com/repos/Dimillian/CodexMonitor/releases?per_page=50";
+      const apiUrl = "https://api.github.com/repos/open-vibe/open-vibe/releases?per_page=50";
+
+      const I18N = {
+        en: {
+          "meta.title": "Open Vibe - Changelog",
+          "meta.description": "Release notes for Open Vibe. See what's new in every version.",
+          "meta.og.title": "Open Vibe — Changelog",
+          "meta.og.description": "Release notes for Open Vibe. See what's new in every version.",
+          "meta.twitter.title": "Open Vibe — Changelog",
+          "meta.twitter.description": "Release notes for Open Vibe. See what's new in every version.",
+          "nav.features": "Features",
+          "nav.screens": "Screens",
+          "nav.workflow": "Workflow",
+          "nav.changelog": "Changelog",
+          "nav.getStarted": "Get started",
+          "nav.github": "GitHub",
+          "nav.download": "Download",
+          "changelog.eyebrow": "Release notes",
+          "changelog.title": "Changelog",
+          "changelog.loading": "Loading releases...",
+          "changelog.draft": "Draft",
+          "changelog.noNotes": "No release notes provided.",
+          "changelog.none": "No releases found yet.",
+          "changelog.error": "Unable to load releases right now. Please check again soon.",
+          "footer.subtitle": "Codex agents orchestration, built by and for teams who ship fast.",
+          "footer.screens": "Screenshots",
+          "footer.meta": "© 2026 Open Vibe. Built on Codex."
+        },
+        zh: {
+          "meta.title": "Open Vibe - 更新日志",
+          "meta.description": "Open Vibe 更新日志，查看每次发布内容。",
+          "meta.og.title": "Open Vibe — 更新日志",
+          "meta.og.description": "Open Vibe 更新日志，查看每次发布内容。",
+          "meta.twitter.title": "Open Vibe — 更新日志",
+          "meta.twitter.description": "Open Vibe 更新日志，查看每次发布内容。",
+          "nav.features": "特性",
+          "nav.screens": "界面",
+          "nav.workflow": "流程",
+          "nav.changelog": "更新日志",
+          "nav.getStarted": "开始使用",
+          "nav.github": "GitHub",
+          "nav.download": "下载",
+          "changelog.eyebrow": "发布记录",
+          "changelog.title": "更新日志",
+          "changelog.loading": "正在加载发布记录…",
+          "changelog.draft": "草稿",
+          "changelog.noNotes": "暂无发布说明。",
+          "changelog.none": "暂未找到发布记录。",
+          "changelog.error": "暂时无法加载发布记录，请稍后重试。",
+          "footer.subtitle": "Codex 智能体指挥台，为快速交付的团队而生。",
+          "footer.screens": "截图",
+          "footer.meta": "© 2026 Open Vibe. Built on Codex."
+        }
+      };
+
+      let currentLang = "en";
+
+      const t = (key) => {
+        const dict = I18N[currentLang] || I18N.en;
+        return dict[key] || I18N.en[key] || key;
+      };
+
+      const localeForLang = () => (currentLang === "zh" ? "zh-CN" : "en-US");
 
       const formatDate = (dateString) => {
-        if (!dateString) return "Draft";
-        return new Date(dateString).toLocaleDateString("en-US", {
+        if (!dateString) return t("changelog.draft");
+        return new Date(dateString).toLocaleDateString(localeForLang(), {
           year: "numeric",
           month: "short",
           day: "numeric"
         });
+      };
+
+      const applyLang = (lang) => {
+        currentLang = I18N[lang] ? lang : "en";
+        document.documentElement.lang = currentLang;
+        document.title = t("meta.title");
+        const metaDescription = document.getElementById("meta-description");
+        const metaOgTitle = document.getElementById("meta-og-title");
+        const metaOgDescription = document.getElementById("meta-og-description");
+        const metaTwitterTitle = document.getElementById("meta-twitter-title");
+        const metaTwitterDescription = document.getElementById("meta-twitter-description");
+        if (metaDescription) metaDescription.content = t("meta.description");
+        if (metaOgTitle) metaOgTitle.content = t("meta.og.title");
+        if (metaOgDescription) metaOgDescription.content = t("meta.og.description");
+        if (metaTwitterTitle) metaTwitterTitle.content = t("meta.twitter.title");
+        if (metaTwitterDescription) metaTwitterDescription.content = t("meta.twitter.description");
+
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          if (key) {
+            el.textContent = t(key);
+          }
+        });
+
+        document.querySelectorAll(".lang-btn").forEach((btn) => {
+          const isActive = btn.getAttribute("data-lang") === currentLang;
+          btn.classList.toggle("is-active", isActive);
+        });
+
+        document.querySelectorAll(".release-date[data-date]").forEach((el) => {
+          const date = el.getAttribute("data-date");
+          if (date) {
+            el.textContent = formatDate(date);
+          }
+        });
+
+        document.querySelectorAll(".release-empty").forEach((el) => {
+          el.textContent = t("changelog.noNotes");
+        });
+
+        if (releaseStatus && releaseStatus.dataset.i18n) {
+          releaseStatus.textContent = t(releaseStatus.dataset.i18n);
+        }
+
+        window.localStorage.setItem("openvibe.lang", currentLang);
       };
 
       const parseInline = (text) => {
@@ -153,7 +290,7 @@
         if (!body) {
           const empty = document.createElement("p");
           empty.className = "release-empty";
-          empty.textContent = "No release notes provided.";
+          empty.textContent = t("changelog.noNotes");
           container.appendChild(empty);
           return;
         }
@@ -231,6 +368,7 @@
 
         const date = document.createElement("span");
         date.className = "release-date";
+        date.dataset.date = release.published_at || "";
         date.textContent = formatDate(release.published_at);
 
         meta.appendChild(tag);
@@ -248,9 +386,31 @@
       };
 
       const showError = (message) => {
+        if (!releaseStatus) return;
         releaseStatus.textContent = message;
         releaseStatus.classList.add("release-error");
       };
+
+      const bootLang = () => {
+        const stored = window.localStorage.getItem("openvibe.lang");
+        if (stored && I18N[stored]) {
+          return stored;
+        }
+        return navigator.language && navigator.language.toLowerCase().startsWith("zh")
+          ? "zh"
+          : "en";
+      };
+
+      document.querySelectorAll(".lang-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const lang = btn.getAttribute("data-lang");
+          if (lang) {
+            applyLang(lang);
+          }
+        });
+      });
+
+      applyLang(bootLang());
 
       fetch(apiUrl)
         .then((response) => {
@@ -262,7 +422,7 @@
         .then((releases) => {
           const filtered = releases.filter((release) => !release.draft);
           if (!filtered.length) {
-            showError("No releases found yet.");
+            showError(t("changelog.none"));
             return;
           }
 
@@ -270,7 +430,7 @@
           filtered.forEach(renderRelease);
         })
         .catch(() => {
-          showError("Unable to load releases right now. Please check again soon.");
+          showError(t("changelog.error"));
         });
     </script>
   </body>

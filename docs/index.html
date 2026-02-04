@@ -3,24 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Codex Monitor - Orchestrate Codex agents across your workspaces</title>
+    <title>Open Vibe - Multi-agent command center</title>
     <meta
+      id="meta-description"
       name="description"
-      content="Codex Monitor is a macOS Tauri app that orchestrates Codex agents across local workspaces with threads, reviews, and a glassy command center."
+      content="Open Vibe is a desktop command center for Codex today, designed to support Claude and Gemini next, with thread tabs, deep Git panels, and a native desktop feel."
     />
-    <meta property="og:title" content="Codex Monitor — Monitor your Codex situation." />
     <meta
+      id="meta-og-title"
+      property="og:title"
+      content="Open Vibe — The multi-agent command center."
+    />
+    <meta
+      id="meta-og-description"
       property="og:description"
-      content="Orchestrate any number of Codex agents across any number of projects in a beautifully crafted command center for threads, reviews, and worktrees."
+      content="Orchestrate Codex today and expand to Claude/Gemini next in a command center for threads, reviews, and worktrees."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://dimillian.github.io/CodexMonitor/" />
+    <meta property="og:url" content="https://github.com/open-vibe/open-vibe" />
     <meta property="og:image" content="https://www.codexmonitor.app/assets/main.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Codex Monitor — Monitor your Codex situation." />
     <meta
+      id="meta-twitter-title"
+      name="twitter:title"
+      content="Open Vibe — The multi-agent command center."
+    />
+    <meta
+      id="meta-twitter-description"
       name="twitter:description"
-      content="Orchestrate any number of Codex agents across any number of projects in a beautifully crafted command center for threads, reviews, and worktrees."
+      content="Orchestrate Codex today and expand to Claude/Gemini next in a command center for threads, reviews, and worktrees."
     />
     <meta name="twitter:image" content="https://www.codexmonitor.app/assets/main.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,19 +50,35 @@
     <header class="site-header">
       <div class="container nav">
         <div class="logo">
-          <img class="logo-mark" src="assets/app-icon.png" alt="Codex Monitor app icon" />
-          Codex Monitor
+          <img class="logo-mark" src="assets/app-icon.png" alt="Open Vibe app icon" />
+          Open Vibe
         </div>
         <nav class="nav-links">
-          <a href="#features">Features</a>
-          <a href="#screens">Screens</a>
-          <a href="#workflow">Workflow</a>
-          <a href="changelog.html">Changelog</a>
-          <a href="#cta">Get started</a>
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#screens" data-i18n="nav.screens">Screens</a>
+          <a href="#workflow" data-i18n="nav.workflow">Workflow</a>
+          <a href="changelog.html" data-i18n="nav.changelog">Changelog</a>
+          <a href="#cta" data-i18n="nav.getStarted">Get started</a>
         </nav>
         <div class="nav-actions">
-          <a class="btn ghost" href="https://github.com/Dimillian/CodexMonitor" target="_blank" rel="noreferrer">GitHub</a>
-          <a class="btn primary" href="https://github.com/Dimillian/CodexMonitor/releases" target="_blank" rel="noreferrer">Download</a>
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button class="lang-btn" type="button" data-lang="en">EN</button>
+            <button class="lang-btn" type="button" data-lang="zh">中文</button>
+          </div>
+          <a
+            class="btn ghost"
+            href="https://github.com/open-vibe/open-vibe"
+            target="_blank"
+            rel="noreferrer"
+            data-i18n="nav.github"
+          >GitHub</a>
+          <a
+            class="btn primary"
+            href="https://github.com/open-vibe/open-vibe/releases"
+            target="_blank"
+            rel="noreferrer"
+            data-i18n="nav.download"
+          >Download</a>
         </div>
       </div>
     </header>
@@ -60,30 +87,42 @@
       <section class="hero">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <div class="eyebrow">macOS command center for Codex</div>
-            <h1>Monitor your Codex situation.</h1>
-            <p>
-              Orchestrate any number of Codex agents across any number of projects in a beautifully crafted
-              command center for threads, reviews, and worktrees.
+            <div class="eyebrow" data-i18n="hero.eyebrow">Multi-agent command center</div>
+            <h1 data-i18n="hero.title">One desk for Codex today. Claude &amp; Gemini next.</h1>
+            <p data-i18n="hero.subtitle">
+              Open Vibe orchestrates agents across projects with thread tabs, deep Git panels,
+              Happy handoff, and a native desktop feel.
             </p>
             <div class="hero-actions">
-              <a class="btn primary" href="https://github.com/Dimillian/CodexMonitor/releases" target="_blank" rel="noreferrer">Get the app</a>
-              <a class="btn ghost" href="#features">Explore features</a>
+              <a
+                class="btn primary"
+                href="https://github.com/open-vibe/open-vibe/releases"
+                target="_blank"
+                rel="noreferrer"
+                data-i18n="hero.cta.primary"
+              >Get the app</a>
+              <a class="btn ghost" href="#features" data-i18n="hero.cta.secondary">See highlights</a>
             </div>
             <div class="hero-meta">
               <div>
-                <span class="meta-label">Built on</span>
-                <span class="meta-value">Tauri + React</span>
+                <span class="meta-label" data-i18n="hero.meta.builtOn.label">Built on</span>
+                <span class="meta-value" data-i18n="hero.meta.builtOn.value">Tauri + React</span>
               </div>
               <div>
-                <span class="meta-label">Platform</span>
-                <span class="meta-value">macOS + Linux</span>
+                <span class="meta-label" data-i18n="hero.meta.platform.label">Platform</span>
+                <span class="meta-value" data-i18n="hero.meta.platform.value">macOS + Windows + Linux</span>
+              </div>
+              <div>
+                <span class="meta-label" data-i18n="hero.meta.providers.label">Providers</span>
+                <span class="meta-value" data-i18n="hero.meta.providers.value">
+                  Codex now · Claude/Gemini next
+                </span>
               </div>
             </div>
           </div>
 
           <div class="hero-shot">
-            <img src="assets/main.png" alt="Codex Monitor dashboard and chat view" />
+            <img src="assets/main.png" alt="Open Vibe dashboard and chat view" />
           </div>
         </div>
       </section>
@@ -91,45 +130,72 @@
       <section id="features" class="section">
         <div class="container">
           <div class="section-title">
-            <h2>Everything you need to run Codex like a studio.</h2>
-            <p>
-              Build, review, and ship across multiple repos without losing context. Codex Monitor keeps the
-              entire workflow in one surface.
+            <h2 data-i18n="features.title">The control room for multi-agent work.</h2>
+            <p data-i18n="features.subtitle">
+              Tabs, provider flexibility, and deep project context—built for speed on every desktop.
             </p>
           </div>
 
           <div class="feature-grid">
             <article class="glass card">
-              <h3>Workspace orchestration</h3>
-              <p>Add, persist, and reconnect workspaces with a live dashboard of recent activity.</p>
+              <h3 data-i18n="features.tabs.title">Thread tabs</h3>
+              <p data-i18n="features.tabs.copy">
+                Pin, rename, and jump between sessions while keeping state and drafts intact.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Thread control</h3>
-              <p>Start threads, resume history, and handle approvals without leaving the main view.</p>
+              <h3 data-i18n="features.providers.title">Multi-provider roadmap</h3>
+              <p data-i18n="features.providers.copy">
+                Codex today, Claude and Gemini next. One command center for every model.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Worktree agents</h3>
-              <p>Spin up per-branch worktrees for isolated changes and clean reviews.</p>
+              <h3 data-i18n="features.windows.title">Windows-native feel</h3>
+              <p data-i18n="features.windows.copy">
+                Low-latency input, native shortcuts, and a desktop-first experience.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Git + GitHub insight</h3>
-              <p>Diffs, logs, branch controls, and Issues via <code>gh</code> built right in.</p>
+              <h3 data-i18n="features.workspace.title">Workspace orchestration</h3>
+              <p data-i18n="features.workspace.copy">
+                Add, persist, and reconnect workspaces with a live dashboard of recent activity.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Model + access controls</h3>
-              <p>Pick models, tune reasoning effort, and lock in access modes per run.</p>
+              <h3 data-i18n="features.git.title">Git + PR dock</h3>
+              <p data-i18n-html="features.git.copy">
+                Diffs, logs, staging, and Issues/PRs via <code>gh</code> built right in.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Plans and reviews</h3>
-              <p>Track per-turn plans, run reviews, and export debug logs on demand.</p>
+              <h3 data-i18n="features.worktree.title">Worktree agents</h3>
+              <p data-i18n="features.worktree.copy">
+                Per-branch worktrees for isolated changes and clean reviews.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Skills + prompts</h3>
-              <p>Autocomplete skills, prompts, and file tokens in the composer.</p>
+              <h3 data-i18n="features.happy.title">Happy handoff</h3>
+              <p data-i18n="features.happy.copy">
+                Optional Happy bridge syncs threads to mobile so you can continue anywhere.
+              </p>
             </article>
             <article class="glass card">
-              <h3>Updater + polish</h3>
-              <p>Toast-driven updates, resizable panels, and a macOS overlay title bar.</p>
+              <h3 data-i18n="features.performance.title">Performance focus</h3>
+              <p data-i18n="features.performance.copy">
+                Thread list/resume instrumentation and fast UI transitions for busy workdays.
+              </p>
+            </article>
+            <article class="glass card">
+              <h3 data-i18n="features.theme.title">Themes + layouts</h3>
+              <p data-i18n="features.theme.copy">
+                Light/dark + color themes, resizable panels, and compact layouts.
+              </p>
+            </article>
+            <article class="glass card">
+              <h3 data-i18n="features.remote.title">Remote backend</h3>
+              <p data-i18n="features.remote.copy">
+                Prototype daemon mode to run agents on another machine (opt-in).
+              </p>
             </article>
           </div>
         </div>
@@ -138,38 +204,44 @@
       <section id="screens" class="section">
         <div class="container">
           <div class="section-title">
-            <h2>The next-generation IDE.</h2>
-            <p>Without a text editor built in, because you don’t need it.</p>
+            <h2 data-i18n="screens.title">See the desk in action.</h2>
+            <p data-i18n="screens.subtitle">Everything you need within one surface.</p>
           </div>
 
           <div class="bento-grid">
             <figure class="glass bento-tile bento-main">
               <div class="bento-media">
-                <img src="assets/main.png" alt="Codex Monitor full interface" />
+                <img src="assets/main.png" alt="Open Vibe full interface" />
               </div>
               <figcaption>
-                <span class="bento-title">Command center layout</span>
-                <span class="bento-copy">Threads, reviews, and activity stacked into one view.</span>
+                <span class="bento-title" data-i18n="screens.command.title">Command center layout</span>
+                <span class="bento-copy" data-i18n="screens.command.copy">
+                  Threads, reviews, and activity stacked into one view.
+                </span>
               </figcaption>
             </figure>
 
-            <figure class="glass bento-tile bento-chat">
+            <figure class="glass bento-tile bento-tabs">
               <div class="bento-media">
-                <img src="assets/feature2.png" alt="Beautiful chat interface and integrated terminal" />
+                <img src="assets/tabs.png" alt="Thread tabs overview" />
               </div>
               <figcaption>
-                <span class="bento-title">Conversation + terminal</span>
-                <span class="bento-copy">Ask, approve, and run commands with context attached.</span>
+                <span class="bento-title" data-i18n="screens.tabs.title">Thread tabs</span>
+                <span class="bento-copy" data-i18n="screens.tabs.copy">
+                  Keep multiple sessions open and switch instantly.
+                </span>
               </figcaption>
             </figure>
 
-            <figure class="glass bento-tile bento-projects">
+            <figure class="glass bento-tile bento-windows">
               <div class="bento-media">
-                <img src="assets/feature1.png" alt="Projects and Codex threads overview" />
+                <img src="assets/windows.png" alt="Windows native UI" />
               </div>
               <figcaption>
-                <span class="bento-title">Projects hub</span>
-                <span class="bento-copy">Keep every workspace, thread, and run in view.</span>
+                <span class="bento-title" data-i18n="screens.windows.title">Windows-native feel</span>
+                <span class="bento-copy" data-i18n="screens.windows.copy">
+                  Native title bar, shortcuts, and a desktop-first layout.
+                </span>
               </figcaption>
             </figure>
 
@@ -178,38 +250,46 @@
                 <img src="assets/feature3.png" alt="Git diff, log, and issues all built in" />
               </div>
               <figcaption>
-                <span class="bento-title">Git + issues</span>
-                <span class="bento-copy">Diffs, logs, and GitHub issues in one dock.</span>
+                <span class="bento-title" data-i18n="screens.git.title">Git + issues</span>
+                <span class="bento-copy" data-i18n="screens.git.copy">
+                  Diffs, logs, and GitHub issues in one dock.
+                </span>
               </figcaption>
             </figure>
 
-            <figure class="glass bento-tile bento-files">
+            <figure class="glass bento-tile bento-happy">
               <div class="bento-media">
-                <img src="assets/feature4.png" alt="Files tree with search" />
+                <img src="assets/happy.png" alt="Happy handoff settings" />
               </div>
               <figcaption>
-                <span class="bento-title">Files tree</span>
-                <span class="bento-copy">Search and jump through large repos quickly.</span>
+                <span class="bento-title" data-i18n="screens.happy.title">Happy handoff</span>
+                <span class="bento-copy" data-i18n="screens.happy.copy">
+                  Continue on mobile with a secure, synced handoff.
+                </span>
               </figcaption>
             </figure>
 
             <figure class="glass bento-tile bento-diff">
               <div class="bento-media">
-                <img src="assets/feature5.png" alt="Beautiful live git diff" />
+                <img src="assets/feature5.png" alt="Live git diff view" />
               </div>
               <figcaption>
-                <span class="bento-title">Beautiful live git diff</span>
-                <span class="bento-copy">Real-time diff visualization with syntax highlighting.</span>
+                <span class="bento-title" data-i18n="screens.diff.title">Live git diff</span>
+                <span class="bento-copy" data-i18n="screens.diff.copy">
+                  Real-time diff visualization with syntax highlighting.
+                </span>
               </figcaption>
             </figure>
 
-            <figure class="glass bento-tile bento-skills">
+            <figure class="glass bento-tile bento-chat">
               <div class="bento-media">
-                <img src="assets/feature6.png" alt="Skills support" />
+                <img src="assets/feature2.png" alt="Chat interface and integrated terminal" />
               </div>
               <figcaption>
-                <span class="bento-title">Skills support</span>
-                <span class="bento-copy">Autocomplete and use skills seamlessly in your workflow.</span>
+                <span class="bento-title" data-i18n="screens.chat.title">Conversation + terminal</span>
+                <span class="bento-copy" data-i18n="screens.chat.copy">
+                  Ask, approve, and run commands with context attached.
+                </span>
               </figcaption>
             </figure>
           </div>
@@ -219,23 +299,29 @@
       <section id="workflow" class="section">
         <div class="container">
           <div class="section-title">
-            <h2>From repo to review in three moves.</h2>
+            <h2 data-i18n="workflow.title">From repo to review in three moves.</h2>
           </div>
           <div class="workflow">
             <div class="glass card">
               <span class="step">01</span>
-              <h3>Connect your workspaces</h3>
-              <p>Codex Monitor spawns a Codex app-server per repo and restores your threads.</p>
+              <h3 data-i18n="workflow.step1.title">Connect your workspaces</h3>
+              <p data-i18n="workflow.step1.copy">
+                Open Vibe spawns a Codex app-server per repo and restores your threads.
+              </p>
             </div>
             <div class="glass card">
               <span class="step">02</span>
-              <h3>Run the agent</h3>
-              <p>Pick models, access mode, and skills, then chat and manage approvals in one view.</p>
+              <h3 data-i18n="workflow.step2.title">Choose a provider</h3>
+              <p data-i18n="workflow.step2.copy">
+                Start with Codex now and add more models next. Chat and manage approvals in one view.
+              </p>
             </div>
             <div class="glass card">
               <span class="step">03</span>
-              <h3>Review + ship</h3>
-              <p>Open diffs, logs, and reviews alongside your threads with instant context.</p>
+              <h3 data-i18n="workflow.step3.title">Review + ship</h3>
+              <p data-i18n="workflow.step3.copy">
+                Open diffs, logs, and reviews alongside your threads with instant context.
+              </p>
             </div>
           </div>
         </div>
@@ -245,11 +331,19 @@
         <div class="container">
           <div class="glass cta">
             <div>
-              <h2>Ready to monitor every agent run?</h2>
-              <p>Codex Monitor keeps your Codex workflows visible, organized, and fast.</p>
+              <h2 data-i18n="cta.title">Ready for a multi-agent command center?</h2>
+              <p data-i18n="cta.subtitle">
+                Open Vibe keeps sessions organized today and ready for more providers tomorrow.
+              </p>
             </div>
             <div class="cta-actions">
-              <a class="btn primary" href="https://github.com/Dimillian/CodexMonitor" target="_blank" rel="noreferrer">View repo</a>
+              <a
+                class="btn primary"
+                href="https://github.com/open-vibe/open-vibe"
+                target="_blank"
+                rel="noreferrer"
+                data-i18n="cta.primary"
+              >View repo</a>
             </div>
           </div>
         </div>
@@ -260,22 +354,268 @@
       <div class="container footer-grid">
         <div>
           <div class="logo">
-            <img class="logo-mark" src="assets/app-icon.png" alt="Codex Monitor app icon" />
-            Codex Monitor
+            <img class="logo-mark" src="assets/app-icon.png" alt="Open Vibe app icon" />
+            Open Vibe
           </div>
-          <p>macOS Codex agents orchestration, built by and for individuals who ship fast.</p>
+          <p data-i18n="footer.subtitle">
+            Codex agents orchestration, built by and for teams who ship fast.
+          </p>
         </div>
         <div class="footer-links">
-          <a href="#features">Features</a>
-          <a href="#screens">Screenshots</a>
-          <a href="#workflow">Workflow</a>
-          <a href="changelog.html">Changelog</a>
-          <a href="https://github.com/Dimillian/CodexMonitor" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#screens" data-i18n="footer.screens">Screenshots</a>
+          <a href="#workflow" data-i18n="nav.workflow">Workflow</a>
+          <a href="changelog.html" data-i18n="nav.changelog">Changelog</a>
+          <a
+            href="https://github.com/open-vibe/open-vibe"
+            target="_blank"
+            rel="noreferrer"
+            data-i18n="nav.github"
+          >GitHub</a>
         </div>
       </div>
       <div class="container footer-meta">
-        <span>© 2026 Codex Monitor. Made with ❤️ by Codex &amp; <a href="https://x.com/dimillian" target="_blank" rel="noreferrer">Dimillian</a>.</span>
+        <span data-i18n="footer.meta">© 2026 Open Vibe. Built on Codex.</span>
       </div>
     </footer>
+
+    <script>
+      const I18N = {
+        en: {
+          "meta.title": "Open Vibe - Multi-agent command center",
+          "meta.description":
+            "Open Vibe is a desktop command center for Codex today, designed to support Claude and Gemini next, with thread tabs, deep Git panels, and a native desktop feel.",
+          "meta.og.title": "Open Vibe — The multi-agent command center.",
+          "meta.og.description":
+            "Orchestrate Codex today and expand to Claude/Gemini next in a command center for threads, reviews, and worktrees.",
+          "meta.twitter.title": "Open Vibe — The multi-agent command center.",
+          "meta.twitter.description":
+            "Orchestrate Codex today and expand to Claude/Gemini next in a command center for threads, reviews, and worktrees.",
+          "nav.features": "Features",
+          "nav.screens": "Screens",
+          "nav.workflow": "Workflow",
+          "nav.changelog": "Changelog",
+          "nav.getStarted": "Get started",
+          "nav.github": "GitHub",
+          "nav.download": "Download",
+          "hero.eyebrow": "Multi-agent command center",
+          "hero.title": "One desk for Codex today. Claude & Gemini next.",
+          "hero.subtitle":
+            "Open Vibe orchestrates agents across projects with thread tabs, deep Git panels, Happy handoff, and a native desktop feel.",
+          "hero.cta.primary": "Get the app",
+          "hero.cta.secondary": "See highlights",
+          "hero.meta.builtOn.label": "Built on",
+          "hero.meta.builtOn.value": "Tauri + React",
+          "hero.meta.platform.label": "Platform",
+          "hero.meta.platform.value": "macOS + Windows + Linux",
+          "hero.meta.providers.label": "Providers",
+          "hero.meta.providers.value": "Codex now · Claude/Gemini next",
+          "features.title": "The control room for multi-agent work.",
+          "features.subtitle":
+            "Tabs, provider flexibility, and deep project context—built for speed on every desktop.",
+          "features.tabs.title": "Thread tabs",
+          "features.tabs.copy":
+            "Pin, rename, and jump between sessions while keeping state and drafts intact.",
+          "features.providers.title": "Multi-provider roadmap",
+          "features.providers.copy":
+            "Codex today, Claude and Gemini next. One command center for every model.",
+          "features.windows.title": "Windows-native feel",
+          "features.windows.copy":
+            "Low-latency input, native shortcuts, and a desktop-first experience.",
+          "features.workspace.title": "Workspace orchestration",
+          "features.workspace.copy":
+            "Add, persist, and reconnect workspaces with a live dashboard of recent activity.",
+          "features.worktree.title": "Worktree agents",
+          "features.worktree.copy":
+            "Per-branch worktrees for isolated changes and clean reviews.",
+          "features.git.title": "Git + PR dock",
+          "features.git.copy":
+            "Diffs, logs, staging, and Issues/PRs via <code>gh</code> built right in.",
+          "features.performance.title": "Performance focus",
+          "features.performance.copy":
+            "Thread list/resume instrumentation and fast UI transitions for busy workdays.",
+          "features.theme.title": "Themes + layouts",
+          "features.theme.copy":
+            "Light/dark + color themes, resizable panels, and compact layouts.",
+          "features.happy.title": "Happy handoff",
+          "features.happy.copy":
+            "Optional Happy bridge syncs threads to mobile so you can continue anywhere.",
+          "features.remote.title": "Remote backend",
+          "features.remote.copy":
+            "Prototype daemon mode to run agents on another machine (opt-in).",
+          "screens.title": "See the desk in action.",
+          "screens.subtitle": "Tabs, handoff, and native layout in one surface.",
+          "screens.command.title": "Command center layout",
+          "screens.command.copy": "Threads, reviews, and activity stacked into one view.",
+          "screens.chat.title": "Conversation + terminal",
+          "screens.chat.copy": "Ask, approve, and run commands with context attached.",
+          "screens.git.title": "Git + issues",
+          "screens.git.copy": "Diffs, logs, and GitHub issues in one dock.",
+          "screens.diff.title": "Live git diff",
+          "screens.diff.copy": "Real-time diff visualization with syntax highlighting.",
+          "screens.tabs.title": "Thread tabs",
+          "screens.tabs.copy": "Keep multiple sessions open and switch instantly.",
+          "screens.windows.title": "Windows-native feel",
+          "screens.windows.copy": "Native title bar, shortcuts, and a desktop-first layout.",
+          "screens.happy.title": "Happy handoff",
+          "screens.happy.copy": "Continue on mobile with a secure, synced handoff.",
+          "workflow.title": "From repo to review in three moves.",
+          "workflow.step1.title": "Connect your workspaces",
+          "workflow.step1.copy":
+            "Open Vibe spawns a Codex app-server per repo and restores your threads.",
+          "workflow.step2.title": "Choose a provider",
+          "workflow.step2.copy":
+            "Start with Codex now and add more models next. Chat and manage approvals in one view.",
+          "workflow.step3.title": "Review + ship",
+          "workflow.step3.copy":
+            "Open diffs, logs, and reviews alongside your threads with instant context.",
+          "cta.title": "Ready for a multi-agent command center?",
+          "cta.subtitle":
+            "Open Vibe keeps sessions organized today and ready for more providers tomorrow.",
+          "cta.primary": "View repo",
+          "footer.subtitle": "Multi-agent desktop command center, built for teams who ship fast.",
+          "footer.screens": "Screenshots",
+          "footer.meta": "© 2026 Open Vibe. Built on Codex."
+        },
+        zh: {
+          "meta.title": "Open Vibe - 多模型智能体指挥台",
+          "meta.description":
+            "Open Vibe 是桌面端多智能体指挥台，面向 Codex，后续支持 Claude/Gemini，提供线程标签、深度 Git 面板与原生 Windows 体验。",
+          "meta.og.title": "Open Vibe — 多智能体指挥台。",
+          "meta.og.description":
+            "Codex 先行，Claude/Gemini 即将加入，在同一指挥台管理线程、评审与 worktree。",
+          "meta.twitter.title": "Open Vibe — 多智能体指挥台。",
+          "meta.twitter.description":
+            "Codex 先行，Claude/Gemini 即将加入，在同一指挥台管理线程、评审与 worktree。",
+          "nav.features": "特性",
+          "nav.screens": "界面",
+          "nav.workflow": "流程",
+          "nav.changelog": "更新日志",
+          "nav.getStarted": "开始使用",
+          "nav.github": "GitHub",
+          "nav.download": "下载",
+          "hero.eyebrow": "多智能体指挥台",
+          "hero.title": "Codex 即刻可用，Claude/Gemini 即将加入。",
+          "hero.subtitle":
+            "Open Vibe 让多项目智能体集中协作，线程标签、深度 Git 面板、Happy 接力与原生桌面体验。",
+          "hero.cta.primary": "获取应用",
+          "hero.cta.secondary": "查看亮点",
+          "hero.meta.builtOn.label": "技术栈",
+          "hero.meta.builtOn.value": "Tauri + React",
+          "hero.meta.platform.label": "平台",
+          "hero.meta.platform.value": "macOS + Windows + Linux",
+          "hero.meta.providers.label": "模型",
+          "hero.meta.providers.value": "Codex 现在 · Claude/Gemini 即将加入",
+          "features.title": "多智能体工作控制台",
+          "features.subtitle":
+            "线程标签、模型扩展、深度上下文，为速度而生。",
+          "features.tabs.title": "线程标签",
+          "features.tabs.copy": "固定、重命名并快速切换线程，保留状态与草稿。",
+          "features.providers.title": "多模型路线图",
+          "features.providers.copy": "Codex 现在，Claude/Gemini 即将加入，一套 UI 统一管理。",
+          "features.windows.title": "Windows 原生体验",
+          "features.windows.copy": "低延迟输入、原生快捷键与桌面体验优化。",
+          "features.workspace.title": "工作区编排",
+          "features.workspace.copy": "新增、持久化并快速恢复工作区，实时查看活动。",
+          "features.worktree.title": "Worktree 智能体",
+          "features.worktree.copy": "分支级 worktree，隔离改动便于评审。",
+          "features.git.title": "Git + PR 面板",
+          "features.git.copy": "Diff、日志、暂存与 Issues/PR 通过 <code>gh</code> 内建。",
+          "features.performance.title": "性能优先",
+          "features.performance.copy": "线程列表/恢复监控与快速 UI 切换，保持高效节奏。",
+          "features.theme.title": "主题 + 布局",
+          "features.theme.copy": "亮/暗 + 多色主题，可调面板与紧凑布局。",
+          "features.happy.title": "Happy 接力",
+          "features.happy.copy": "可选 Happy bridge，同步线程到手机继续。",
+          "features.remote.title": "远程后端",
+          "features.remote.copy": "实验性守护进程，可在其他机器运行。",
+          "screens.title": "一屏掌控所有工作流",
+          "screens.subtitle": "线程标签、接力与原生布局同时呈现。",
+          "screens.command.title": "指挥台布局",
+          "screens.command.copy": "线程、评审与活动集中在一处。",
+          "screens.chat.title": "对话 + 终端",
+          "screens.chat.copy": "提问、审批与命令执行同屏完成。",
+          "screens.git.title": "Git + Issues",
+          "screens.git.copy": "Diff、日志与 GitHub Issues 同侧栏展示。",
+          "screens.diff.title": "实时 Diff",
+          "screens.diff.copy": "语法高亮的实时差异展示。",
+          "screens.tabs.title": "线程标签",
+          "screens.tabs.copy": "多会话并行，切换毫秒级响应。",
+          "screens.windows.title": "Windows 原生体验",
+          "screens.windows.copy": "原生标题栏、快捷键与桌面布局。",
+          "screens.happy.title": "Happy 接力",
+          "screens.happy.copy": "加密接力，手机继续会话。",
+          "workflow.title": "三步完成评审流程。",
+          "workflow.step1.title": "连接工作区",
+          "workflow.step1.copy": "Open Vibe 为每个仓库启动 Codex app-server 并恢复线程。",
+          "workflow.step2.title": "选择模型",
+          "workflow.step2.copy": "Codex 先行，其他模型即将加入；聊天与审批同屏完成。",
+          "workflow.step3.title": "评审 + 发布",
+          "workflow.step3.copy": "在同屏查看 diff、日志与评审内容。",
+          "cta.title": "准备好进入多智能体指挥台？",
+          "cta.subtitle": "Open Vibe 让会话井然有序，并为更多模型做好准备。",
+          "cta.primary": "查看仓库",
+          "footer.subtitle": "多智能体桌面指挥台，为快速交付的团队而生。",
+          "footer.screens": "截图",
+          "footer.meta": "© 2026 Open Vibe. Built on Codex."
+        }
+      };
+
+      const setLang = (lang) => {
+        const dict = I18N[lang] || I18N.en;
+        document.documentElement.lang = lang;
+        document.title = dict["meta.title"] || document.title;
+        const metaDescription = document.getElementById("meta-description");
+        const metaOgTitle = document.getElementById("meta-og-title");
+        const metaOgDescription = document.getElementById("meta-og-description");
+        const metaTwitterTitle = document.getElementById("meta-twitter-title");
+        const metaTwitterDescription = document.getElementById("meta-twitter-description");
+        if (metaDescription) metaDescription.content = dict["meta.description"] || metaDescription.content;
+        if (metaOgTitle) metaOgTitle.content = dict["meta.og.title"] || metaOgTitle.content;
+        if (metaOgDescription) metaOgDescription.content = dict["meta.og.description"] || metaOgDescription.content;
+        if (metaTwitterTitle) metaTwitterTitle.content = dict["meta.twitter.title"] || metaTwitterTitle.content;
+        if (metaTwitterDescription)
+          metaTwitterDescription.content = dict["meta.twitter.description"] || metaTwitterDescription.content;
+
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          if (key && dict[key]) {
+            el.textContent = dict[key];
+          }
+        });
+        document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+          const key = el.getAttribute("data-i18n-html");
+          if (key && dict[key]) {
+            el.innerHTML = dict[key];
+          }
+        });
+        document.querySelectorAll(".lang-btn").forEach((btn) => {
+          const isActive = btn.getAttribute("data-lang") === lang;
+          btn.classList.toggle("is-active", isActive);
+        });
+        window.localStorage.setItem("openvibe.lang", lang);
+      };
+
+      const bootLang = () => {
+        const stored = window.localStorage.getItem("openvibe.lang");
+        if (stored && I18N[stored]) {
+          return stored;
+        }
+        return navigator.language && navigator.language.toLowerCase().startsWith("zh")
+          ? "zh"
+          : "en";
+      };
+
+      document.querySelectorAll(".lang-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const lang = btn.getAttribute("data-lang");
+          if (lang) {
+            setLang(lang);
+          }
+        });
+      });
+
+      setLang(bootLang());
+    </script>
   </body>
 </html>

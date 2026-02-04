@@ -129,6 +129,15 @@ pub(crate) async fn apply_settings(
     Ok(())
 }
 
+pub(crate) async fn shutdown(state: &AppState) {
+    let mut guard = state.happy_bridge.lock().await;
+    if let Some(mut child) = guard.child.take() {
+        stop_child(&mut child).await;
+    }
+    guard.stdin = None;
+    guard.config = None;
+}
+
 #[tauri::command]
 pub(crate) async fn happy_bridge_send(
     command: serde_json::Value,

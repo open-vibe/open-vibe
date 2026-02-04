@@ -1,8 +1,16 @@
-# CodexMonitor
+# Open Vibe
 
-![CodexMonitor](screenshot.png)
+![Open Vibe](screenshot.png)
 
-CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across local workspaces. It provides a sidebar to manage projects, a home screen for quick actions, and a conversation view backed by the Codex app-server protocol.
+Open Vibe is a desktop Tauri app for orchestrating multiple Codex agents across local workspaces. It provides a workspace sidebar, a home dashboard for quick entry, and a thread-centric conversation view powered by the Codex app-server protocol.
+
+This project started as a CodexMonitor fork and has been heavily customized for:
+
+- Multi-theme UI (light/dark + color themes)
+- Thread tabs with fast switching and persisted layout
+- Mobile handoff via Happy bridge (experimental)
+- Deeper Git + PR workflows in the right panel
+- Performance instrumentation for thread list/resume
 
 ## Features
 
@@ -12,6 +20,7 @@ CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across
 - Spawn one `codex app-server` per workspace, resume threads, and track unread/running state.
 - Worktree and clone agents for isolated work; worktrees live under the app data directory (legacy `.codex-worktrees` supported).
 - Thread management: pin/rename/archive/copy, per-thread drafts, and stop/interrupt in-flight turns.
+- Thread tabs with per-tab state, quick switching, and pinned ordering.
 - Optional remote backend (daemon) mode for running Codex on another machine.
 
 ### Composer & Agent Controls
@@ -21,6 +30,7 @@ CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across
 - Model picker, collaboration modes (when enabled), reasoning effort, access mode, and context usage ring.
 - Dictation with hold-to-talk shortcuts and live waveform (Whisper).
 - Render reasoning/tool/diff items and handle approval prompts.
+- Optional Happy bridge to sync conversations to mobile (experimental).
 
 ### Git & GitHub
 
@@ -41,6 +51,7 @@ CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across
 - Sidebar usage and credits meter for account rate limits plus a home usage snapshot.
 - Terminal dock with multiple tabs for background commands (experimental).
 - In-app updates with toast-driven download/install, debug panel copy/clear, sound notifications, and macOS overlay title bar with vibrancy + reduced transparency toggle.
+- Theme presets under `src/styles/theme-*.css` with light/dark support.
 
 ## Requirements
 
@@ -51,7 +62,7 @@ CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across
 - Git CLI (used for worktree operations)
 - GitHub CLI (`gh`) for the Issues panel (optional)
 
-If the `codex` binary is not in `PATH`, update the backend to pass a custom path per workspace.
+If the `codex` binary is not in `PATH`, configure the Codex path in Settings (per-workspace overrides supported).
 If you hit native build errors, run:
 
 ```bash
@@ -112,11 +123,12 @@ Note: `npm run build` also runs `tsc` before bundling the frontend.
 ```
 src/
   features/         feature-sliced UI + hooks
-  services/         Tauri IPC wrapper
-  styles/           split CSS by area
+  services/         Tauri IPC wrapper + event hubs
+  styles/           split CSS by area and theme presets
   types.ts          shared types
 src-tauri/
   src/lib.rs        Tauri backend + codex app-server client
+  src/happy_bridge.rs  Happy bridge integration
   tauri.conf.json   window configuration
 ```
 
@@ -124,7 +136,7 @@ src-tauri/
 
 - Workspaces persist to `workspaces.json` under the app data directory.
 - App settings persist to `settings.json` under the app data directory (Codex path, default access mode, UI scale).
-- Experimental settings supported in the UI: Collab mode (`features.collab`), Background terminal (`features.unified_exec`), and Steer mode (`features.steer`), synced to `$CODEX_HOME/config.toml` (or `~/.codex/config.toml`) on load/save.
+- Experimental settings supported in the UI: Collab mode (`features.collab`), Background terminal (`features.unified_exec`), Steer mode (`features.steer`), and Happy bridge (mobile sync).
 - On launch and on window focus, the app reconnects and refreshes thread lists for each workspace.
 - Threads are restored by filtering `thread/list` results using the workspace `cwd`.
 - Selecting a thread always calls `thread/resume` to refresh messages from disk.
