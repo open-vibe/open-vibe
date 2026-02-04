@@ -1,13 +1,16 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_21_13)">
-<path d="M128 0.5H384C454.416 0.5 511.5 57.5837 511.5 128V384C511.5 454.416 454.416 511.5 384 511.5H128C57.5837 511.5 0.5 454.416 0.5 384V128C0.5 57.5837 57.5837 0.5 128 0.5Z" fill="black" stroke="black"/>
-<path d="M408 104H104V408H408V104Z" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M160 185C192 145 224 145 256 185C288 225 320 225 352 185" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M226 245C226 252.956 229.161 260.587 234.787 266.213C240.413 271.839 248.044 275 256 275C263.956 275 271.587 271.839 277.213 266.213C282.839 260.587 286 252.956 286 245" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M201 245C201 259.587 206.795 273.576 217.109 283.891C227.424 294.205 241.413 300 256 300C270.587 300 284.576 294.205 294.891 283.891C305.205 273.576 311 259.587 311 245" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M176 245C176 266.217 184.429 286.566 199.431 301.569C214.434 316.571 234.783 325 256 325C277.217 325 297.566 316.571 312.569 301.569C327.571 286.566 336 266.217 336 245" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M384 0H128C57.3075 0 0 57.3075 0 128V384C0 454.692 57.3075 512 128 512H384C454.692 512 512 454.692 512 384V128C512 57.3075 454.692 0 384 0Z" fill="url(#paint0_linear_21_13)"/>
+<path d="M97 165C150 98.3333 203 98.3333 256 165C309 231.667 362 231.667 415 165" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M206 264C206 277.261 211.268 289.979 220.645 299.355C230.021 308.732 242.739 314 256 314C269.261 314 281.979 308.732 291.355 299.355C300.732 289.979 306 277.261 306 264" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M165 264C165 288.4 174.587 311.8 191.653 329.054C208.719 346.307 231.865 356 256 356C280.135 356 303.281 346.307 320.347 329.054C337.413 311.8 347 288.4 347 264" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M124 264C124 299.274 137.96 333.103 162.808 358.045C187.657 382.988 221.359 397 256.5 397C291.641 397 325.343 382.988 350.192 358.045C375.04 333.103 389 299.274 389 264" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <defs>
+<linearGradient id="paint0_linear_21_13" x1="256" y1="0" x2="256" y2="512" gradientUnits="userSpaceOnUse">
+<stop stop-color="#373739"/>
+<stop offset="1" stop-color="#1B1B1C"/>
+</linearGradient>
 <clipPath id="clip0_21_13">
 <rect width="512" height="512" fill="white"/>
 </clipPath>

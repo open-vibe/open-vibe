@@ -2,6 +2,8 @@
 
 ![Open Vibe](screenshot.png)
 
+中文版本: [README.zh-CN.md](README.zh-CN.md)
+
 Open Vibe is a desktop Tauri app for orchestrating multiple Codex agents across local workspaces. It provides a workspace sidebar, a home dashboard for quick entry, and a thread-centric conversation view powered by the Codex app-server protocol.
 
 This project started as a CodexMonitor fork and has been heavily customized for:
