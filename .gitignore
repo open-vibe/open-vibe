@@ -27,3 +27,4 @@ CodexMonitor.zip
 .codex-worktrees/
 .codexmonitor/
 publish/
+scripts/publish.ps1
