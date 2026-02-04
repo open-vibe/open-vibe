@@ -1015,15 +1015,16 @@
 }
 
 .right-panel-resizer {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: calc(var(--right-panel-width, 230px) - 4px);
-  width: 8px;
-  cursor: col-resize;
-  z-index: 2;
-  transition: opacity 160ms ease;
-}
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(var(--right-panel-width, 230px) - 4px);
+    width: 8px;
+    cursor: col-resize;
+    z-index: 30;
+    pointer-events: auto;
+    transition: opacity 160ms ease;
+  }
 
 .right-panel-resizer::after {
   content: "";

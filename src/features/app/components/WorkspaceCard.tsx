@@ -66,15 +66,14 @@ export function WorkspaceCard({
             {!workspace.connected && (
               <button
                 type="button"
-                className="cursor-pointer select-none rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
+                className="sr-only"
                 onClick={(event) => {
                   event.stopPropagation();
                   onConnectWorkspace(workspace);
                 }}
                 data-tauri-drag-region="false"
-              >
-                Connect
-              </button>
+                aria-label="Connect workspace"
+              />
             )}
               <button
                 type="button"

@@ -358,15 +358,16 @@ body {
 }
 
 .sidebar-resizer {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(var(--sidebar-width, 280px) - 4px);
-  width: 8px;
-  cursor: col-resize;
-  z-index: 3;
-  transition: opacity 160ms ease;
-}
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--sidebar-width, 280px) - 4px);
+    width: 8px;
+    cursor: col-resize;
+    z-index: 30;
+    pointer-events: auto;
+    transition: opacity 160ms ease;
+  }
 
 .sidebar-resizer::after {
   content: "";

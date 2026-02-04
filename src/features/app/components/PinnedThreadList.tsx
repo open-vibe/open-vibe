@@ -71,7 +71,9 @@ export function PinnedThreadList({
           statusType === "unread" &&
             "bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.7)]",
           statusType === "ready" &&
-            "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]",
+            (isActive
+              ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"
+              : "bg-muted-foreground/50"),
         );
 
         return (
