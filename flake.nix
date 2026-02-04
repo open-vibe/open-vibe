@@ -1,5 +1,5 @@
 {
-  description = "CodexMonitor Tauri app for orchestrating Codex agents";
+  description = "OpenVibe Tauri app for orchestrating AI agents";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

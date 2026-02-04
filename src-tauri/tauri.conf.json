@@ -56,7 +56,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY0QTgzQUU0QTc2MEVBNDMKUldSRDZtQ241RHFvOURJbm1KeC81aEZaOXlhZHlHd2NEZVpPVWs5NjdjOFNhUFEyZGJpTkV0S2YK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyMTNCNTFCMjk4MTZBNTAKUldSUWFvRXBHN1VUMHRFWHBETTlTZjR2MlJrcWtVMS82QWhadnlNaGgrN25yaDk1MU1DMjFjTVoK",
       "endpoints": [
         "https://github.com/open-vibe/open-vibe/releases/latest/download/latest.json"
       ]

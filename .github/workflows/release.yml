@@ -81,13 +81,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.tauri"
-          echo "$TAURI_SIGNING_PRIVATE_KEY_B64" | base64 --decode > "$HOME/.tauri/codexmonitor.key"
+          echo "$TAURI_SIGNING_PRIVATE_KEY_B64" | base64 --decode > "$HOME/.tauri/open-vibe.key"
 
       - name: Build app bundle
         run: |
           set -euo pipefail
           export TAURI_SIGNING_PRIVATE_KEY
-          TAURI_SIGNING_PRIVATE_KEY="$(cat "$HOME/.tauri/codexmonitor.key")"
+          TAURI_SIGNING_PRIVATE_KEY="$(cat "$HOME/.tauri/open-vibe.key")"
           npm run tauri -- build --bundles app
 
       - name: Bundle OpenSSL and re-sign
@@ -100,15 +100,15 @@ jobs:
         run: |
           set -euo pipefail
           ditto -c -k --keepParent \
-            src-tauri/target/release/bundle/macos/CodexMonitor.app \
-            CodexMonitor.zip
+            src-tauri/target/release/bundle/macos/open-vibe.app \
+            open-vibe.zip
 
-          xcrun notarytool submit CodexMonitor.zip \
+          xcrun notarytool submit open-vibe.zip \
             --keychain-profile "$NOTARY_PROFILE_NAME" \
             --wait
 
           xcrun stapler staple \
-            src-tauri/target/release/bundle/macos/CodexMonitor.app
+            src-tauri/target/release/bundle/macos/open-vibe.app
 
       - name: Package artifacts
         run: |
@@ -123,42 +123,42 @@ jobs:
           )
 
           mkdir -p release-artifacts release-artifacts/dmg-root
-          rm -rf release-artifacts/dmg-root/CodexMonitor.app
-          ditto src-tauri/target/release/bundle/macos/CodexMonitor.app \
-            release-artifacts/dmg-root/CodexMonitor.app
+          rm -rf release-artifacts/dmg-root/open-vibe.app
+          ditto src-tauri/target/release/bundle/macos/open-vibe.app \
+            release-artifacts/dmg-root/open-vibe.app
 
           ditto -c -k --keepParent \
-            src-tauri/target/release/bundle/macos/CodexMonitor.app \
-            release-artifacts/CodexMonitor.zip
+            src-tauri/target/release/bundle/macos/open-vibe.app \
+            release-artifacts/open-vibe.zip
 
-          hdiutil create -volname "CodexMonitor" \
+          hdiutil create -volname "OpenVibe" \
             -srcfolder release-artifacts/dmg-root \
             -ov -format UDZO \
-            release-artifacts/CodexMonitor_${VERSION}_aarch64.dmg
+            release-artifacts/open-vibe_${VERSION}_aarch64.dmg
 
           COPYFILE_DISABLE=1 tar -czf \
-            src-tauri/target/release/bundle/macos/CodexMonitor.app.tar.gz \
-            -C src-tauri/target/release/bundle/macos CodexMonitor.app
+            src-tauri/target/release/bundle/macos/open-vibe.app.tar.gz \
+            -C src-tauri/target/release/bundle/macos open-vibe.app
 
           npm run tauri signer sign -- \
-            -f "$HOME/.tauri/codexmonitor.key" \
+            -f "$HOME/.tauri/open-vibe.key" \
             -p "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
-            src-tauri/target/release/bundle/macos/CodexMonitor.app.tar.gz
+            src-tauri/target/release/bundle/macos/open-vibe.app.tar.gz
 
-          cp src-tauri/target/release/bundle/macos/CodexMonitor.app.tar.gz \
-            release-artifacts/CodexMonitor.app.tar.gz
-          cp src-tauri/target/release/bundle/macos/CodexMonitor.app.tar.gz.sig \
-            release-artifacts/CodexMonitor.app.tar.gz.sig
+          cp src-tauri/target/release/bundle/macos/open-vibe.app.tar.gz \
+            release-artifacts/open-vibe.app.tar.gz
+          cp src-tauri/target/release/bundle/macos/open-vibe.app.tar.gz.sig \
+            release-artifacts/open-vibe.app.tar.gz.sig
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
           path: |
-            release-artifacts/CodexMonitor.zip
-            release-artifacts/CodexMonitor_*_aarch64.dmg
-            release-artifacts/CodexMonitor.app.tar.gz
-            release-artifacts/CodexMonitor.app.tar.gz.sig
+            release-artifacts/open-vibe.zip
+            release-artifacts/open-vibe_*_aarch64.dmg
+            release-artifacts/open-vibe.app.tar.gz
+            release-artifacts/open-vibe.app.tar.gz.sig
 
   build_linux:
     name: appimage (${{ matrix.arch }})
@@ -204,13 +204,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.tauri"
-          echo "$TAURI_SIGNING_PRIVATE_KEY_B64" | base64 --decode > "$HOME/.tauri/codexmonitor.key"
+          echo "$TAURI_SIGNING_PRIVATE_KEY_B64" | base64 --decode > "$HOME/.tauri/open-vibe.key"
 
       - name: build AppImage
         run: |
           set -euo pipefail
           export TAURI_SIGNING_PRIVATE_KEY
-          TAURI_SIGNING_PRIVATE_KEY="$(cat "$HOME/.tauri/codexmonitor.key")"
+          TAURI_SIGNING_PRIVATE_KEY="$(cat "$HOME/.tauri/open-vibe.key")"
           npm run tauri -- build --bundles appimage
 
       - name: Upload AppImage
@@ -256,7 +256,7 @@ jobs:
           PY
           )
 
-          SIGNATURE=$(cat release-artifacts/CodexMonitor.app.tar.gz.sig)
+          SIGNATURE=$(cat release-artifacts/open-vibe.app.tar.gz.sig)
           LAST_TAG=$(git tag --sort=-version:refname \
             | grep -v "^v${VERSION}$" \
             | head -n 1 || true)
@@ -314,7 +314,7 @@ jobs:
 
           platforms = {
             "darwin-aarch64": {
-              "url": "https://github.com/Dimillian/CodexMonitor/releases/download/v${VERSION}/CodexMonitor.app.tar.gz",
+              "url": "https://github.com/open-vibe/open-vibe/releases/download/v${VERSION}/open-vibe.app.tar.gz",
               "signature": "${SIGNATURE}",
             }
           }
@@ -341,7 +341,7 @@ jobs:
             if not sig_path.exists():
               raise SystemExit(f"Missing signature for {appimage.name}")
             platforms[f"linux-{arch}"] = {
-              "url": f"https://github.com/Dimillian/CodexMonitor/releases/download/v${VERSION}/{appimage.name}",
+              "url": f"https://github.com/open-vibe/open-vibe/releases/download/v${VERSION}/{appimage.name}",
               "signature": sig_path.read_text().strip(),
             }
 
@@ -373,10 +373,10 @@ jobs:
             --title "v${VERSION}" \
             --notes-file release-artifacts/release-notes.md \
             --target "$GITHUB_SHA" \
-            release-artifacts/CodexMonitor.zip \
-            release-artifacts/CodexMonitor_*_aarch64.dmg \
-            release-artifacts/CodexMonitor.app.tar.gz \
-            release-artifacts/CodexMonitor.app.tar.gz.sig \
+            release-artifacts/open-vibe.zip \
+            release-artifacts/open-vibe_*_aarch64.dmg \
+            release-artifacts/open-vibe.app.tar.gz \
+            release-artifacts/open-vibe.app.tar.gz.sig \
             release-artifacts/*.AppImage* \
             release-artifacts/latest.json
 
