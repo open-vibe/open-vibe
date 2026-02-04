@@ -1,7 +1,9 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - "*"
 
 permissions:
   contents: write
@@ -219,12 +221,49 @@ jobs:
           name: appimage-${{ matrix.arch }}
           path: src-tauri/target/release/bundle/appimage/*.AppImage*
 
+  build_windows:
+    runs-on: windows-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows bundle
+        run: npm run tauri:build:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.zip
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/msi/*.zip
+
   release:
     runs-on: ubuntu-latest
     environment: release
     needs:
       - build_macos
       - build_linux
+      - build_windows
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -244,6 +283,12 @@ jobs:
           path: release-artifacts
           merge-multiple: true
 
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+          path: release-artifacts
+
       - name: Build latest.json
         run: |
           set -euo pipefail
@@ -256,9 +301,10 @@ jobs:
           PY
           )
 
+          TAG_NAME="${GITHUB_REF_NAME}"
           SIGNATURE=$(cat release-artifacts/open-vibe.app.tar.gz.sig)
           LAST_TAG=$(git tag --sort=-version:refname \
-            | grep -v "^v${VERSION}$" \
+            | grep -v "^${TAG_NAME}$" \
             | head -n 1 || true)
           RANGE_END="${GITHUB_SHA}"
           if [ -n "$LAST_TAG" ]; then
@@ -314,7 +360,7 @@ jobs:
 
           platforms = {
             "darwin-aarch64": {
-              "url": "https://github.com/open-vibe/open-vibe/releases/download/v${VERSION}/open-vibe.app.tar.gz",
+              "url": "https://github.com/open-vibe/open-vibe/releases/download/${TAG_NAME}/open-vibe.app.tar.gz",
               "signature": "${SIGNATURE}",
             }
           }
@@ -341,7 +387,7 @@ jobs:
             if not sig_path.exists():
               raise SystemExit(f"Missing signature for {appimage.name}")
             platforms[f"linux-{arch}"] = {
-              "url": f"https://github.com/open-vibe/open-vibe/releases/download/v${VERSION}/{appimage.name}",
+              "url": f"https://github.com/open-vibe/open-vibe/releases/download/${TAG_NAME}/{appimage.name}",
               "signature": sig_path.read_text().strip(),
             }
 
@@ -369,8 +415,10 @@ jobs:
           PY
           )
 
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
+          TAG_NAME="${GITHUB_REF_NAME}"
+
+          gh release create "${TAG_NAME}" \
+            --title "${TAG_NAME}" \
             --notes-file release-artifacts/release-notes.md \
             --target "$GITHUB_SHA" \
             release-artifacts/open-vibe.zip \
@@ -378,6 +426,8 @@ jobs:
             release-artifacts/open-vibe.app.tar.gz \
             release-artifacts/open-vibe.app.tar.gz.sig \
             release-artifacts/*.AppImage* \
+            release-artifacts/*.exe \
+            release-artifacts/*.msi \
             release-artifacts/latest.json
 
       - name: Bump version and open PR
