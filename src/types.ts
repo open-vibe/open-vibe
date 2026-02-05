@@ -48,6 +48,7 @@ export type HappyBridgeStatus = {
 export type HappyBridgeCommand =
   | {
       type: "thread-message";
+      messageId?: string;
       threadId: string;
       workspaceId: string;
       workspacePath: string;
@@ -75,6 +76,13 @@ export type HappyBridgeEvent =
       reason?: string;
     }
   | {
+      type: "message-sync";
+      messageId: string;
+      threadId: string;
+      status: "success" | "failed";
+      reason?: string;
+    }
+  | {
       type: "session-mapped";
       threadId: string;
       sessionId: string;
@@ -91,6 +99,14 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   text: string;
+};
+
+export type HappyMessageSyncStatus = "pending" | "success" | "failed";
+
+export type HappyMessageSyncState = {
+  status: HappyMessageSyncStatus;
+  updatedAt: number;
+  reason?: string;
 };
 
 export type ConversationItem =

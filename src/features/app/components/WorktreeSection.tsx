@@ -29,6 +29,7 @@ type WorktreeSectionProps = {
   deletingWorktreeIds: Set<string>;
   threadsByWorkspace: Record<string, ThreadSummary[]>;
   threadStatusById: ThreadStatusMap;
+  openThreadIds: Set<string>;
   threadListLoadingByWorkspace: Record<string, boolean>;
   threadListPagingByWorkspace: Record<string, boolean>;
   threadListCursorByWorkspace: Record<string, string | null>;
@@ -65,6 +66,7 @@ export function WorktreeSection({
   deletingWorktreeIds,
   threadsByWorkspace,
   threadStatusById,
+  openThreadIds,
   threadListLoadingByWorkspace,
   threadListPagingByWorkspace,
   threadListCursorByWorkspace,
@@ -140,6 +142,7 @@ export function WorktreeSection({
                 {showWorktreeThreadList && (
                   <ThreadList
                     workspaceId={worktree.id}
+                    openThreadIds={openThreadIds}
                     pinnedRows={[]}
                     unpinnedRows={worktreeThreadRows}
                     totalThreadRoots={totalWorktreeRoots}

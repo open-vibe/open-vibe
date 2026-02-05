@@ -157,8 +157,12 @@ export function useThreadMessaging({
       const timestamp = Date.now();
       if (onHappyBridgeCommand && finalText && !options?.skipHappyBridgeEcho) {
         const threadName = getCustomName(workspace.id, threadId) ?? null;
+        const happyMessageId = `happy-${timestamp}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
         onHappyBridgeCommand({
           type: "thread-message",
+          messageId: happyMessageId,
           threadId,
           workspaceId: workspace.id,
           workspacePath: workspace.path,

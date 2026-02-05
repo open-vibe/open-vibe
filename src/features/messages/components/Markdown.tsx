@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   decodeFileLink,
@@ -365,7 +366,7 @@ export function Markdown({
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkFileLinks]}
+        remarkPlugins={[remarkGfm, remarkBreaks, remarkFileLinks]}
         urlTransform={(url) => {
           const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
           if (

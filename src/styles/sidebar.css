@@ -13,3 +13,33 @@
 .dark .open-vibe-app-icon {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
+
+.thread-status-ripple {
+  position: relative;
+}
+
+.thread-status-ripple::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.25);
+  opacity: 0.75;
+  animation: thread-status-ripple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes thread-status-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}

@@ -18,6 +18,7 @@ type PinnedThreadRow = {
 
 type PinnedThreadListProps = {
   rows: PinnedThreadRow[];
+  openThreadIds: Set<string>;
   activeWorkspaceId: string | null;
   activeThreadId: string | null;
   threadStatusById: ThreadStatusMap;
@@ -34,6 +35,7 @@ type PinnedThreadListProps = {
 
 export function PinnedThreadList({
   rows,
+  openThreadIds,
   activeWorkspaceId,
   activeThreadId,
   threadStatusById,
@@ -55,6 +57,8 @@ export function PinnedThreadList({
         const isPinned = canPin && isThreadPinned(workspaceId, thread.id);
         const isActive =
           workspaceId === activeWorkspaceId && thread.id === activeThreadId;
+        const isOpen =
+          isActive || openThreadIds.has(`${workspaceId}:${thread.id}`);
         const statusType = status?.isReviewing
           ? "reviewing"
           : status?.isProcessing
@@ -62,6 +66,8 @@ export function PinnedThreadList({
             : status?.hasUnread
               ? "unread"
               : "ready";
+        const showOpenReady = statusType === "ready" && isOpen;
+        const showActiveRipple = statusType === "ready" && isActive;
         const statusClass = cn(
           "h-1.5 w-1.5 shrink-0 rounded-full",
           statusType === "reviewing" &&
@@ -71,9 +77,10 @@ export function PinnedThreadList({
           statusType === "unread" &&
             "bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.7)]",
           statusType === "ready" &&
-            (isActive
+            (showOpenReady
               ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"
               : "bg-muted-foreground/50"),
+          showActiveRipple && "thread-status-ripple",
         );
 
         return (

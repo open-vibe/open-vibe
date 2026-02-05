@@ -24,6 +24,7 @@ const statusMap = {
 
 const baseProps = {
   rows: [{ thread, depth: 0, workspaceId: "ws-1" }],
+  openThreadIds: new Set(["ws-1:thread-1"]),
   activeWorkspaceId: "ws-1",
   activeThreadId: "thread-1",
   threadStatusById: statusMap,

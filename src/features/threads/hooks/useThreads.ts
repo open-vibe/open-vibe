@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import * as Sentry from "@sentry/react";
 import type {
   CustomPromptOption,
@@ -19,6 +19,7 @@ import { useThreadRateLimits } from "./useThreadRateLimits";
 import { useThreadSelectors } from "./useThreadSelectors";
 import { useThreadStatus } from "./useThreadStatus";
 import { useThreadUserInput } from "./useThreadUserInput";
+import { useHappyBridgeSync } from "../../happy/hooks/useHappyBridgeSync";
 import {
   makeCustomNameKey,
   removeCustomName,
@@ -58,10 +59,23 @@ export function useThreads({
   getWorkspacePath,
 }: UseThreadsOptions) {
   const [state, dispatch] = useReducer(threadReducer, initialState);
+  const [happyConnected, setHappyConnected] = useState(false);
   const loadedThreadsRef = useRef<Record<string, boolean>>({});
   const replaceOnResumeRef = useRef<Record<string, boolean>>({});
   const pendingInterruptsRef = useRef<Set<string>>(new Set());
   const threadWorkspaceByIdRef = useRef<Map<string, string>>(new Map());
+  const happyMessageCommandsRef = useRef<
+    Map<
+      string,
+      Extract<HappyBridgeCommand, { type: "thread-message" }> & {
+        messageId: string;
+      }
+    >
+  >(new Map());
+  const pendingHappyUserMessagesRef = useRef<
+    Map<string, { messageId: string; content: string }[]>
+  >(new Map());
+  const happyMessageIdByItemRef = useRef<Record<string, string>>({});
   const { approvalAllowlistRef, handleApprovalDecision, handleApprovalRemember } =
     useThreadApprovals({ dispatch, onDebug });
   const { handleUserInputSubmit } = useThreadUserInput({ dispatch });
@@ -107,13 +121,115 @@ export function useThreads({
       if ("threadId" in command && "workspaceId" in command) {
         threadWorkspaceByIdRef.current.set(command.threadId, command.workspaceId);
       }
+      let trackedMessageId: string | null = null;
+      let commandToSend = command;
+      if (command.type === "thread-message") {
+        const messageId =
+          command.messageId ??
+          `happy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        trackedMessageId = messageId;
+        commandToSend = { ...command, messageId };
+        happyMessageCommandsRef.current.set(messageId, {
+          ...command,
+          messageId,
+        });
+        dispatch({
+          type: "registerHappyMessage",
+          messageId,
+          status: "pending",
+          timestamp: Date.now(),
+        });
+        if (command.role === "user") {
+          const queue = pendingHappyUserMessagesRef.current.get(command.threadId) ?? [];
+          queue.push({ messageId, content: command.content });
+          pendingHappyUserMessagesRef.current.set(command.threadId, queue);
+        } else if (!happyMessageIdByItemRef.current[messageId]) {
+          happyMessageIdByItemRef.current[messageId] = messageId;
+          dispatch({
+            type: "mapHappyMessageToItem",
+            itemId: messageId,
+            messageId,
+          });
+        }
+      }
       try {
-        await sendHappyBridgeCommand(command);
-      } catch {
+        await sendHappyBridgeCommand(commandToSend);
+      } catch (error) {
+        if (trackedMessageId) {
+          dispatch({
+            type: "setHappyMessageStatus",
+            messageId: trackedMessageId,
+            status: "failed",
+            timestamp: Date.now(),
+            reason: error instanceof Error ? error.message : String(error),
+          });
+        }
         // Ignore bridge errors to avoid breaking local chat flow.
       }
     },
-    [happyEnabled],
+    [happyEnabled, dispatch],
+  );
+
+  const mapHappyMessageToItem = useCallback(
+    (threadId: string, itemId: string, text: string) => {
+      if (happyMessageIdByItemRef.current[itemId]) {
+        return;
+      }
+      const queue = pendingHappyUserMessagesRef.current.get(threadId);
+      if (!queue || queue.length === 0) {
+        return;
+      }
+      const normalized = text.trim();
+      let index = queue.findIndex(
+        (entry) => entry.content.trim() === normalized,
+      );
+      if (index < 0) {
+        index = 0;
+      }
+      const [entry] = queue.splice(index, 1);
+      if (queue.length === 0) {
+        pendingHappyUserMessagesRef.current.delete(threadId);
+      } else {
+        pendingHappyUserMessagesRef.current.set(threadId, queue);
+      }
+      happyMessageIdByItemRef.current[itemId] = entry.messageId;
+      dispatch({
+        type: "mapHappyMessageToItem",
+        itemId,
+        messageId: entry.messageId,
+      });
+    },
+    [dispatch],
+  );
+
+  const retryHappyMessage = useCallback(
+    async (messageId: string) => {
+      if (!happyEnabled) {
+        return;
+      }
+      const command = happyMessageCommandsRef.current.get(messageId);
+      if (!command) {
+        return;
+      }
+      dispatch({
+        type: "setHappyMessageStatus",
+        messageId,
+        status: "pending",
+        timestamp: Date.now(),
+      });
+      try {
+        await sendHappyBridgeCommand(command);
+      } catch (error) {
+        dispatch({
+          type: "setHappyMessageStatus",
+          messageId,
+          status: "failed",
+          timestamp: Date.now(),
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [dispatch, happyEnabled],
   );
 
   const pushThreadErrorMessage = useCallback(
@@ -177,6 +293,28 @@ export function useThreads({
       // Ignore refresh errors to avoid breaking the UI.
     }
   }, [onMessageActivity]);
+
+  useHappyBridgeSync({
+    enabled: happyEnabled,
+    onStatus: (connected) => {
+      setHappyConnected(connected);
+    },
+    onMessageSync: (event) => {
+      dispatch({
+        type: "setHappyMessageStatus",
+        messageId: event.messageId,
+        status: event.status === "success" ? "success" : "failed",
+        timestamp: Date.now(),
+        reason: event.reason,
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!happyEnabled) {
+      setHappyConnected(false);
+    }
+  }, [happyEnabled]);
   const { applyCollabThreadLinks, applyCollabThreadLinksFromThread } =
     useThreadLinking({
       dispatch,
@@ -205,6 +343,7 @@ export function useThreads({
     onWorkspaceConnected: handleWorkspaceConnected,
     getWorkspacePath,
     onHappyBridgeCommand: queueHappyBridgeCommand,
+    onUserMessageItem: mapHappyMessageToItem,
     applyCollabThreadLinks,
     approvalAllowlistRef,
     pendingInterruptsRef,
@@ -394,6 +533,9 @@ export function useThreads({
     rateLimitsByWorkspace: state.rateLimitsByWorkspace,
     planByThread: state.planByThread,
     lastAgentMessageByThread: state.lastAgentMessageByThread,
+    happyMessageStatusById: state.happyMessageStatusById,
+    happyMessageIdByItemId: state.happyMessageIdByItemId,
+    happyConnected,
     refreshAccountRateLimits,
     interruptTurn,
     removeThread,
@@ -410,6 +552,7 @@ export function useThreads({
     loadOlderThreadsForWorkspace,
     sendUserMessage,
     sendUserMessageToThread,
+    retryHappyMessage,
     startReview,
     handleApprovalDecision,
     handleApprovalRemember,

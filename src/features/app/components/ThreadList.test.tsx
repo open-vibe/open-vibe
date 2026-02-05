@@ -24,6 +24,7 @@ const statusMap = {
 
 const baseProps = {
   workspaceId: "ws-1",
+  openThreadIds: new Set(["ws-1:thread-1"]),
   pinnedRows: [],
   unpinnedRows: [{ thread, depth: 0 }],
   totalThreadRoots: 1,

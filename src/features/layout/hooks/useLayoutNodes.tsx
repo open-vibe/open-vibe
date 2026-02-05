@@ -35,6 +35,7 @@ import type {
   GitHubPullRequestComment,
   GitHubPullRequest,
   GitLogEntry,
+  HappyMessageSyncState,
   LocalUsageSnapshot,
   ModelOption,
   OpenAppTarget,
@@ -106,12 +107,16 @@ type LayoutNodesOptions = {
   threadsByWorkspace: Record<string, ThreadSummary[]>;
   threadParentById: Record<string, string>;
   threadStatusById: Record<string, ThreadActivityStatus>;
+  openThreadIds: Set<string>;
   threadListLoadingByWorkspace: Record<string, boolean>;
   threadListPagingByWorkspace: Record<string, boolean>;
   threadListCursorByWorkspace: Record<string, string | null>;
   activeWorkspaceId: string | null;
   activeThreadId: string | null;
   activeItems: ConversationItem[];
+  happyEnabled: boolean;
+  happyMessageStatusById: Record<string, HappyMessageSyncState>;
+  happyMessageIdByItemId: Record<string, string>;
   activeRateLimits: RateLimitSnapshot | null;
   experimentalYunyiEnabled: boolean;
   experimentalYunyiToken: string;
@@ -139,6 +144,7 @@ type LayoutNodesOptions = {
     request: RequestUserInputRequest,
     response: RequestUserInputResponse,
   ) => void;
+  onRetryHappyMessage?: (messageId: string) => void;
   onOpenSettings: () => void;
   onOpenDictationSettings?: () => void;
   onOpenDebug: () => void;
@@ -444,6 +450,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       threadsByWorkspace={options.threadsByWorkspace}
       threadParentById={options.threadParentById}
       threadStatusById={options.threadStatusById}
+      openThreadIds={options.openThreadIds}
       threadListLoadingByWorkspace={options.threadListLoadingByWorkspace}
       threadListPagingByWorkspace={options.threadListPagingByWorkspace}
       threadListCursorByWorkspace={options.threadListCursorByWorkspace}
@@ -497,6 +504,10 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       workspacePath={options.activeWorkspace?.path ?? null}
       openTargets={options.openAppTargets}
       selectedOpenAppId={options.selectedOpenAppId}
+      happyEnabled={options.happyEnabled}
+      happyMessageStatusById={options.happyMessageStatusById}
+      happyMessageIdByItemId={options.happyMessageIdByItemId}
+      onRetryHappyMessage={options.onRetryHappyMessage}
       codeBlockCopyUseModifier={options.codeBlockCopyUseModifier}
       userInputRequests={options.userInputRequests}
       onUserInputSubmit={options.handleUserInputSubmit}
@@ -656,7 +667,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
     <>
       {options.centerMode === "diff" && (
         <button
-          className="icon-button back-button"
+          className="icon-button back-button cursor-pointer"
           onClick={options.onExitDiff}
           aria-label="Back to chat"
         >

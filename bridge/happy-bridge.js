@@ -552,7 +552,7 @@ const sendSessionMessage = async (thread, role, content, creds) => {
   const variant = session?.variant ?? stateEntry?.variant ?? creds.variant;
   if (!sessionKey) {
     log("missing session key, cannot send message");
-    return;
+    throw new Error("missing session key");
   }
   if (!session) {
     attachSessionSocket(thread.threadId, sessionId, sessionKey, variant, creds);
@@ -641,12 +641,33 @@ const start = async () => {
       return;
     }
     if (payload.type === "thread-message") {
+      const messageId = payload.messageId ?? null;
       const thread = {
         threadId: payload.threadId,
         workspacePath: payload.workspacePath,
         threadName: payload.threadName ?? null,
       };
-      await sendSessionMessage(thread, payload.role, payload.content, credentials);
+      try {
+        await sendSessionMessage(thread, payload.role, payload.content, credentials);
+        if (messageId) {
+          emitEvent({
+            type: "message-sync",
+            messageId,
+            threadId: payload.threadId,
+            status: "success",
+          });
+        }
+      } catch (error) {
+        if (messageId) {
+          emitEvent({
+            type: "message-sync",
+            messageId,
+            threadId: payload.threadId,
+            status: "failed",
+            reason: error?.message ?? "send failed",
+          });
+        }
+      }
     } else if (payload.type === "thread-open") {
       const thread = {
         threadId: payload.threadId,

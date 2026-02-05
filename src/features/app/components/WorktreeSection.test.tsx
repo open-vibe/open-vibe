@@ -24,6 +24,7 @@ describe("WorktreeSection", () => {
           deletingWorktreeIds={new Set()}
           threadsByWorkspace={{ [worktree.id]: [] }}
           threadStatusById={{}}
+          openThreadIds={new Set()}
           threadListLoadingByWorkspace={{ [worktree.id]: false }}
           threadListPagingByWorkspace={{ [worktree.id]: false }}
           threadListCursorByWorkspace={{ [worktree.id]: "cursor" }}

@@ -3,6 +3,8 @@ import Brain from "lucide-react/dist/esm/icons/brain";
 import Check from "lucide-react/dist/esm/icons/check";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
+import CloudAlert from "lucide-react/dist/esm/icons/cloud-alert";
+import CloudCheck from "lucide-react/dist/esm/icons/cloud-check";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import Diff from "lucide-react/dist/esm/icons/diff";
 import FileDiff from "lucide-react/dist/esm/icons/file-diff";
@@ -14,6 +16,7 @@ import Users from "lucide-react/dist/esm/icons/users";
 import Wrench from "lucide-react/dist/esm/icons/wrench";
 import type {
   ConversationItem,
+  HappyMessageSyncState,
   OpenAppTarget,
   RequestUserInputRequest,
   RequestUserInputResponse,
@@ -42,6 +45,10 @@ type MessagesProps = {
     request: RequestUserInputRequest,
     response: RequestUserInputResponse,
   ) => void;
+  happyEnabled?: boolean;
+  happyMessageStatusById?: Record<string, HappyMessageSyncState>;
+  happyMessageIdByItemId?: Record<string, string>;
+  onRetryHappyMessage?: (messageId: string) => void;
 };
 
 type ToolSummary = {
@@ -67,6 +74,10 @@ type MessageRowProps = {
   codeBlockCopyUseModifier?: boolean;
   onOpenFileLink?: (path: string) => void;
   onOpenFileLinkMenu?: (event: React.MouseEvent, path: string) => void;
+  happyEnabled?: boolean;
+  happySync?: HappyMessageSyncState | null;
+  happyMessageId?: string | null;
+  onRetryHappyMessage?: (messageId: string) => void;
 };
 
 type ReasoningRowProps = {
@@ -426,10 +437,32 @@ const MessageRow = memo(function MessageRow({
   codeBlockCopyUseModifier,
   onOpenFileLink,
   onOpenFileLinkMenu,
+  happyEnabled = false,
+  happySync = null,
+  happyMessageId = null,
+  onRetryHappyMessage,
 }: MessageRowProps) {
+  const { t } = useI18n();
+  const showHappySync =
+    happyEnabled &&
+    happySync !== null &&
+    (happySync.status === "success" || happySync.status === "failed");
+  const canRetry =
+    showHappySync &&
+    happySync?.status === "failed" &&
+    Boolean(happyMessageId) &&
+    Boolean(onRetryHappyMessage);
+  const handleRetry = () => {
+    if (!canRetry || !happyMessageId || !onRetryHappyMessage) {
+      return;
+    }
+    onRetryHappyMessage(happyMessageId);
+  };
   return (
     <div className={`message ${item.role}`}>
-      <div className="bubble message-bubble">
+      <div
+        className={`bubble message-bubble${showHappySync ? " has-sync" : ""}`}
+      >
         <Markdown
           value={item.text}
           className="markdown"
@@ -438,6 +471,32 @@ const MessageRow = memo(function MessageRow({
           onOpenFileLink={onOpenFileLink}
           onOpenFileLinkMenu={onOpenFileLinkMenu}
         />
+        {showHappySync ? (
+          <button
+            type="button"
+            className={`message-sync-indicator${
+              happySync?.status === "failed" ? " is-failed" : " is-synced"
+            }`}
+            onClick={canRetry ? handleRetry : undefined}
+            aria-label={
+              happySync?.status === "failed"
+                ? t("messages.happy.failed")
+                : t("messages.happy.synced")
+            }
+            title={
+              happySync?.status === "failed"
+                ? t("messages.happy.failed")
+                : t("messages.happy.synced")
+            }
+            disabled={!canRetry}
+          >
+            {happySync?.status === "failed" ? (
+              <CloudAlert size={14} aria-hidden />
+            ) : (
+              <CloudCheck size={14} aria-hidden />
+            )}
+          </button>
+        ) : null}
         <button
           type="button"
           className={`ghost message-copy-button${isCopied ? " is-copied" : ""}`}
@@ -839,6 +898,10 @@ export const Messages = memo(function Messages({
   codeBlockCopyUseModifier = false,
   userInputRequests = [],
   onUserInputSubmit,
+  happyEnabled = false,
+  happyMessageStatusById = {},
+  happyMessageIdByItemId = {},
+  onRetryHappyMessage,
 }: MessagesProps) {
   const { t } = useI18n();
   const SCROLL_THRESHOLD_PX = 120;
@@ -991,6 +1054,11 @@ export const Messages = memo(function Messages({
   const renderItem = (item: ConversationItem) => {
     if (item.kind === "message") {
       const isCopied = copiedMessageId === item.id;
+      const resolvedHappyMessageId =
+        happyMessageIdByItemId[item.id] ?? item.id;
+      const happySync = happyEnabled
+        ? happyMessageStatusById[resolvedHappyMessageId] ?? null
+        : null;
       return (
         <MessageRow
           key={item.id}
@@ -1000,6 +1068,10 @@ export const Messages = memo(function Messages({
           codeBlockCopyUseModifier={codeBlockCopyUseModifier}
           onOpenFileLink={openFileLink}
           onOpenFileLinkMenu={showFileLinkMenu}
+          happyEnabled={happyEnabled}
+          happySync={happySync}
+          happyMessageId={resolvedHappyMessageId}
+          onRetryHappyMessage={onRetryHappyMessage}
         />
       );
     }

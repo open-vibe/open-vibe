@@ -667,6 +667,9 @@ function MainApp() {
     rateLimitsByWorkspace,
     planByThread,
     lastAgentMessageByThread,
+    happyMessageStatusById,
+    happyMessageIdByItemId,
+    happyConnected,
     interruptTurn,
     removeThread,
     pinThread,
@@ -681,6 +684,7 @@ function MainApp() {
     refreshThread,
     sendUserMessage,
     sendUserMessageToThread,
+    retryHappyMessage,
     startReview,
     handleApprovalDecision,
     handleApprovalRemember,
@@ -719,6 +723,13 @@ function MainApp() {
     workspaces,
     threadsByWorkspace,
   });
+  const openThreadIds = useMemo(
+    () =>
+      new Set(
+        threadTabs.map((tab) => `${tab.workspaceId}:${tab.threadId}`),
+      ),
+    [threadTabs],
+  );
   useHappyBridgeEvents({
     enabled: happyEnabled,
     workspaces,
@@ -1910,12 +1921,16 @@ function MainApp() {
     threadsByWorkspace,
     threadParentById,
     threadStatusById,
+    openThreadIds,
     threadListLoadingByWorkspace,
     threadListPagingByWorkspace,
     threadListCursorByWorkspace,
     activeWorkspaceId,
     activeThreadId,
     activeItems,
+    happyEnabled,
+    happyMessageStatusById,
+    happyMessageIdByItemId,
     activeRateLimits,
     experimentalYunyiEnabled: appSettings.experimentalYunyiEnabled,
     experimentalYunyiToken: appSettings.experimentalYunyiToken,
@@ -1929,6 +1944,7 @@ function MainApp() {
     handleApprovalDecision,
     handleApprovalRemember,
     handleUserInputSubmit,
+    onRetryHappyMessage: retryHappyMessage,
     onOpenSettings: () => openSettings(),
     onOpenDictationSettings: () => openSettings("dictation"),
     onOpenDebug: handleDebugClick,
@@ -2090,6 +2106,8 @@ function MainApp() {
         onSelectDiffViewStyle={effectiveSelectDiffViewStyle}
         isCompact={isCompact}
         sidebarToggleProps={sidebarToggleProps}
+        happyEnabled={happyEnabled}
+        happyConnected={happyConnected}
       />
     ),
     filePanelMode,
@@ -2393,6 +2411,9 @@ function MainApp() {
       threadStatusById={threadStatusById}
       planByThread={planByThread}
       userInputRequests={userInputRequests}
+      happyEnabled={happyEnabled}
+      happyMessageStatusById={happyMessageStatusById}
+      happyMessageIdByItemId={happyMessageIdByItemId}
       codeBlockCopyUseModifier={appSettings.composerCodeBlockCopyUseModifier}
       openAppTargets={appSettings.openAppTargets}
       openAppIconById={openAppIconById}
@@ -2410,6 +2431,7 @@ function MainApp() {
       connectWorkspace={connectWorkspace}
       startThreadForWorkspace={startThreadForWorkspace}
       sendUserMessageToThread={sendUserMessageToThread}
+      onRetryHappyMessage={retryHappyMessage}
       handleSend={handleSend}
       queueMessage={queueMessage}
       clearActiveImages={clearActiveImages}

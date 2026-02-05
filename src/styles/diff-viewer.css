@@ -303,7 +303,7 @@
   font-size: 12px;
   color: var(--text-muted);
   background: var(--surface-messages);
-  padding: 12px 12px 10px;
+  padding: 6px 16px 6px;
   margin: 0;
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);

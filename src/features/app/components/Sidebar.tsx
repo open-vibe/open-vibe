@@ -80,6 +80,7 @@ type SidebarProps = {
     string,
     { isProcessing: boolean; hasUnread: boolean; isReviewing: boolean }
   >;
+  openThreadIds: Set<string>;
   threadListLoadingByWorkspace: Record<string, boolean>;
   threadListPagingByWorkspace: Record<string, boolean>;
   threadListCursorByWorkspace: Record<string, string | null>;
@@ -132,6 +133,7 @@ export function Sidebar({
   threadsByWorkspace,
   threadParentById,
   threadStatusById,
+  openThreadIds,
   threadListLoadingByWorkspace,
   threadListPagingByWorkspace,
   threadListCursorByWorkspace,
@@ -472,6 +474,7 @@ export function Sidebar({
               <SidebarGroupContent className="px-1">
                 <PinnedThreadList
                   rows={pinnedThreadRows}
+                  openThreadIds={openThreadIds}
                   activeWorkspaceId={activeWorkspaceId}
                   activeThreadId={activeThreadId}
                   threadStatusById={threadStatusById}
@@ -588,6 +591,7 @@ export function Sidebar({
                           deletingWorktreeIds={deletingWorktreeIds}
                           threadsByWorkspace={threadsByWorkspace}
                           threadStatusById={threadStatusById}
+                          openThreadIds={openThreadIds}
                           threadListLoadingByWorkspace={threadListLoadingByWorkspace}
                           threadListPagingByWorkspace={threadListPagingByWorkspace}
                           threadListCursorByWorkspace={threadListCursorByWorkspace}
@@ -612,6 +616,7 @@ export function Sidebar({
                       {showThreadList && (
                         <ThreadList
                           workspaceId={entry.id}
+                          openThreadIds={openThreadIds}
                           pinnedRows={[]}
                           unpinnedRows={unpinnedRows}
                           totalThreadRoots={totalThreadRoots}

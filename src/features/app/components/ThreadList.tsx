@@ -17,6 +17,7 @@ type ThreadRow = {
 
 type ThreadListProps = {
   workspaceId: string;
+  openThreadIds: Set<string>;
   pinnedRows: ThreadRow[];
   unpinnedRows: ThreadRow[];
   totalThreadRoots: number;
@@ -44,6 +45,7 @@ type ThreadListProps = {
 
 export function ThreadList({
   workspaceId,
+  openThreadIds,
   pinnedRows,
   unpinnedRows,
   totalThreadRoots,
@@ -75,6 +77,8 @@ export function ThreadList({
     const isPinned = canPin && isThreadPinned(workspaceId, thread.id);
     const isActive =
       workspaceId === activeWorkspaceId && thread.id === activeThreadId;
+    const isOpen =
+      isActive || openThreadIds.has(`${workspaceId}:${thread.id}`);
     const statusType = status?.isReviewing
       ? "reviewing"
       : status?.isProcessing
@@ -82,6 +86,8 @@ export function ThreadList({
         : status?.hasUnread
           ? "unread"
           : "ready";
+    const showOpenReady = statusType === "ready" && isOpen;
+    const showActiveRipple = statusType === "ready" && isActive;
     const statusClass = cn(
       "h-1.5 w-1.5 shrink-0 rounded-full",
       statusType === "reviewing" &&
@@ -91,9 +97,10 @@ export function ThreadList({
       statusType === "unread" &&
         "bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.7)]",
       statusType === "ready" &&
-        (isActive
+        (showOpenReady
           ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"
           : "bg-muted-foreground/50"),
+      showActiveRipple && "thread-status-ripple",
     );
 
     return (

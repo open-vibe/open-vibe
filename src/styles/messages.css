@@ -152,6 +152,47 @@
   position: relative;
 }
 
+.message-bubble.has-sync {
+  padding-right: 32px;
+}
+
+.message-sync-indicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-card-strong);
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.message-sync-indicator svg {
+  width: 14px;
+  height: 14px;
+}
+
+.message-sync-indicator.is-synced {
+  color: var(--status-success);
+  border-color: color-mix(in srgb, var(--status-success), var(--border-strong) 60%);
+}
+
+.message-sync-indicator.is-failed {
+  color: var(--status-error);
+  border-color: color-mix(in srgb, var(--status-error), var(--border-strong) 60%);
+  cursor: pointer;
+}
+
+.message-sync-indicator:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 .message-copy-button {
   display: inline-flex;
   align-items: center;

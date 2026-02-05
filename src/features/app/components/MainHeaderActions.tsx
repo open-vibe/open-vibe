@@ -1,8 +1,10 @@
 import { memo } from "react";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left";
 import Columns2 from "lucide-react/dist/esm/icons/columns-2";
+import Heading from "lucide-react/dist/esm/icons/heading";
 import type { SidebarToggleProps } from "../../layout/components/SidebarToggleControls";
 import { RightPanelCollapseButton } from "../../layout/components/SidebarToggleControls";
+import { useI18n } from "../../../i18n";
 
 type MainHeaderActionsProps = {
   centerMode: "chat" | "diff";
@@ -10,6 +12,8 @@ type MainHeaderActionsProps = {
   onSelectDiffViewStyle: (style: "split" | "unified") => void;
   isCompact: boolean;
   sidebarToggleProps: SidebarToggleProps;
+  happyEnabled?: boolean;
+  happyConnected?: boolean;
 };
 
 export const MainHeaderActions = memo(function MainHeaderActions({
@@ -18,7 +22,13 @@ export const MainHeaderActions = memo(function MainHeaderActions({
   onSelectDiffViewStyle,
   isCompact,
   sidebarToggleProps,
+  happyEnabled = false,
+  happyConnected = false,
 }: MainHeaderActionsProps) {
+  const { t } = useI18n();
+  const happyLabel = happyConnected
+    ? t("happy.status.connected")
+    : t("happy.status.disconnected");
   return (
     <>
       {centerMode === "diff" && (
@@ -49,6 +59,18 @@ export const MainHeaderActions = memo(function MainHeaderActions({
           </button>
         </div>
       )}
+      {happyEnabled ? (
+        <div
+          className={`happy-bridge-indicator${
+            happyConnected ? " is-connected" : " is-disconnected"
+          }`}
+          role="img"
+          aria-label={happyLabel}
+          title={happyLabel}
+        >
+          <Heading size={14} aria-hidden />
+        </div>
+      ) : null}
       {!isCompact ? <RightPanelCollapseButton {...sidebarToggleProps} /> : null}
     </>
   );

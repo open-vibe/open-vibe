@@ -25,6 +25,12 @@ type ThreadEventHandlersOptions = {
   onWorkspaceConnected: (workspaceId: string) => void;
   getWorkspacePath?: (workspaceId: string) => string | null;
   onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
+  onUserMessageItem?: (
+    workspaceId: string,
+    threadId: string,
+    itemId: string,
+    text: string,
+  ) => void;
   applyCollabThreadLinks: (
     threadId: string,
     item: Record<string, unknown>,
@@ -48,6 +54,7 @@ export function useThreadEventHandlers({
   onWorkspaceConnected,
   getWorkspacePath,
   onHappyBridgeCommand,
+  onUserMessageItem,
   applyCollabThreadLinks,
   approvalAllowlistRef,
   pendingInterruptsRef,
@@ -81,6 +88,7 @@ export function useThreadEventHandlers({
     recordThreadActivity,
     getWorkspacePath,
     onHappyBridgeCommand,
+    onUserMessageItem,
     applyCollabThreadLinks,
   });
 

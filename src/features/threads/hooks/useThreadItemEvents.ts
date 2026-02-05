@@ -19,6 +19,12 @@ type UseThreadItemEventsOptions = {
   ) => void;
   getWorkspacePath?: (workspaceId: string) => string | null;
   onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
+  onUserMessageItem?: (
+    workspaceId: string,
+    threadId: string,
+    itemId: string,
+    text: string,
+  ) => void;
   applyCollabThreadLinks: (
     threadId: string,
     item: Record<string, unknown>,
@@ -35,6 +41,7 @@ export function useThreadItemEvents({
   recordThreadActivity,
   getWorkspacePath,
   onHappyBridgeCommand,
+  onUserMessageItem,
   applyCollabThreadLinks,
 }: UseThreadItemEventsOptions) {
   const agentMessageBufferRef = useRef<Record<string, string>>({});
@@ -85,6 +92,14 @@ export function useThreadItemEvents({
           item: converted,
           hasCustomName: Boolean(getCustomName(workspaceId, threadId)),
         });
+        if (converted.kind === "message" && converted.role === "user") {
+          onUserMessageItem?.(
+            workspaceId,
+            threadId,
+            converted.id,
+            converted.text,
+          );
+        }
       }
       safeMessageActivity();
     },
@@ -94,6 +109,7 @@ export function useThreadItemEvents({
       getCustomName,
       markProcessing,
       markReviewing,
+      onUserMessageItem,
       safeMessageActivity,
     ],
   );
@@ -193,6 +209,7 @@ export function useThreadItemEvents({
         const threadName = getCustomName(workspaceId, threadId) ?? null;
         onHappyBridgeCommand({
           type: "thread-message",
+          messageId: itemId,
           threadId,
           workspaceId,
           workspacePath,

@@ -1,6 +1,7 @@
 import type {
   ConversationItem,
   DebugEntry,
+  HappyMessageSyncState,
   OpenAppTarget,
   RequestUserInputRequest,
   RequestUserInputResponse,
@@ -36,6 +37,9 @@ type ThreadTabsContentProps = {
   threadStatusById: Record<string, ThreadActivityStatus>;
   planByThread: Record<string, TurnPlan | null>;
   userInputRequests: RequestUserInputRequest[];
+  happyEnabled: boolean;
+  happyMessageStatusById: Record<string, HappyMessageSyncState>;
+  happyMessageIdByItemId: Record<string, string>;
   codeBlockCopyUseModifier: boolean;
   openAppTargets: OpenAppTarget[];
   openAppIconById: Record<string, string>;
@@ -65,6 +69,7 @@ type ThreadTabsContentProps = {
     images?: string[],
     options?: { model?: string | null; effort?: string | null },
   ) => Promise<void>;
+  onRetryHappyMessage: (messageId: string) => void;
   handleSend: (text: string, images: string[]) => Promise<void>;
   queueMessage: (text: string, images: string[]) => Promise<void>;
   clearActiveImages: () => void;
@@ -89,6 +94,9 @@ export function ThreadTabsContent({
   threadStatusById,
   planByThread,
   userInputRequests,
+  happyEnabled,
+  happyMessageStatusById,
+  happyMessageIdByItemId,
   codeBlockCopyUseModifier,
   openAppTargets,
   openAppIconById,
@@ -106,6 +114,7 @@ export function ThreadTabsContent({
   connectWorkspace,
   startThreadForWorkspace,
   sendUserMessageToThread,
+  onRetryHappyMessage,
   handleSend,
   queueMessage,
   clearActiveImages,
@@ -175,6 +184,9 @@ export function ThreadTabsContent({
             threadStatus={threadStatus}
             plan={plan}
             userInputRequests={userInputRequests}
+            happyEnabled={happyEnabled}
+            happyMessageStatusById={happyMessageStatusById}
+            happyMessageIdByItemId={happyMessageIdByItemId}
             codeBlockCopyUseModifier={codeBlockCopyUseModifier}
             openAppTargets={openAppTargets}
             openAppIconById={openAppIconById}
@@ -192,6 +204,7 @@ export function ThreadTabsContent({
             connectWorkspace={connectWorkspace}
             startThreadForWorkspace={startThreadForWorkspace}
             sendUserMessageToThread={sendUserMessageToThread}
+            onRetryHappyMessage={onRetryHappyMessage}
             handleSend={handleSend}
             queueMessage={queueMessage}
             clearActiveImages={clearActiveImages}

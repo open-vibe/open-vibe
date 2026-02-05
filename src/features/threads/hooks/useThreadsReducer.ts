@@ -1,6 +1,7 @@
 import type {
   ApprovalRequest,
   ConversationItem,
+  HappyMessageSyncState,
   RateLimitSnapshot,
   RequestUserInputRequest,
   ThreadSummary,
@@ -132,6 +133,8 @@ export type ThreadState = {
   rateLimitsByWorkspace: Record<string, RateLimitSnapshot | null>;
   planByThread: Record<string, TurnPlan | null>;
   lastAgentMessageByThread: Record<string, { text: string; timestamp: number }>;
+  happyMessageStatusById: Record<string, HappyMessageSyncState>;
+  happyMessageIdByItemId: Record<string, string>;
 };
 
 export type ThreadAction =
@@ -226,7 +229,23 @@ export type ThreadAction =
       threadId: string;
       text: string;
       timestamp: number;
-    };
+    }
+  | {
+      type: "registerHappyMessage";
+      messageId: string;
+      itemId?: string;
+      status: HappyMessageSyncState["status"];
+      timestamp: number;
+      reason?: string;
+    }
+  | {
+      type: "setHappyMessageStatus";
+      messageId: string;
+      status: HappyMessageSyncState["status"];
+      timestamp: number;
+      reason?: string;
+    }
+  | { type: "mapHappyMessageToItem"; itemId: string; messageId: string };
 
 const emptyItems: Record<string, ConversationItem[]> = {};
 
@@ -246,6 +265,8 @@ export const initialState: ThreadState = {
   rateLimitsByWorkspace: {},
   planByThread: {},
   lastAgentMessageByThread: {},
+  happyMessageStatusById: {},
+  happyMessageIdByItemId: {},
 };
 
 function mergeStreamingText(existing: string, delta: string) {
@@ -757,6 +778,60 @@ export function threadReducer(state: ThreadState, action: ThreadAction): ThreadS
           [action.threadId]: { text: action.text, timestamp: action.timestamp },
         },
       };
+    case "registerHappyMessage": {
+      const nextStatus: HappyMessageSyncState = {
+        status: action.status,
+        updatedAt: action.timestamp,
+        reason: action.reason,
+      };
+      return {
+        ...state,
+        happyMessageStatusById: {
+          ...state.happyMessageStatusById,
+          [action.messageId]: nextStatus,
+        },
+        happyMessageIdByItemId: action.itemId
+          ? {
+              ...state.happyMessageIdByItemId,
+              [action.itemId]: action.messageId,
+            }
+          : state.happyMessageIdByItemId,
+      };
+    }
+    case "setHappyMessageStatus": {
+      const current = state.happyMessageStatusById[action.messageId];
+      const nextStatus: HappyMessageSyncState = {
+        status: action.status,
+        updatedAt: action.timestamp,
+        reason: action.reason,
+      };
+      if (
+        current &&
+        current.status === nextStatus.status &&
+        current.reason === nextStatus.reason
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        happyMessageStatusById: {
+          ...state.happyMessageStatusById,
+          [action.messageId]: nextStatus,
+        },
+      };
+    }
+    case "mapHappyMessageToItem": {
+      if (state.happyMessageIdByItemId[action.itemId] === action.messageId) {
+        return state;
+      }
+      return {
+        ...state,
+        happyMessageIdByItemId: {
+          ...state.happyMessageIdByItemId,
+          [action.itemId]: action.messageId,
+        },
+      };
+    }
     case "appendReasoningSummary": {
       const list = state.itemsByThread[action.threadId] ?? [];
       const index = list.findIndex((entry) => entry.id === action.itemId);
