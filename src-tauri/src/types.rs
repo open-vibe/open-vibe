@@ -422,6 +422,16 @@ pub(crate) struct AppSettings {
     )]
     pub(crate) notification_sound_volume: f64,
     #[serde(
+        default = "default_notification_sound_success_volume",
+        rename = "notificationSoundSuccessVolume"
+    )]
+    pub(crate) notification_sound_success_volume: f64,
+    #[serde(
+        default = "default_notification_sound_error_volume",
+        rename = "notificationSoundErrorVolume"
+    )]
+    pub(crate) notification_sound_error_volume: f64,
+    #[serde(
         default = "default_notification_sound_success_id",
         rename = "notificationSoundSuccessId"
     )]
@@ -662,6 +672,14 @@ fn default_notification_sound_volume() -> f64 {
     0.05
 }
 
+fn default_notification_sound_success_volume() -> f64 {
+    default_notification_sound_volume()
+}
+
+fn default_notification_sound_error_volume() -> f64 {
+    default_notification_sound_volume()
+}
+
 fn default_notification_sound_success_id() -> String {
     "default-success".to_string()
 }
@@ -856,6 +874,8 @@ impl Default for AppSettings {
             code_font_size: default_code_font_size(),
             notification_sounds_enabled: true,
             notification_sound_volume: default_notification_sound_volume(),
+            notification_sound_success_volume: default_notification_sound_success_volume(),
+            notification_sound_error_volume: default_notification_sound_error_volume(),
             notification_sound_success_id: default_notification_sound_success_id(),
             notification_sound_success_path: None,
             notification_sound_error_id: default_notification_sound_error_id(),
@@ -968,6 +988,8 @@ mod tests {
         assert_eq!(settings.code_font_size, 11);
         assert!(settings.notification_sounds_enabled);
         assert!((settings.notification_sound_volume - 0.05).abs() < f64::EPSILON);
+        assert!((settings.notification_sound_success_volume - 0.05).abs() < f64::EPSILON);
+        assert!((settings.notification_sound_error_volume - 0.05).abs() < f64::EPSILON);
         assert_eq!(settings.notification_sound_success_id, "default-success");
         assert!(settings.notification_sound_success_path.is_none());
         assert_eq!(settings.notification_sound_error_id, "default-error");

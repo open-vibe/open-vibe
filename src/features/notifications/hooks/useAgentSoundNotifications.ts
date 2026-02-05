@@ -10,7 +10,8 @@ type SoundNotificationOptions = {
   isWindowFocused: boolean;
   successSoundUrl: string;
   errorSoundUrl: string;
-  volume: number;
+  successVolume: number;
+  errorVolume: number;
   minDurationMs?: number;
   onDebug?: (entry: DebugEntry) => void;
 };
@@ -28,7 +29,8 @@ export function useAgentSoundNotifications({
   isWindowFocused,
   successSoundUrl,
   errorSoundUrl,
-  volume,
+  successVolume,
+  errorVolume,
   minDurationMs = DEFAULT_MIN_DURATION_MS,
   onDebug,
 }: SoundNotificationOptions) {
@@ -38,9 +40,10 @@ export function useAgentSoundNotifications({
 
   const playSound = useCallback(
     (url: string, label: "success" | "error") => {
+      const volume = label === "error" ? errorVolume : successVolume;
       playNotificationSound(url, label, { onDebug, volume });
     },
-    [onDebug, volume],
+    [errorVolume, onDebug, successVolume],
   );
 
   const consumeDuration = useCallback(

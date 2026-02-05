@@ -76,7 +76,12 @@ import {
   DEFAULT_NOTIFICATION_ERROR_ID,
   DEFAULT_NOTIFICATION_SUCCESS_ID,
 } from "../../../utils/notificationSoundDefaults";
-import { notificationSoundOptions } from "../../../utils/notificationSoundSources";
+import {
+  defaultNotificationErrorSoundUrl,
+  defaultNotificationSuccessSoundUrl,
+  notificationSoundOptions,
+  resolveNotificationSoundUrl,
+} from "../../../utils/notificationSoundSources";
 
 const DICTATION_MODELS = [
   {
@@ -254,7 +259,10 @@ export type SettingsViewProps = {
   ) => Promise<void>;
   scaleShortcutTitle: string;
   scaleShortcutText: string;
-  onTestNotificationSound: (type?: "success" | "error") => void;
+  onTestNotificationSound: (
+    type?: "success" | "error",
+    options?: { url?: string; volume?: number },
+  ) => void;
   dictationModelStatus?: DictationModelStatus | null;
   onDownloadDictationModel?: () => void;
   onCancelDictationDownload?: () => void;
@@ -472,7 +480,26 @@ export function SettingsView({
             type === "error" ? SOUND_CUSTOM_VALUE : appSettings.notificationSoundErrorId,
           notificationSoundErrorPath:
             type === "error" ? selection : appSettings.notificationSoundErrorPath,
+          notificationSoundVolume:
+            type === "success"
+              ? appSettings.notificationSoundSuccessVolume
+              : appSettings.notificationSoundErrorVolume,
         });
+        if (appSettings.notificationSoundsEnabled) {
+          const url = resolveNotificationSoundUrl({
+            soundId: SOUND_CUSTOM_VALUE,
+            soundPath: selection,
+            fallbackUrl:
+              type === "success"
+                ? defaultNotificationSuccessSoundUrl
+                : defaultNotificationErrorSoundUrl,
+          });
+          const volume =
+            type === "success"
+              ? appSettings.notificationSoundSuccessVolume
+              : appSettings.notificationSoundErrorVolume;
+          onTestNotificationSound(type, { url, volume });
+        }
         return;
       }
       void onUpdateAppSettings({
@@ -485,9 +512,28 @@ export function SettingsView({
           type === "error" ? value : appSettings.notificationSoundErrorId,
         notificationSoundErrorPath:
           type === "error" ? null : appSettings.notificationSoundErrorPath,
+        notificationSoundVolume:
+          type === "success"
+            ? appSettings.notificationSoundSuccessVolume
+            : appSettings.notificationSoundErrorVolume,
       });
+      if (appSettings.notificationSoundsEnabled) {
+        const url = resolveNotificationSoundUrl({
+          soundId: value,
+          soundPath: null,
+          fallbackUrl:
+            type === "success"
+              ? defaultNotificationSuccessSoundUrl
+              : defaultNotificationErrorSoundUrl,
+        });
+        const volume =
+          type === "success"
+            ? appSettings.notificationSoundSuccessVolume
+            : appSettings.notificationSoundErrorVolume;
+        onTestNotificationSound(type, { url, volume });
+      }
     },
-    [appSettings, onUpdateAppSettings, pickSoundFile],
+    [appSettings, onTestNotificationSound, onUpdateAppSettings, pickSoundFile],
   );
   const handlePickCustomSound = useCallback(
     async (type: "success" | "error") => {
@@ -505,12 +551,34 @@ export function SettingsView({
           type === "error" ? SOUND_CUSTOM_VALUE : appSettings.notificationSoundErrorId,
         notificationSoundErrorPath:
           type === "error" ? selection : appSettings.notificationSoundErrorPath,
+        notificationSoundVolume:
+          type === "success"
+            ? appSettings.notificationSoundSuccessVolume
+            : appSettings.notificationSoundErrorVolume,
       });
+      if (appSettings.notificationSoundsEnabled) {
+        const url = resolveNotificationSoundUrl({
+          soundId: SOUND_CUSTOM_VALUE,
+          soundPath: selection,
+          fallbackUrl:
+            type === "success"
+              ? defaultNotificationSuccessSoundUrl
+              : defaultNotificationErrorSoundUrl,
+        });
+        const volume =
+          type === "success"
+            ? appSettings.notificationSoundSuccessVolume
+            : appSettings.notificationSoundErrorVolume;
+        onTestNotificationSound(type, { url, volume });
+      }
     },
-    [appSettings, onUpdateAppSettings, pickSoundFile],
+    [appSettings, onTestNotificationSound, onUpdateAppSettings, pickSoundFile],
   );
-  const notificationVolumePercent = Math.round(
-    (appSettings.notificationSoundVolume ?? 0) * 100,
+  const successVolumePercent = Math.round(
+    (appSettings.notificationSoundSuccessVolume ?? 0) * 100,
+  );
+  const errorVolumePercent = Math.round(
+    (appSettings.notificationSoundErrorVolume ?? 0) * 100,
   );
   const successSoundValue =
     appSettings.notificationSoundSuccessId ?? DEFAULT_NOTIFICATION_SUCCESS_ID;
@@ -2158,6 +2226,28 @@ export function SettingsView({
                                 ))}
                               </SelectContent>
                             </Select>
+                            <div className="flex min-w-[180px] items-center gap-2">
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={successVolumePercent}
+                                onChange={(event) =>
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    notificationSoundSuccessVolume:
+                                      Number(event.target.value) / 100,
+                                    notificationSoundVolume:
+                                      Number(event.target.value) / 100,
+                                  })
+                                }
+                                className="h-2 w-full cursor-pointer accent-[var(--primary)]"
+                              />
+                              <span className="w-10 text-right text-xs text-muted-foreground">
+                                {successVolumePercent}%
+                              </span>
+                            </div>
                             <Button
                               type="button"
                               variant="secondary"
@@ -2204,6 +2294,28 @@ export function SettingsView({
                                 ))}
                               </SelectContent>
                             </Select>
+                            <div className="flex min-w-[180px] items-center gap-2">
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={errorVolumePercent}
+                                onChange={(event) =>
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    notificationSoundErrorVolume:
+                                      Number(event.target.value) / 100,
+                                    notificationSoundVolume:
+                                      Number(event.target.value) / 100,
+                                  })
+                                }
+                                className="h-2 w-full cursor-pointer accent-[var(--primary)]"
+                              />
+                              <span className="w-10 text-right text-xs text-muted-foreground">
+                                {errorVolumePercent}%
+                              </span>
+                            </div>
                             <Button
                               type="button"
                               variant="secondary"
@@ -2229,32 +2341,8 @@ export function SettingsView({
                             </div>
                           )}
                         </div>
-                        <Separator />
-                        <div className="space-y-2">
-                          <Label>{t("settings.display.notificationSounds.volume.label")}</Label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              step={1}
-                              value={notificationVolumePercent}
-                              onChange={(event) =>
-                                void onUpdateAppSettings({
-                                  ...appSettings,
-                                  notificationSoundVolume:
-                                    Number(event.target.value) / 100,
-                                })
-                              }
-                              className="h-2 w-full cursor-pointer accent-[var(--primary)]"
-                            />
-                            <span className="w-12 text-right text-xs text-muted-foreground">
-                              {notificationVolumePercent}%
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("settings.display.notificationSounds.volume.help")}
-                          </div>
+                        <div className="text-xs text-muted-foreground">
+                          {t("settings.display.notificationSounds.volume.help")}
                         </div>
                       </div>
                     </div>

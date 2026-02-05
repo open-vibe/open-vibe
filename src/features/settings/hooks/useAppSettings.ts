@@ -78,6 +78,8 @@ const defaultSettings: AppSettings = {
   codeFontSize: CODE_FONT_SIZE_DEFAULT,
   notificationSoundsEnabled: true,
   notificationSoundVolume: DEFAULT_NOTIFICATION_SOUND_VOLUME,
+  notificationSoundSuccessVolume: DEFAULT_NOTIFICATION_SOUND_VOLUME,
+  notificationSoundErrorVolume: DEFAULT_NOTIFICATION_SOUND_VOLUME,
   notificationSoundSuccessId: DEFAULT_NOTIFICATION_SUCCESS_ID,
   notificationSoundSuccessPath: null,
   notificationSoundErrorId: DEFAULT_NOTIFICATION_ERROR_ID,
@@ -179,6 +181,32 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       Number.isFinite(settings.notificationSoundVolume)
         ? Math.min(1, Math.max(0, settings.notificationSoundVolume))
         : DEFAULT_NOTIFICATION_SOUND_VOLUME,
+    notificationSoundSuccessVolume: (() => {
+      const legacyVolume =
+        typeof settings.notificationSoundVolume === "number" &&
+        Number.isFinite(settings.notificationSoundVolume)
+          ? Math.min(1, Math.max(0, settings.notificationSoundVolume))
+          : null;
+      const volume =
+        typeof settings.notificationSoundSuccessVolume === "number" &&
+        Number.isFinite(settings.notificationSoundSuccessVolume)
+          ? Math.min(1, Math.max(0, settings.notificationSoundSuccessVolume))
+          : legacyVolume;
+      return volume ?? DEFAULT_NOTIFICATION_SOUND_VOLUME;
+    })(),
+    notificationSoundErrorVolume: (() => {
+      const legacyVolume =
+        typeof settings.notificationSoundVolume === "number" &&
+        Number.isFinite(settings.notificationSoundVolume)
+          ? Math.min(1, Math.max(0, settings.notificationSoundVolume))
+          : null;
+      const volume =
+        typeof settings.notificationSoundErrorVolume === "number" &&
+        Number.isFinite(settings.notificationSoundErrorVolume)
+          ? Math.min(1, Math.max(0, settings.notificationSoundErrorVolume))
+          : legacyVolume;
+      return volume ?? DEFAULT_NOTIFICATION_SOUND_VOLUME;
+    })(),
     notificationSoundSuccessId:
       normalizedSuccessId === CUSTOM_NOTIFICATION_SOUND_ID &&
       !normalizedSuccessPath

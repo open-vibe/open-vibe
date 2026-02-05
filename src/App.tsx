@@ -265,10 +265,15 @@ function MainApp() {
     closeSettings,
   } = useSettingsModalState();
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const notificationSoundVolume =
-    typeof appSettings.notificationSoundVolume === "number" &&
-    Number.isFinite(appSettings.notificationSoundVolume)
-      ? appSettings.notificationSoundVolume
+  const notificationSoundSuccessVolume =
+    typeof appSettings.notificationSoundSuccessVolume === "number" &&
+    Number.isFinite(appSettings.notificationSoundSuccessVolume)
+      ? appSettings.notificationSoundSuccessVolume
+      : DEFAULT_NOTIFICATION_SOUND_VOLUME;
+  const notificationSoundErrorVolume =
+    typeof appSettings.notificationSoundErrorVolume === "number" &&
+    Number.isFinite(appSettings.notificationSoundErrorVolume)
+      ? appSettings.notificationSoundErrorVolume
       : DEFAULT_NOTIFICATION_SOUND_VOLUME;
   const notificationSuccessSoundUrl = useMemo(
     () =>
@@ -302,7 +307,8 @@ function MainApp() {
     handleTestNotificationSound,
   } = useUpdaterController({
     notificationSoundsEnabled: appSettings.notificationSoundsEnabled,
-    notificationSoundVolume,
+    notificationSoundSuccessVolume,
+    notificationSoundErrorVolume,
     onDebug: addDebugEntry,
     successSoundUrl: notificationSuccessSoundUrl,
     errorSoundUrl: notificationErrorSoundUrl,

@@ -204,7 +204,9 @@ export type AppSettings = {
   codeFontFamily: string;
   codeFontSize: number;
   notificationSoundsEnabled: boolean;
-  notificationSoundVolume: number;
+  notificationSoundVolume?: number;
+  notificationSoundSuccessVolume: number;
+  notificationSoundErrorVolume: number;
   notificationSoundSuccessId: string;
   notificationSoundSuccessPath: string | null;
   notificationSoundErrorId: string;

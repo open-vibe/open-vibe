@@ -9,7 +9,8 @@ import type { DebugEntry } from "../../../types";
 
 type Params = {
   notificationSoundsEnabled: boolean;
-  notificationSoundVolume: number;
+  notificationSoundSuccessVolume: number;
+  notificationSoundErrorVolume: number;
   onDebug: (entry: DebugEntry) => void;
   successSoundUrl: string;
   errorSoundUrl: string;
@@ -17,7 +18,8 @@ type Params = {
 
 export function useUpdaterController({
   notificationSoundsEnabled,
-  notificationSoundVolume,
+  notificationSoundSuccessVolume,
+  notificationSoundErrorVolume,
   onDebug,
   successSoundUrl,
   errorSoundUrl,
@@ -53,12 +55,16 @@ export function useUpdaterController({
     isWindowFocused,
     successSoundUrl,
     errorSoundUrl,
-    volume: notificationSoundVolume,
+    successVolume: notificationSoundSuccessVolume,
+    errorVolume: notificationSoundErrorVolume,
     onDebug,
   });
 
   const handleTestNotificationSound = useCallback(
-    (type?: "success" | "error") => {
+    (
+      type?: "success" | "error",
+      options?: { url?: string; volume?: number },
+    ) => {
       const useError =
         type === "error"
           ? true
@@ -67,13 +73,25 @@ export function useUpdaterController({
             : nextTestSoundIsError.current;
       nextTestSoundIsError.current = !useError;
       const label = useError ? "error" : "success";
-      const url = useError ? errorSoundUrl : successSoundUrl;
+      const url = options?.url ?? (useError ? errorSoundUrl : successSoundUrl);
+      const volume =
+        typeof options?.volume === "number"
+          ? options.volume
+          : useError
+            ? notificationSoundErrorVolume
+            : notificationSoundSuccessVolume;
       playNotificationSound(url, label, {
         onDebug,
-        volume: notificationSoundVolume,
+        volume,
       });
     },
-    [errorSoundUrl, notificationSoundVolume, onDebug, successSoundUrl],
+    [
+      errorSoundUrl,
+      notificationSoundErrorVolume,
+      notificationSoundSuccessVolume,
+      onDebug,
+      successSoundUrl,
+    ],
   );
 
   return {

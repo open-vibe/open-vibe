@@ -42,6 +42,9 @@ pub(crate) async fn update_app_settings(
     state: State<'_, AppState>,
     window: Window,
 ) -> Result<AppSettings, String> {
+    let previous_settings = state.app_settings.lock().await.clone();
+    let theme_changed = previous_settings.theme != settings.theme;
+    let language_changed = previous_settings.language != settings.language;
     let _ = codex_config::write_collab_enabled(settings.experimental_collab_enabled);
     let _ = codex_config::write_collaboration_modes_enabled(
         settings.experimental_collaboration_modes_enabled,
@@ -51,11 +54,15 @@ pub(crate) async fn update_app_settings(
     write_settings(&state.settings_path, &settings)?;
     let mut current = state.app_settings.lock().await;
     *current = settings.clone();
-    let _ = window::apply_window_appearance(&window, settings.theme.as_str());
+    if theme_changed {
+        let _ = window::apply_window_appearance(&window, settings.theme.as_str());
+    }
     let app_handle = window.app_handle();
     let _ = happy_bridge::apply_settings(&app_handle, &state, &settings).await;
-    if let Err(error) = menu::apply_menu_language(&app_handle, settings.language.as_str()) {
-        eprintln!("menu language apply failed: {error}");
+    if language_changed {
+        if let Err(error) = menu::apply_menu_language(&app_handle, settings.language.as_str()) {
+            eprintln!("menu language apply failed: {error}");
+        }
     }
     Ok(settings)
 }
