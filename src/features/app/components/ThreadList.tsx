@@ -33,6 +33,7 @@ type ThreadListProps = {
   onToggleExpanded: (workspaceId: string) => void;
   onLoadOlderThreads: (workspaceId: string) => void;
   onSelectThread: (workspaceId: string, threadId: string) => void;
+  onRenameThread: (workspaceId: string, threadId: string) => void;
   onShowThreadMenu: (
     event: MouseEvent,
     workspaceId: string,
@@ -59,6 +60,7 @@ export function ThreadList({
   onToggleExpanded,
   onLoadOlderThreads,
   onSelectThread,
+  onRenameThread,
   onShowThreadMenu,
 }: ThreadListProps) {
   const indentUnit = nested ? 10 : 14;
@@ -103,6 +105,7 @@ export function ThreadList({
           onContextMenu={(event) =>
             onShowThreadMenu(event, workspaceId, thread.id, canPin)
           }
+          onDoubleClick={() => onRenameThread(workspaceId, thread.id)}
           style={indentStyle}
           className={cn(
             "h-7 rounded-md px-2 text-xs",

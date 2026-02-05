@@ -417,6 +417,25 @@ pub(crate) struct AppSettings {
     )]
     pub(crate) notification_sounds_enabled: bool,
     #[serde(
+        default = "default_notification_sound_volume",
+        rename = "notificationSoundVolume"
+    )]
+    pub(crate) notification_sound_volume: f64,
+    #[serde(
+        default = "default_notification_sound_success_id",
+        rename = "notificationSoundSuccessId"
+    )]
+    pub(crate) notification_sound_success_id: String,
+    #[serde(default, rename = "notificationSoundSuccessPath")]
+    pub(crate) notification_sound_success_path: Option<String>,
+    #[serde(
+        default = "default_notification_sound_error_id",
+        rename = "notificationSoundErrorId"
+    )]
+    pub(crate) notification_sound_error_id: String,
+    #[serde(default, rename = "notificationSoundErrorPath")]
+    pub(crate) notification_sound_error_path: Option<String>,
+    #[serde(
         default = "default_experimental_collab_enabled",
         rename = "experimentalCollabEnabled"
     )]
@@ -639,6 +658,18 @@ fn default_notification_sounds_enabled() -> bool {
     true
 }
 
+fn default_notification_sound_volume() -> f64 {
+    0.05
+}
+
+fn default_notification_sound_success_id() -> String {
+    "default-success".to_string()
+}
+
+fn default_notification_sound_error_id() -> String {
+    "default-error".to_string()
+}
+
 fn default_experimental_collab_enabled() -> bool {
     false
 }
@@ -824,6 +855,11 @@ impl Default for AppSettings {
             code_font_family: default_code_font_family(),
             code_font_size: default_code_font_size(),
             notification_sounds_enabled: true,
+            notification_sound_volume: default_notification_sound_volume(),
+            notification_sound_success_id: default_notification_sound_success_id(),
+            notification_sound_success_path: None,
+            notification_sound_error_id: default_notification_sound_error_id(),
+            notification_sound_error_path: None,
             experimental_collab_enabled: false,
             experimental_collaboration_modes_enabled: false,
             experimental_steer_enabled: false,
@@ -931,6 +967,11 @@ mod tests {
         assert!(settings.code_font_family.contains("SF Mono"));
         assert_eq!(settings.code_font_size, 11);
         assert!(settings.notification_sounds_enabled);
+        assert!((settings.notification_sound_volume - 0.05).abs() < f64::EPSILON);
+        assert_eq!(settings.notification_sound_success_id, "default-success");
+        assert!(settings.notification_sound_success_path.is_none());
+        assert_eq!(settings.notification_sound_error_id, "default-error");
+        assert!(settings.notification_sound_error_path.is_none());
         assert!(!settings.experimental_steer_enabled);
         assert!(!settings.experimental_thread_resume_streaming_enabled);
         assert!(!settings.experimental_yunyi_enabled);

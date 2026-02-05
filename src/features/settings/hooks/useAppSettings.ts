@@ -10,6 +10,13 @@ import {
   normalizeFontFamily,
 } from "../../../utils/fonts";
 import {
+  CUSTOM_NOTIFICATION_SOUND_ID,
+  DEFAULT_NOTIFICATION_ERROR_ID,
+  DEFAULT_NOTIFICATION_SOUND_VOLUME,
+  DEFAULT_NOTIFICATION_SUCCESS_ID,
+} from "../../../utils/notificationSoundDefaults";
+import { normalizeNotificationSoundId } from "../../../utils/notificationSoundSources";
+import {
   DEFAULT_OPEN_APP_ID,
   DEFAULT_OPEN_APP_TARGETS,
   OPEN_APP_STORAGE_KEY,
@@ -70,6 +77,11 @@ const defaultSettings: AppSettings = {
   codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
   codeFontSize: CODE_FONT_SIZE_DEFAULT,
   notificationSoundsEnabled: true,
+  notificationSoundVolume: DEFAULT_NOTIFICATION_SOUND_VOLUME,
+  notificationSoundSuccessId: DEFAULT_NOTIFICATION_SUCCESS_ID,
+  notificationSoundSuccessPath: null,
+  notificationSoundErrorId: DEFAULT_NOTIFICATION_ERROR_ID,
+  notificationSoundErrorPath: null,
   experimentalCollabEnabled: false,
   experimentalCollaborationModesEnabled: false,
   experimentalSteerEnabled: false,
@@ -118,6 +130,23 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     : hasStoredSelection
       ? storedOpenAppId
       : normalizedTargets[0]?.id ?? DEFAULT_OPEN_APP_ID;
+  const normalizedSuccessId =
+    normalizeNotificationSoundId(settings.notificationSoundSuccessId) ??
+    DEFAULT_NOTIFICATION_SUCCESS_ID;
+  const normalizedSuccessPath =
+    normalizedSuccessId === CUSTOM_NOTIFICATION_SOUND_ID &&
+    settings.notificationSoundSuccessPath?.trim()
+      ? settings.notificationSoundSuccessPath.trim()
+      : null;
+  const normalizedErrorId =
+    normalizeNotificationSoundId(settings.notificationSoundErrorId) ??
+    DEFAULT_NOTIFICATION_ERROR_ID;
+  const normalizedErrorPath =
+    normalizedErrorId === CUSTOM_NOTIFICATION_SOUND_ID &&
+    settings.notificationSoundErrorPath?.trim()
+      ? settings.notificationSoundErrorPath.trim()
+      : null;
+
   return {
     ...settings,
     codexBin: settings.codexBin?.trim() ? settings.codexBin.trim() : null,
@@ -144,6 +173,28 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     dictationHoldKey:
       settings.dictationHoldKey && settings.dictationHoldKey.trim()
         ? settings.dictationHoldKey.trim()
+        : null,
+    notificationSoundVolume:
+      typeof settings.notificationSoundVolume === "number" &&
+      Number.isFinite(settings.notificationSoundVolume)
+        ? Math.min(1, Math.max(0, settings.notificationSoundVolume))
+        : DEFAULT_NOTIFICATION_SOUND_VOLUME,
+    notificationSoundSuccessId:
+      normalizedSuccessId === CUSTOM_NOTIFICATION_SOUND_ID &&
+      !normalizedSuccessPath
+        ? DEFAULT_NOTIFICATION_SUCCESS_ID
+        : normalizedSuccessId,
+    notificationSoundSuccessPath:
+      normalizedSuccessId === CUSTOM_NOTIFICATION_SOUND_ID
+        ? normalizedSuccessPath
+        : null,
+    notificationSoundErrorId:
+      normalizedErrorId === CUSTOM_NOTIFICATION_SOUND_ID && !normalizedErrorPath
+        ? DEFAULT_NOTIFICATION_ERROR_ID
+        : normalizedErrorId,
+    notificationSoundErrorPath:
+      normalizedErrorId === CUSTOM_NOTIFICATION_SOUND_ID
+        ? normalizedErrorPath
         : null,
     experimentalYunyiToken: settings.experimentalYunyiToken?.trim() ?? "",
     composerSendBehavior: allowedComposerSendBehaviors.has(

@@ -23,6 +23,7 @@ import {
   updateWorkspaceCodexBin as updateWorkspaceCodexBinService,
   updateWorkspaceSettings as updateWorkspaceSettingsService,
 } from "../../../services/tauri";
+import { getTranslator } from "../../../i18n";
 
 const GROUP_ID_RANDOM_MODULUS = 1_000_000;
 const RESERVED_GROUP_NAME = "Ungrouped";
@@ -83,6 +84,10 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
   );
   const workspaceSettingsRef = useRef<Map<string, WorkspaceSettings>>(new Map());
   const { onDebug, defaultCodexBin, appSettings, onUpdateAppSettings } = options;
+  const t = useMemo(
+    () => getTranslator(appSettings?.language ?? "system"),
+    [appSettings?.language],
+  );
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -656,7 +661,8 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
 
   async function removeWorkspace(workspaceId: string) {
     const workspace = workspaces.find((entry) => entry.id === workspaceId);
-    const workspaceName = workspace?.name || "this workspace";
+    const workspaceName =
+      workspace?.name || t("workspace.delete.fallback.workspace");
     const worktreeCount = workspaces.filter(
       (entry) => entry.parentId === workspaceId,
     ).length;
@@ -667,18 +673,23 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
     );
     const detail =
       worktreeCount > 0
-        ? `\n\nThis will also delete ${worktreeCount} worktree${
-            worktreeCount === 1 ? "" : "s"
-          } on disk.`
+        ? t(
+            worktreeCount === 1
+              ? "workspace.delete.detail.one"
+              : "workspace.delete.detail.other",
+            { count: worktreeCount },
+          )
         : "";
 
     const confirmed = await ask(
-      `Are you sure you want to delete "${workspaceName}"?\n\nThis will remove the workspace from OpenVibe.${detail}`,
+      detail
+        ? `${t("workspace.delete.confirm", { name: workspaceName })}\n\n${detail}`
+        : t("workspace.delete.confirm", { name: workspaceName }),
       {
-        title: "Delete Workspace",
+        title: t("workspace.delete.title"),
         kind: "warning",
-        okLabel: "Delete",
-        cancelLabel: "Cancel",
+        okLabel: t("workspace.delete.ok"),
+        cancelLabel: t("workspace.delete.cancel"),
       },
     );
 
@@ -718,15 +729,16 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
 
   async function removeWorktree(workspaceId: string) {
     const workspace = workspaces.find((entry) => entry.id === workspaceId);
-    const workspaceName = workspace?.name || "this worktree";
+    const workspaceName =
+      workspace?.name || t("workspace.delete.fallback.worktree");
 
     const confirmed = await ask(
-      `Are you sure you want to delete "${workspaceName}"?\n\nThis will close the agent, remove its worktree, and delete it from OpenVibe.`,
+      t("worktree.delete.confirm", { name: workspaceName }),
       {
-        title: "Delete Worktree",
+        title: t("worktree.delete.title"),
         kind: "warning",
-        okLabel: "Delete",
-        cancelLabel: "Cancel",
+        okLabel: t("worktree.delete.ok"),
+        cancelLabel: t("worktree.delete.cancel"),
       },
     );
 
@@ -760,7 +772,7 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
         payload: errorMessage,
       });
       void message(errorMessage, {
-        title: "Delete worktree failed",
+        title: t("worktree.delete.errorTitle"),
         kind: "error",
       });
     } finally {

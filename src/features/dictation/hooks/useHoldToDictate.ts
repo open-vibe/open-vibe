@@ -55,7 +55,13 @@ export function useHoldToDictate({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!matchesHoldKey(event, normalizedHoldKey) || event.repeat) {
+      if (!matchesHoldKey(event, normalizedHoldKey)) {
+        return;
+      }
+      // When the app loses focus while the key is held down, the browser may resume
+      // dispatching only repeat keydown events after focus returns. Treat the first
+      // repeat event as a valid "start" if we aren't already tracking an active hold.
+      if (event.repeat && holdDictationActive.current) {
         return;
       }
       if (!enabled || !ready) {

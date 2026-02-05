@@ -29,8 +29,12 @@ import "./styles/compact-phone.css";
 import "./styles/compact-tablet.css";
 import "./styles/yunyi-card.css";
 import "./styles/thread-tabs.css";
-import successSoundUrl from "./assets/success-notification.mp3";
-import errorSoundUrl from "./assets/error-notification.mp3";
+import {
+  defaultNotificationErrorSoundUrl,
+  defaultNotificationSuccessSoundUrl,
+  resolveNotificationSoundUrl,
+} from "./utils/notificationSoundSources";
+import { DEFAULT_NOTIFICATION_SOUND_VOLUME } from "./utils/notificationSoundDefaults";
 import { AppLayout } from "./features/app/components/AppLayout";
 import { AppModals } from "./features/app/components/AppModals";
 import { MainHeaderActions } from "./features/app/components/MainHeaderActions";
@@ -261,6 +265,35 @@ function MainApp() {
     closeSettings,
   } = useSettingsModalState();
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const notificationSoundVolume =
+    typeof appSettings.notificationSoundVolume === "number" &&
+    Number.isFinite(appSettings.notificationSoundVolume)
+      ? appSettings.notificationSoundVolume
+      : DEFAULT_NOTIFICATION_SOUND_VOLUME;
+  const notificationSuccessSoundUrl = useMemo(
+    () =>
+      resolveNotificationSoundUrl({
+        soundId: appSettings.notificationSoundSuccessId,
+        soundPath: appSettings.notificationSoundSuccessPath,
+        fallbackUrl: defaultNotificationSuccessSoundUrl,
+      }),
+    [
+      appSettings.notificationSoundSuccessId,
+      appSettings.notificationSoundSuccessPath,
+    ],
+  );
+  const notificationErrorSoundUrl = useMemo(
+    () =>
+      resolveNotificationSoundUrl({
+        soundId: appSettings.notificationSoundErrorId,
+        soundPath: appSettings.notificationSoundErrorPath,
+        fallbackUrl: defaultNotificationErrorSoundUrl,
+      }),
+    [
+      appSettings.notificationSoundErrorId,
+      appSettings.notificationSoundErrorPath,
+    ],
+  );
 
   const {
     updaterState,
@@ -269,9 +302,10 @@ function MainApp() {
     handleTestNotificationSound,
   } = useUpdaterController({
     notificationSoundsEnabled: appSettings.notificationSoundsEnabled,
+    notificationSoundVolume,
     onDebug: addDebugEntry,
-    successSoundUrl,
-    errorSoundUrl,
+    successSoundUrl: notificationSuccessSoundUrl,
+    errorSoundUrl: notificationErrorSoundUrl,
   });
 
   const { errorToasts, dismissErrorToast } = useErrorToasts();
@@ -2340,6 +2374,7 @@ function MainApp() {
       }}
       onCloseTab={handleCloseThreadTab}
       onReorderTab={reorderThreadTabs}
+      onRenameThread={handleRenameThread}
     />
   ) : null;
 

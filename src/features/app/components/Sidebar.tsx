@@ -544,6 +544,7 @@ export function Sidebar({
                           onConnectWorkspace={onConnectWorkspace}
                           onToggleWorkspaceCollapse={onToggleWorkspaceCollapse}
                           onSelectThread={onSelectThread}
+                          onRenameThread={onRenameThread}
                           onShowThreadMenu={showThreadMenu}
                           onShowWorktreeMenu={showWorktreeMenu}
                           onToggleExpanded={handleToggleExpanded}
@@ -568,6 +569,7 @@ export function Sidebar({
                           onToggleExpanded={handleToggleExpanded}
                           onLoadOlderThreads={onLoadOlderThreads}
                           onSelectThread={onSelectThread}
+                          onRenameThread={onRenameThread}
                           onShowThreadMenu={showThreadMenu}
                         />
                       )}

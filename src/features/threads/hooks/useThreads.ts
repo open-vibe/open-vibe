@@ -19,7 +19,11 @@ import { useThreadRateLimits } from "./useThreadRateLimits";
 import { useThreadSelectors } from "./useThreadSelectors";
 import { useThreadStatus } from "./useThreadStatus";
 import { useThreadUserInput } from "./useThreadUserInput";
-import { makeCustomNameKey, saveCustomName } from "../utils/threadStorage";
+import {
+  makeCustomNameKey,
+  removeCustomName,
+  saveCustomName,
+} from "../utils/threadStorage";
 import { normalizeTokenUsage } from "../utils/threadNormalize";
 
 type UseThreadsOptions = {
@@ -322,12 +326,34 @@ export function useThreads({
 
   const renameThread = useCallback(
     (workspaceId: string, threadId: string, newName: string) => {
-      saveCustomName(workspaceId, threadId, newName);
+      const trimmed = newName.trim();
       const key = makeCustomNameKey(workspaceId, threadId);
-      customNamesRef.current[key] = newName;
-      dispatch({ type: "setThreadName", workspaceId, threadId, name: newName });
+      if (!trimmed) {
+        const existing = customNamesRef.current[key];
+        if (!existing) {
+          return;
+        }
+        removeCustomName(workspaceId, threadId);
+        delete customNamesRef.current[key];
+        dispatch({
+          type: "setThreadName",
+          workspaceId,
+          threadId,
+          name: `Agent ${threadId.slice(0, 4)}`,
+        });
+        void refreshThread(workspaceId, threadId);
+        return;
+      }
+      saveCustomName(workspaceId, threadId, trimmed);
+      customNamesRef.current[key] = trimmed;
+      dispatch({
+        type: "setThreadName",
+        workspaceId,
+        threadId,
+        name: trimmed,
+      });
     },
-    [customNamesRef, dispatch],
+    [customNamesRef, dispatch, refreshThread],
   );
 
   const getWorkspaceIdForThread = useCallback(

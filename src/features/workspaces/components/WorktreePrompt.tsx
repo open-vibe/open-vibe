@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useI18n } from "../../../i18n";
 
 type WorktreePromptProps = {
   workspaceName: string;
@@ -27,6 +28,7 @@ export function WorktreePrompt({
   isBusy = false,
   isSavingScript = false,
 }: WorktreePromptProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -45,12 +47,14 @@ export function WorktreePrompt({
         }}
       />
       <div className="worktree-modal-card">
-        <div className="worktree-modal-title">New worktree agent</div>
+        <div className="worktree-modal-title">
+          {t("worktree.prompt.title")}
+        </div>
         <div className="worktree-modal-subtitle">
-          Create a worktree under "{workspaceName}".
+          {t("worktree.prompt.subtitle", { name: workspaceName })}
         </div>
         <label className="worktree-modal-label" htmlFor="worktree-branch">
-          Branch name
+          {t("worktree.prompt.branch.label")}
         </label>
         <input
           id="worktree-branch"
@@ -72,16 +76,18 @@ export function WorktreePrompt({
           }}
         />
         <div className="worktree-modal-divider" />
-        <div className="worktree-modal-section-title">Worktree setup script</div>
+        <div className="worktree-modal-section-title">
+          {t("worktree.prompt.script.title")}
+        </div>
         <div className="worktree-modal-hint">
-          Runs once in a dedicated terminal after each new worktree is created.
+          {t("worktree.prompt.script.hint")}
         </div>
         <textarea
           id="worktree-setup-script"
           className="worktree-modal-textarea"
           value={setupScript}
           onChange={(event) => onSetupScriptChange(event.target.value)}
-          placeholder="pnpm install"
+          placeholder={t("worktree.prompt.script.placeholder")}
           rows={4}
           disabled={isBusy || isSavingScript}
         />
@@ -94,7 +100,7 @@ export function WorktreePrompt({
             type="button"
             disabled={isBusy}
           >
-            Cancel
+            {t("worktree.prompt.cancel")}
           </button>
           <button
             className="primary worktree-modal-button"
@@ -102,7 +108,7 @@ export function WorktreePrompt({
             type="button"
             disabled={isBusy || branch.trim().length === 0}
           >
-            Create
+            {t("worktree.prompt.confirm")}
           </button>
         </div>
       </div>

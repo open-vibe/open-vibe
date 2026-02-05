@@ -71,6 +71,12 @@ import {
 import { useGlobalAgentsMd } from "../hooks/useGlobalAgentsMd";
 import { useGlobalCodexConfigToml } from "../hooks/useGlobalCodexConfigToml";
 import { FileEditorCard } from "../../shared/components/FileEditorCard";
+import {
+  CUSTOM_NOTIFICATION_SOUND_ID,
+  DEFAULT_NOTIFICATION_ERROR_ID,
+  DEFAULT_NOTIFICATION_SUCCESS_ID,
+} from "../../../utils/notificationSoundDefaults";
+import { notificationSoundOptions } from "../../../utils/notificationSoundSources";
 
 const DICTATION_MODELS = [
   {
@@ -108,6 +114,7 @@ const DICTATION_MODELS = [
 const UNGROUPED_SELECT_VALUE = "__ungrouped__";
 const DICTATION_AUTO_VALUE = "__auto__";
 const DICTATION_HOLD_OFF_VALUE = "__off__";
+const SOUND_CUSTOM_VALUE = CUSTOM_NOTIFICATION_SOUND_ID;
 
 type SettingsSectionProps = {
   title: string;
@@ -247,7 +254,7 @@ export type SettingsViewProps = {
   ) => Promise<void>;
   scaleShortcutTitle: string;
   scaleShortcutText: string;
-  onTestNotificationSound: () => void;
+  onTestNotificationSound: (type?: "success" | "error") => void;
   dictationModelStatus?: DictationModelStatus | null;
   onDownloadDictationModel?: () => void;
   onCancelDictationDownload?: () => void;
@@ -399,6 +406,118 @@ export function SettingsView({
       t("settings.experimental.openInFileManager", { label: fileManagerLabel }),
     [fileManagerLabel, t],
   );
+  const notificationSoundSelectOptions = useMemo(() => {
+    const customOption = {
+      id: SOUND_CUSTOM_VALUE,
+      label: t("settings.display.notificationSounds.custom"),
+    };
+    return {
+      success: [
+        {
+          id: DEFAULT_NOTIFICATION_SUCCESS_ID,
+          label: t("settings.display.notificationSounds.defaultSuccess"),
+        },
+        ...notificationSoundOptions,
+        customOption,
+      ],
+      error: [
+        {
+          id: DEFAULT_NOTIFICATION_ERROR_ID,
+          label: t("settings.display.notificationSounds.defaultError"),
+        },
+        ...notificationSoundOptions,
+        customOption,
+      ],
+    };
+  }, [t]);
+  const formatSoundPathLabel = useCallback(
+    (path: string | null) => {
+      if (!path) {
+        return t("settings.display.notificationSounds.chooseFile");
+      }
+      const name = path.split(/[/\\\\]/).pop() ?? path;
+      return t("settings.display.notificationSounds.customSelected", { name });
+    },
+    [t],
+  );
+  const pickSoundFile = useCallback(async () => {
+    const selection = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Audio",
+          extensions: ["aac", "m4a", "mp3", "wav", "ogg", "flac"],
+        },
+      ],
+    });
+    if (!selection || Array.isArray(selection)) {
+      return null;
+    }
+    return selection;
+  }, []);
+  const handleSelectNotificationSound = useCallback(
+    async (type: "success" | "error", value: string) => {
+      if (value === SOUND_CUSTOM_VALUE) {
+        const selection = await pickSoundFile();
+        if (!selection) {
+          return;
+        }
+        void onUpdateAppSettings({
+          ...appSettings,
+          notificationSoundSuccessId:
+            type === "success" ? SOUND_CUSTOM_VALUE : appSettings.notificationSoundSuccessId,
+          notificationSoundSuccessPath:
+            type === "success" ? selection : appSettings.notificationSoundSuccessPath,
+          notificationSoundErrorId:
+            type === "error" ? SOUND_CUSTOM_VALUE : appSettings.notificationSoundErrorId,
+          notificationSoundErrorPath:
+            type === "error" ? selection : appSettings.notificationSoundErrorPath,
+        });
+        return;
+      }
+      void onUpdateAppSettings({
+        ...appSettings,
+        notificationSoundSuccessId:
+          type === "success" ? value : appSettings.notificationSoundSuccessId,
+        notificationSoundSuccessPath:
+          type === "success" ? null : appSettings.notificationSoundSuccessPath,
+        notificationSoundErrorId:
+          type === "error" ? value : appSettings.notificationSoundErrorId,
+        notificationSoundErrorPath:
+          type === "error" ? null : appSettings.notificationSoundErrorPath,
+      });
+    },
+    [appSettings, onUpdateAppSettings, pickSoundFile],
+  );
+  const handlePickCustomSound = useCallback(
+    async (type: "success" | "error") => {
+      const selection = await pickSoundFile();
+      if (!selection) {
+        return;
+      }
+      void onUpdateAppSettings({
+        ...appSettings,
+        notificationSoundSuccessId:
+          type === "success" ? SOUND_CUSTOM_VALUE : appSettings.notificationSoundSuccessId,
+        notificationSoundSuccessPath:
+          type === "success" ? selection : appSettings.notificationSoundSuccessPath,
+        notificationSoundErrorId:
+          type === "error" ? SOUND_CUSTOM_VALUE : appSettings.notificationSoundErrorId,
+        notificationSoundErrorPath:
+          type === "error" ? selection : appSettings.notificationSoundErrorPath,
+      });
+    },
+    [appSettings, onUpdateAppSettings, pickSoundFile],
+  );
+  const notificationVolumePercent = Math.round(
+    (appSettings.notificationSoundVolume ?? 0) * 100,
+  );
+  const successSoundValue =
+    appSettings.notificationSoundSuccessId ?? DEFAULT_NOTIFICATION_SUCCESS_ID;
+  const errorSoundValue =
+    appSettings.notificationSoundErrorId ?? DEFAULT_NOTIFICATION_ERROR_ID;
+  const successSoundIsCustom = successSoundValue === SOUND_CUSTOM_VALUE;
+  const errorSoundIsCustom = errorSoundValue === SOUND_CUSTOM_VALUE;
   const normalizeWindowsPath = useCallback(
     (value: string | null) => {
       if (!value || platform !== "windows") {
@@ -2018,15 +2137,125 @@ export function SettingsView({
                           }
                         />
                       </div>
-                      <div>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={onTestNotificationSound}
-                        >
-                          {t("settings.display.testSound")}
-                        </Button>
+                      <div className="space-y-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-2">
+                          <Label>{t("settings.display.notificationSounds.success.label")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Select
+                              value={successSoundValue}
+                              onValueChange={(value) =>
+                                void handleSelectNotificationSound("success", value)
+                              }
+                            >
+                              <SelectTrigger className="min-w-[220px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {notificationSoundSelectOptions.success.map((option) => (
+                                  <SelectItem key={option.id} value={option.id}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => onTestNotificationSound("success")}
+                            >
+                              {t("settings.display.notificationSounds.testSuccess")}
+                            </Button>
+                            {successSoundIsCustom && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void handlePickCustomSound("success")}
+                              >
+                                {t("settings.display.notificationSounds.chooseFile")}
+                              </Button>
+                            )}
+                          </div>
+                          {successSoundIsCustom && (
+                            <div className="text-xs text-muted-foreground">
+                              {formatSoundPathLabel(appSettings.notificationSoundSuccessPath)}
+                            </div>
+                          )}
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                          <Label>{t("settings.display.notificationSounds.error.label")}</Label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Select
+                              value={errorSoundValue}
+                              onValueChange={(value) =>
+                                void handleSelectNotificationSound("error", value)
+                              }
+                            >
+                              <SelectTrigger className="min-w-[220px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {notificationSoundSelectOptions.error.map((option) => (
+                                  <SelectItem key={option.id} value={option.id}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => onTestNotificationSound("error")}
+                            >
+                              {t("settings.display.notificationSounds.testError")}
+                            </Button>
+                            {errorSoundIsCustom && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void handlePickCustomSound("error")}
+                              >
+                                {t("settings.display.notificationSounds.chooseFile")}
+                              </Button>
+                            )}
+                          </div>
+                          {errorSoundIsCustom && (
+                            <div className="text-xs text-muted-foreground">
+                              {formatSoundPathLabel(appSettings.notificationSoundErrorPath)}
+                            </div>
+                          )}
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                          <Label>{t("settings.display.notificationSounds.volume.label")}</Label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={1}
+                              value={notificationVolumePercent}
+                              onChange={(event) =>
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  notificationSoundVolume:
+                                    Number(event.target.value) / 100,
+                                })
+                              }
+                              className="h-2 w-full cursor-pointer accent-[var(--primary)]"
+                            />
+                            <span className="w-12 text-right text-xs text-muted-foreground">
+                              {notificationVolumePercent}%
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.display.notificationSounds.volume.help")}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </SettingsSection>

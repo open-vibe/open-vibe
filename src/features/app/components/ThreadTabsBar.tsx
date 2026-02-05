@@ -8,6 +8,7 @@ type ThreadTabsBarProps = {
   onSelectTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onReorderTab: (tabId: string, targetId: string) => void;
+  onRenameThread: (workspaceId: string, threadId: string) => void;
 };
 
 const MAX_TITLE_LENGTH = 20;
@@ -25,6 +26,7 @@ export function ThreadTabsBar({
   onSelectTab,
   onCloseTab,
   onReorderTab,
+  onRenameThread,
 }: ThreadTabsBarProps) {
   if (tabs.length === 0) {
     return null;
@@ -71,6 +73,7 @@ export function ThreadTabsBar({
                 aria-controls={`thread-tab-panel-${tab.id}`}
                 className="thread-tab-button"
                 onClick={() => onSelectTab(tab.id)}
+                onDoubleClick={() => onRenameThread(tab.workspaceId, tab.threadId)}
                 data-tauri-drag-region="false"
               >
                 <span className="thread-tab-title">{displayTitle}</span>

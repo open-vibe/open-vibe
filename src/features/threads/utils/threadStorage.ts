@@ -88,6 +88,26 @@ export function saveCustomName(workspaceId: string, threadId: string, name: stri
   }
 }
 
+export function removeCustomName(workspaceId: string, threadId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const current = loadCustomNames();
+    const key = makeCustomNameKey(workspaceId, threadId);
+    if (!(key in current)) {
+      return;
+    }
+    delete current[key];
+    window.localStorage.setItem(
+      STORAGE_KEY_CUSTOM_NAMES,
+      JSON.stringify(current),
+    );
+  } catch {
+    // Best-effort persistence.
+  }
+}
+
 export function makePinKey(workspaceId: string, threadId: string): string {
   return `${workspaceId}:${threadId}`;
 }

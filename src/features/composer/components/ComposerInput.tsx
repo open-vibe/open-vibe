@@ -12,6 +12,7 @@ import X from "lucide-react/dist/esm/icons/x";
 import { useComposerImageDrop } from "../hooks/useComposerImageDrop";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { DictationWaveform } from "../../dictation/components/DictationWaveform";
+import { useI18n } from "../../../i18n";
 
 type ComposerInputProps = {
   text: string;
@@ -112,6 +113,17 @@ export function ComposerInput({
   onSelectSuggestion,
   suggestionsStyle,
 }: ComposerInputProps) {
+  const { t } = useI18n();
+  const dismissLabel = t("composer.dictation.dismiss");
+  const resolvedDictationHint = (() => {
+    const message = dictationHint?.trim();
+    if (!message) {
+      return null;
+    }
+    return message.toLowerCase() === "canceled"
+      ? t("composer.dictation.canceled")
+      : message;
+  })();
   const suggestionListRef = useRef<HTMLDivElement | null>(null);
   const suggestionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const minTextareaHeight = isExpanded ? 180 : 60;
@@ -373,20 +385,20 @@ export function ComposerInput({
                 onDismissDictationError?.();
               }}
             >
-              Dismiss
+              {dismissLabel}
             </button>
           </div>
         )}
-        {dictationHint && (
+        {resolvedDictationHint && (
           <div className="composer-dictation-hint" role="status">
-            <span>{dictationHint}</span>
+            <span>{resolvedDictationHint}</span>
             {onDismissDictationHint && (
               <button
                 type="button"
                 className="ghost composer-dictation-error-dismiss"
                 onClick={onDismissDictationHint}
               >
-                Dismiss
+                {dismissLabel}
               </button>
             )}
           </div>

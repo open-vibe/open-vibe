@@ -204,6 +204,11 @@ export type AppSettings = {
   codeFontFamily: string;
   codeFontSize: number;
   notificationSoundsEnabled: boolean;
+  notificationSoundVolume: number;
+  notificationSoundSuccessId: string;
+  notificationSoundSuccessPath: string | null;
+  notificationSoundErrorId: string;
+  notificationSoundErrorPath: string | null;
   experimentalCollabEnabled: boolean;
   experimentalCollaborationModesEnabled: boolean;
   experimentalSteerEnabled: boolean;

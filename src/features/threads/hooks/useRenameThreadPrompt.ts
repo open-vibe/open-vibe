@@ -57,10 +57,13 @@ export function useRenameThreadPrompt({
         return prev;
       }
       const trimmed = prev.name.trim();
-      if (!trimmed || trimmed === prev.originalName) {
+      if (!trimmed) {
+        renameThread(prev.workspaceId, prev.threadId, "");
         return null;
       }
-      renameThread(prev.workspaceId, prev.threadId, trimmed);
+      if (trimmed !== prev.originalName) {
+        renameThread(prev.workspaceId, prev.threadId, trimmed);
+      }
       return null;
     });
   }, [renameThread]);

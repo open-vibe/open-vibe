@@ -4,17 +4,26 @@ type DebugLogger = (entry: DebugEntry) => void;
 
 type SoundLabel = "success" | "error" | "test";
 
+type SoundOptions = {
+  volume?: number;
+  onDebug?: DebugLogger;
+};
+
 export function playNotificationSound(
   url: string,
   label: SoundLabel,
-  onDebug?: DebugLogger,
+  options?: SoundOptions,
 ) {
   try {
     const audio = new Audio(url);
-    audio.volume = 0.05;
+    const volume =
+      typeof options?.volume === "number" && Number.isFinite(options.volume)
+        ? Math.min(1, Math.max(0, options.volume))
+        : 0.05;
+    audio.volume = volume;
     audio.preload = "auto";
     audio.addEventListener("error", () => {
-      onDebug?.({
+      options?.onDebug?.({
         id: `${Date.now()}-audio-${label}-load-error`,
         timestamp: Date.now(),
         source: "error",
@@ -23,7 +32,7 @@ export function playNotificationSound(
       });
     });
     void audio.play().catch((error) => {
-      onDebug?.({
+      options?.onDebug?.({
         id: `${Date.now()}-audio-${label}-play-error`,
         timestamp: Date.now(),
         source: "error",
@@ -32,7 +41,7 @@ export function playNotificationSound(
       });
     });
   } catch (error) {
-    onDebug?.({
+    options?.onDebug?.({
       id: `${Date.now()}-audio-${label}-init-error`,
       timestamp: Date.now(),
       source: "error",

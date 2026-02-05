@@ -1,6 +1,4 @@
 import { useCallback, useMemo, useRef } from "react";
-import errorSoundUrl from "../../../assets/error-notification.mp3";
-import successSoundUrl from "../../../assets/success-notification.mp3";
 import type { DebugEntry } from "../../../types";
 import { playNotificationSound } from "../../../utils/notificationSounds";
 import { useAppServerEvents } from "../../app/hooks/useAppServerEvents";
@@ -10,6 +8,9 @@ const DEFAULT_MIN_DURATION_MS = 60_000; // 1 minute
 type SoundNotificationOptions = {
   enabled: boolean;
   isWindowFocused: boolean;
+  successSoundUrl: string;
+  errorSoundUrl: string;
+  volume: number;
   minDurationMs?: number;
   onDebug?: (entry: DebugEntry) => void;
 };
@@ -25,6 +26,9 @@ function buildTurnKey(workspaceId: string, turnId: string) {
 export function useAgentSoundNotifications({
   enabled,
   isWindowFocused,
+  successSoundUrl,
+  errorSoundUrl,
+  volume,
   minDurationMs = DEFAULT_MIN_DURATION_MS,
   onDebug,
 }: SoundNotificationOptions) {
@@ -34,9 +38,9 @@ export function useAgentSoundNotifications({
 
   const playSound = useCallback(
     (url: string, label: "success" | "error") => {
-      playNotificationSound(url, label, onDebug);
+      playNotificationSound(url, label, { onDebug, volume });
     },
-    [onDebug],
+    [onDebug, volume],
   );
 
   const consumeDuration = useCallback(
@@ -121,7 +125,7 @@ export function useAgentSoundNotifications({
       }
       playSound(successSoundUrl, "success");
     },
-    [consumeDuration, playSound, shouldPlaySound],
+    [consumeDuration, playSound, shouldPlaySound, successSoundUrl],
   );
 
   const handleTurnError = useCallback(
@@ -141,7 +145,7 @@ export function useAgentSoundNotifications({
       }
       playSound(errorSoundUrl, "error");
     },
-    [consumeDuration, playSound, shouldPlaySound],
+    [consumeDuration, errorSoundUrl, playSound, shouldPlaySound],
   );
 
   const handleItemStarted = useCallback(
@@ -167,7 +171,7 @@ export function useAgentSoundNotifications({
       }
       playSound(successSoundUrl, "success");
     },
-    [consumeDuration, playSound, shouldPlaySound],
+    [consumeDuration, playSound, shouldPlaySound, successSoundUrl],
   );
 
   const handlers = useMemo(

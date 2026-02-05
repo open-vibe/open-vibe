@@ -9,6 +9,7 @@ import type { DebugEntry } from "../../../types";
 
 type Params = {
   notificationSoundsEnabled: boolean;
+  notificationSoundVolume: number;
   onDebug: (entry: DebugEntry) => void;
   successSoundUrl: string;
   errorSoundUrl: string;
@@ -16,6 +17,7 @@ type Params = {
 
 export function useUpdaterController({
   notificationSoundsEnabled,
+  notificationSoundVolume,
   onDebug,
   successSoundUrl,
   errorSoundUrl,
@@ -49,16 +51,30 @@ export function useUpdaterController({
   useAgentSoundNotifications({
     enabled: notificationSoundsEnabled,
     isWindowFocused,
+    successSoundUrl,
+    errorSoundUrl,
+    volume: notificationSoundVolume,
     onDebug,
   });
 
-  const handleTestNotificationSound = useCallback(() => {
-    const useError = nextTestSoundIsError.current;
-    nextTestSoundIsError.current = !useError;
-    const type = useError ? "error" : "success";
-    const url = useError ? errorSoundUrl : successSoundUrl;
-    playNotificationSound(url, type, onDebug);
-  }, [errorSoundUrl, onDebug, successSoundUrl]);
+  const handleTestNotificationSound = useCallback(
+    (type?: "success" | "error") => {
+      const useError =
+        type === "error"
+          ? true
+          : type === "success"
+            ? false
+            : nextTestSoundIsError.current;
+      nextTestSoundIsError.current = !useError;
+      const label = useError ? "error" : "success";
+      const url = useError ? errorSoundUrl : successSoundUrl;
+      playNotificationSound(url, label, {
+        onDebug,
+        volume: notificationSoundVolume,
+      });
+    },
+    [errorSoundUrl, notificationSoundVolume, onDebug, successSoundUrl],
+  );
 
   return {
     updaterState,
