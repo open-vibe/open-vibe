@@ -6,6 +6,7 @@ import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
 import Copy from "lucide-react/dist/esm/icons/clipboard-paste";
 import CornerDownLeft from "lucide-react/dist/esm/icons/corner-down-left";
+import Heading from "lucide-react/dist/esm/icons/heading";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Square from "lucide-react/dist/esm/icons/square";
 import X from "lucide-react/dist/esm/icons/x";
@@ -35,6 +36,8 @@ type ComposerInputProps = {
   onSendCancel?: () => void;
   copySourceTooltip?: string | null;
   onCopySource?: () => void;
+  happyEnabled?: boolean;
+  happyConnected?: boolean;
   dictationState?: "idle" | "listening" | "processing";
   dictationLevel?: number;
   dictationEnabled?: boolean;
@@ -85,6 +88,8 @@ export function ComposerInput({
   onSendCancel,
   copySourceTooltip = null,
   onCopySource,
+  happyEnabled = false,
+  happyConnected = false,
   dictationState = "idle",
   dictationLevel = 0,
   dictationEnabled = false,
@@ -262,6 +267,9 @@ export function ComposerInput({
   const showCopySource = Boolean(copySourceTooltip && onCopySource);
   const showSendConfirm =
     sendConfirmOpen && Boolean(onSendConfirm) && Boolean(onSendCancel);
+  const happyLabel = happyConnected
+    ? t("happy.status.connected")
+    : t("happy.status.disconnected");
 
   return (
     <div className="composer-input">
@@ -314,6 +322,18 @@ export function ComposerInput({
               <span className="composer-target-prefix">{targetPrefix}</span>
             )}
             <span className="composer-target-name">{targetLabel}</span>
+            {happyEnabled ? (
+              <span
+                className={`composer-target-happy${
+                  happyConnected ? " is-connected" : " is-disconnected"
+                }`}
+                aria-label={happyLabel}
+                title={happyLabel}
+                role="img"
+              >
+                <Heading size={12} aria-hidden />
+              </span>
+            ) : null}
           </div>
         )}
         <ComposerAttachments

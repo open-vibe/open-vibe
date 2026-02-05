@@ -112,6 +112,25 @@
   font-weight: 500;
 }
 
+.composer-target-happy {
+  margin-left: 4px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-card);
+  color: var(--text-dim);
+}
+
+.composer-target-happy.is-connected {
+  color: var(--status-success);
+  border-color: color-mix(in srgb, var(--status-success), var(--border-strong) 70%);
+  background: color-mix(in srgb, var(--status-success), transparent 90%);
+}
+
 .composer-context-chart {
   width: 32px;
   height: 32px;

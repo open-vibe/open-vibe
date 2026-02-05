@@ -83,6 +83,8 @@ type ComposerProps = {
   onDismissDictationError?: () => void;
   dictationHint?: string | null;
   onDismissDictationHint?: () => void;
+  happyEnabled?: boolean;
+  happyConnected?: boolean;
 };
 
 const DEFAULT_EDITOR_SETTINGS: ComposerEditorSettings = {
@@ -155,6 +157,8 @@ export function Composer({
   onDismissDictationError,
   dictationHint = null,
   onDismissDictationHint,
+  happyEnabled = false,
+  happyConnected = false,
 }: ComposerProps) {
   const [text, setText] = useState(draftText);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
@@ -557,6 +561,8 @@ export function Composer({
         onSendCancel={handleCancelSend}
         copySourceTooltip={copySourceTooltip}
         onCopySource={onCopySource}
+        happyEnabled={happyEnabled}
+        happyConnected={happyConnected}
         dictationEnabled={dictationEnabled}
         dictationUnavailableMessage={dictationUnavailableMessage}
         dictationState={dictationState}

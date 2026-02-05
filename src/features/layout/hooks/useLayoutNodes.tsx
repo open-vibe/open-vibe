@@ -115,6 +115,7 @@ type LayoutNodesOptions = {
   activeThreadId: string | null;
   activeItems: ConversationItem[];
   happyEnabled: boolean;
+  happyConnected: boolean;
   happyMessageStatusById: Record<string, HappyMessageSyncState>;
   happyMessageIdByItemId: Record<string, string>;
   activeRateLimits: RateLimitSnapshot | null;
@@ -584,6 +585,8 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       onDismissDictationError={options.onDismissDictationError}
       dictationHint={options.dictationHint}
       onDismissDictationHint={options.onDismissDictationHint}
+      happyEnabled={options.happyEnabled}
+      happyConnected={options.happyConnected}
     />
   ) : null;
 

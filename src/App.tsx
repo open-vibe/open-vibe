@@ -1929,6 +1929,7 @@ function MainApp() {
     activeThreadId,
     activeItems,
     happyEnabled,
+    happyConnected,
     happyMessageStatusById,
     happyMessageIdByItemId,
     activeRateLimits,
@@ -2106,8 +2107,6 @@ function MainApp() {
         onSelectDiffViewStyle={effectiveSelectDiffViewStyle}
         isCompact={isCompact}
         sidebarToggleProps={sidebarToggleProps}
-        happyEnabled={happyEnabled}
-        happyConnected={happyConnected}
       />
     ),
     filePanelMode,

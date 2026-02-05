@@ -59,32 +59,6 @@
   flex-shrink: 0;
 }
 
-.happy-bridge-indicator {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-card);
-  color: var(--text-dim);
-}
-
-.happy-bridge-indicator.is-connected {
-  color: var(--status-success);
-  border-color: color-mix(
-    in srgb,
-    var(--status-success),
-    var(--border-strong) 70%
-  );
-  background: color-mix(in srgb, var(--status-success), transparent 90%);
-}
-
-.happy-bridge-indicator.is-disconnected {
-  color: var(--text-dim);
-}
-
 .diff-view-toggle {
   display: inline-flex;
   align-items: center;
