@@ -1901,6 +1901,27 @@ export function SettingsView({
                         )}
                       </div>
                     </div>
+                    <Separator />
+                    <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="refresh-threads-on-focus">
+                          {t("settings.projects.refreshOnFocus.title")}
+                        </Label>
+                        <div className="text-sm text-muted-foreground">
+                          {t("settings.projects.refreshOnFocus.subtitle")}
+                        </div>
+                      </div>
+                      <Switch
+                        id="refresh-threads-on-focus"
+                        checked={appSettings.refreshThreadsOnFocus}
+                        onCheckedChange={(value) =>
+                          void onUpdateAppSettings({
+                            ...appSettings,
+                            refreshThreadsOnFocus: value,
+                          })
+                        }
+                      />
+                    </div>
                   </SettingsSection>
                 </div>
               </TabsContent>

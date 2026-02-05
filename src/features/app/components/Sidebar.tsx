@@ -7,7 +7,7 @@ import type {
 } from "../../../types";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { RefObject } from "react";
+import type { MouseEvent, RefObject } from "react";
 import { FolderKanban, FolderOpen, Home, Layers, Plus } from "lucide-react";
 import {
   Sidebar as ShadcnSidebar,
@@ -32,7 +32,13 @@ import { PinnedThreadList } from "./PinnedThreadList";
 import { WorkspaceCard } from "./WorkspaceCard";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 import { useCollapsedGroups } from "../hooks/useCollapsedGroups";
-import { useSidebarMenus } from "../hooks/useSidebarMenus";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useThreadRows } from "../hooks/useThreadRows";
 import { getUsageLabels } from "../utils/usageLabels";
 import { formatRelativeTimeShort } from "../../../utils/time";
@@ -50,6 +56,18 @@ type WorkspaceGroupSection = {
   name: string;
   workspaces: WorkspaceInfo[];
 };
+
+type SidebarContextMenu =
+  | {
+      type: "thread";
+      workspaceId: string;
+      threadId: string;
+      canPin: boolean;
+      x: number;
+      y: number;
+    }
+  | { type: "workspace"; workspaceId: string; x: number; y: number }
+  | { type: "worktree"; workspaceId: string; x: number; y: number };
 
 type SidebarProps = {
   workspaces: WorkspaceInfo[];
@@ -168,23 +186,63 @@ export function Sidebar({
     left: number;
     width: number;
   } | null>(null);
+  const [contextMenu, setContextMenu] = useState<SidebarContextMenu | null>(
+    null,
+  );
   const addMenuRef = useRef<HTMLDivElement | null>(null);
   const { collapsedGroups, toggleGroupCollapse } = useCollapsedGroups(
     COLLAPSED_GROUPS_STORAGE_KEY,
   );
   const { getThreadRows } = useThreadRows(threadParentById);
-  const { showThreadMenu, showWorkspaceMenu, showWorktreeMenu } =
-    useSidebarMenus({
-      onDeleteThread,
-      onSyncThread,
-      onPinThread: pinThread,
-      onUnpinThread: unpinThread,
-      isThreadPinned,
-      onRenameThread,
-      onReloadWorkspaceThreads,
-      onDeleteWorkspace,
-      onDeleteWorktree,
-    });
+  const showThreadMenu = useCallback(
+    (
+      event: MouseEvent,
+      workspaceId: string,
+      threadId: string,
+      canPin: boolean,
+    ) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setContextMenu({
+        type: "thread",
+        workspaceId,
+        threadId,
+        canPin,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    [],
+  );
+  const showWorkspaceMenu = useCallback(
+    (event: MouseEvent, workspaceId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setContextMenu({
+        type: "workspace",
+        workspaceId,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    [],
+  );
+  const showWorktreeMenu = useCallback(
+    (event: MouseEvent, workspaceId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setContextMenu({
+        type: "worktree",
+        workspaceId,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    [],
+  );
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
   const {
     sessionPercent,
     weeklyPercent,
@@ -627,6 +685,134 @@ export function Sidebar({
           />
         </ShadcnSidebarFooter>
       </div>
+      {contextMenu &&
+        createPortal(
+          <DropdownMenu
+            open
+            onOpenChange={(open) => {
+              if (!open) {
+                closeContextMenu();
+              }
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <div
+                style={{
+                  position: "fixed",
+                  left: contextMenu.x,
+                  top: contextMenu.y,
+                  width: 1,
+                  height: 1,
+                }}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent sideOffset={6} align="start" className="w-52">
+              {contextMenu.type === "thread" && (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      onRenameThread(contextMenu.workspaceId, contextMenu.threadId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.rename")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      onSyncThread(contextMenu.workspaceId, contextMenu.threadId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.sync")}
+                  </DropdownMenuItem>
+                  {contextMenu.canPin && (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        const pinned = isThreadPinned(
+                          contextMenu.workspaceId,
+                          contextMenu.threadId,
+                        );
+                        if (pinned) {
+                          unpinThread(contextMenu.workspaceId, contextMenu.threadId);
+                        } else {
+                          pinThread(contextMenu.workspaceId, contextMenu.threadId);
+                        }
+                        closeContextMenu();
+                      }}
+                    >
+                      {isThreadPinned(contextMenu.workspaceId, contextMenu.threadId)
+                        ? t("sidebar.menu.unpin")
+                        : t("sidebar.menu.pin")}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      void navigator.clipboard
+                        .writeText(contextMenu.threadId)
+                        .catch(() => undefined);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.copyId")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
+                      onDeleteThread(contextMenu.workspaceId, contextMenu.threadId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.archive")}
+                  </DropdownMenuItem>
+                </>
+              )}
+              {contextMenu.type === "workspace" && (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      onReloadWorkspaceThreads(contextMenu.workspaceId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.reloadThreads")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
+                      onDeleteWorkspace(contextMenu.workspaceId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.delete")}
+                  </DropdownMenuItem>
+                </>
+              )}
+              {contextMenu.type === "worktree" && (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      onReloadWorkspaceThreads(contextMenu.workspaceId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.reloadThreads")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
+                      onDeleteWorktree(contextMenu.workspaceId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.deleteWorktree")}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>,
+          document.body,
+        )}
       <SidebarRail />
     </ShadcnSidebar>
   );

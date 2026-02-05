@@ -66,6 +66,7 @@ const baseSettings: AppSettings = {
   notificationSoundSuccessPath: null,
   notificationSoundErrorId: "default-error",
   notificationSoundErrorPath: null,
+  refreshThreadsOnFocus: false,
   experimentalCollabEnabled: false,
   experimentalCollaborationModesEnabled: false,
   experimentalSteerEnabled: false,

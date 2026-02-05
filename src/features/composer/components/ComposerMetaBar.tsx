@@ -259,7 +259,7 @@ export function ComposerMetaBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2" style={{marginRight:"-6px"}}>
         <span className="text-xs font-semibold text-muted-foreground">
           {contextUsedPercent === null
             ? "—"

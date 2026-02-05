@@ -135,3 +135,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+.home-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

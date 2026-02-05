@@ -3,7 +3,6 @@ import "./styles/base.css";
 import "./styles/globals.css";
 import "./styles/buttons.css";
 import "./styles/sidebar.css";
-import "./styles/home.css";
 import "./styles/workspace-home.css";
 import "./styles/main.css";
 import "./styles/messages.css";
@@ -1567,7 +1566,8 @@ function MainApp() {
   useWorkspaceRefreshOnFocus({
     workspaces,
     refreshWorkspaces,
-    listThreadsForWorkspace
+    listThreadsForWorkspace,
+    enabled: appSettings.refreshThreadsOnFocus,
   });
 
   const {

@@ -4,7 +4,7 @@ import type { AutocompleteItem } from "../hooks/useComposerAutocomplete";
 import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
-import Copy from "lucide-react/dist/esm/icons/copy";
+import Copy from "lucide-react/dist/esm/icons/clipboard-paste";
 import CornerDownLeft from "lucide-react/dist/esm/icons/corner-down-left";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Square from "lucide-react/dist/esm/icons/square";
@@ -198,7 +198,10 @@ export function ComposerInput({
     onOpenDictationSettings && !dictationEnabled && !disabled,
   );
   const micDisabled =
-    disabled || dictationState === "processing" || !dictationEnabled || !onToggleDictation;
+    disabled ||
+    dictationState === "processing" ||
+    !dictationEnabled ||
+    !onToggleDictation;
   const micAriaLabel = allowOpenDictationSettings
     ? "Open dictation settings"
     : dictationState === "processing"
@@ -218,7 +221,7 @@ export function ComposerInput({
   const resolvedDictationError =
     dictationEnabled || dictationError
       ? dictationError
-      : dictationUnavailableMessage ?? null;
+      : (dictationUnavailableMessage ?? null);
 
   useEffect(() => {
     if (!dictationError) {
@@ -276,7 +279,9 @@ export function ComposerInput({
             role="dialog"
             aria-label={sendConfirmTitle}
           >
-            <div className="composer-send-confirm-title">{sendConfirmTitle}</div>
+            <div className="composer-send-confirm-title">
+              {sendConfirmTitle}
+            </div>
             <div className="composer-send-confirm-description">
               {sendConfirmDescription}
             </div>
@@ -353,20 +358,7 @@ export function ComposerInput({
             }}
           />
         </div>
-        {showCopySource && (
-          <div className="composer-input-footer">
-            <button
-              type="button"
-              className="composer-copy-other"
-              onClick={onCopySource}
-              disabled={disabled}
-              aria-label={copySourceTooltip ?? "Copy draft"}
-              title={copySourceTooltip ?? "Copy draft"}
-            >
-              <Copy size={14} aria-hidden />
-            </button>
-          </div>
-        )}
+
         {isDictationBusy && (
           <DictationWaveform
             active={isDictating}
@@ -437,7 +429,9 @@ export function ComposerInput({
                   </>
                 ) : (
                   <>
-                    <span className="composer-suggestion-title">{item.label}</span>
+                    <span className="composer-suggestion-title">
+                      {item.label}
+                    </span>
                     {item.description && (
                       <span className="composer-suggestion-description">
                         {item.description}
@@ -456,6 +450,18 @@ export function ComposerInput({
         )}
       </div>
       <div className="composer-input-actions">
+        {showCopySource && (
+          <button
+            type="button"
+            className="composer-action"
+            onClick={onCopySource}
+            disabled={disabled}
+            aria-label={copySourceTooltip ?? "Copy draft"}
+            title={copySourceTooltip ?? "Copy draft"}
+          >
+            <Copy size={14} aria-hidden />
+          </button>
+        )}
         {onToggleExpand && (
           <button
             className={`composer-action composer-action--expand${
@@ -466,7 +472,11 @@ export function ComposerInput({
             aria-label={isExpanded ? "Collapse input" : "Expand input"}
             title={isExpanded ? "Collapse input" : "Expand input"}
           >
-            {isExpanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
+            {isExpanded ? (
+              <ChevronDown aria-hidden />
+            ) : (
+              <ChevronUp aria-hidden />
+            )}
           </button>
         )}
         <button
@@ -502,13 +512,13 @@ export function ComposerInput({
         >
           {canStop ? (
             <>
-            <span className="composer-action-stop-square" aria-hidden />
-            {isProcessing && (
-              <span
-                className="composer-action-spinner relative grid size-5 place-items-center rounded-full"
-                aria-hidden
-              />
-            )}
+              <span className="composer-action-stop-square" aria-hidden />
+              {isProcessing && (
+                <span
+                  className="composer-action-spinner relative grid size-5 place-items-center rounded-full"
+                  aria-hidden
+                />
+              )}
             </>
           ) : (
             <svg viewBox="0 0 24 24" fill="none" aria-hidden>

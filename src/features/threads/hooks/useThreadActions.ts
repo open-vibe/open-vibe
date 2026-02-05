@@ -272,6 +272,11 @@ export function useThreadActions({
       if (!force && loadedThreadsRef.current[threadId]) {
         return threadId;
       }
+      const localItems = itemsByThread[threadId] ?? [];
+      if (!force && localItems.length > 0) {
+        loadedThreadsRef.current[threadId] = true;
+        return threadId;
+      }
       const status = threadStatusById[threadId];
       if (status?.isProcessing && loadedThreadsRef.current[threadId] && !force) {
         onDebug?.({

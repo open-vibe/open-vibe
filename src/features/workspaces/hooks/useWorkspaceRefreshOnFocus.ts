@@ -5,14 +5,19 @@ type WorkspaceRefreshOptions = {
   workspaces: WorkspaceInfo[];
   refreshWorkspaces: () => Promise<WorkspaceInfo[] | void>;
   listThreadsForWorkspace: (workspace: WorkspaceInfo) => Promise<void>;
+  enabled?: boolean;
 };
 
 export function useWorkspaceRefreshOnFocus({
   workspaces,
   refreshWorkspaces,
   listThreadsForWorkspace,
+  enabled = true,
 }: WorkspaceRefreshOptions) {
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const handleFocus = () => {
       void (async () => {
         let latestWorkspaces = workspaces;
@@ -42,5 +47,5 @@ export function useWorkspaceRefreshOnFocus({
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [listThreadsForWorkspace, refreshWorkspaces, workspaces]);
+  }, [enabled, listThreadsForWorkspace, refreshWorkspaces, workspaces]);
 }

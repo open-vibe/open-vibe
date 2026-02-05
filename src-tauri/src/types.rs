@@ -446,6 +446,11 @@ pub(crate) struct AppSettings {
     #[serde(default, rename = "notificationSoundErrorPath")]
     pub(crate) notification_sound_error_path: Option<String>,
     #[serde(
+        default = "default_refresh_threads_on_focus",
+        rename = "refreshThreadsOnFocus"
+    )]
+    pub(crate) refresh_threads_on_focus: bool,
+    #[serde(
         default = "default_experimental_collab_enabled",
         rename = "experimentalCollabEnabled"
     )]
@@ -688,6 +693,10 @@ fn default_notification_sound_error_id() -> String {
     "default-error".to_string()
 }
 
+fn default_refresh_threads_on_focus() -> bool {
+    false
+}
+
 fn default_experimental_collab_enabled() -> bool {
     false
 }
@@ -880,6 +889,7 @@ impl Default for AppSettings {
             notification_sound_success_path: None,
             notification_sound_error_id: default_notification_sound_error_id(),
             notification_sound_error_path: None,
+            refresh_threads_on_focus: default_refresh_threads_on_focus(),
             experimental_collab_enabled: false,
             experimental_collaboration_modes_enabled: false,
             experimental_steer_enabled: false,
@@ -994,6 +1004,7 @@ mod tests {
         assert!(settings.notification_sound_success_path.is_none());
         assert_eq!(settings.notification_sound_error_id, "default-error");
         assert!(settings.notification_sound_error_path.is_none());
+        assert!(!settings.refresh_threads_on_focus);
         assert!(!settings.experimental_steer_enabled);
         assert!(!settings.experimental_thread_resume_streaming_enabled);
         assert!(!settings.experimental_yunyi_enabled);

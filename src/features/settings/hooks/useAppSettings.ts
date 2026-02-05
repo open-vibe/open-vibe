@@ -84,6 +84,7 @@ const defaultSettings: AppSettings = {
   notificationSoundSuccessPath: null,
   notificationSoundErrorId: DEFAULT_NOTIFICATION_ERROR_ID,
   notificationSoundErrorPath: null,
+  refreshThreadsOnFocus: false,
   experimentalCollabEnabled: false,
   experimentalCollaborationModesEnabled: false,
   experimentalSteerEnabled: false,
@@ -224,6 +225,7 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       normalizedErrorId === CUSTOM_NOTIFICATION_SOUND_ID
         ? normalizedErrorPath
         : null,
+    refreshThreadsOnFocus: Boolean(settings.refreshThreadsOnFocus),
     experimentalYunyiToken: settings.experimentalYunyiToken?.trim() ?? "",
     composerSendBehavior: allowedComposerSendBehaviors.has(
       settings.composerSendBehavior,

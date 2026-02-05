@@ -38,6 +38,9 @@ const en = {
   "settings.projects.group.empty": "No groups yet.",
   "settings.projects.projects.title": "Projects",
   "settings.projects.projects.subtitle": "Assign projects to groups and adjust their order.",
+  "settings.projects.refreshOnFocus.title": "Refresh on focus",
+  "settings.projects.refreshOnFocus.subtitle":
+    "Reload thread lists when the app regains focus.",
   "settings.projects.project.moveUp": "Move project up",
   "settings.projects.project.moveDown": "Move project down",
   "settings.projects.project.delete": "Delete project",
@@ -646,6 +649,9 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.projects.group.empty": "暂无分组。",
   "settings.projects.projects.title": "项目",
   "settings.projects.projects.subtitle": "将项目分配到分组并调整顺序。",
+  "settings.projects.refreshOnFocus.title": "焦点时刷新",
+  "settings.projects.refreshOnFocus.subtitle":
+    "应用重新获得焦点时刷新对话列表。",
   "settings.projects.project.moveUp": "项目上移",
   "settings.projects.project.moveDown": "项目下移",
   "settings.projects.project.delete": "删除项目",

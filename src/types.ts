@@ -211,6 +211,7 @@ export type AppSettings = {
   notificationSoundSuccessPath: string | null;
   notificationSoundErrorId: string;
   notificationSoundErrorPath: string | null;
+  refreshThreadsOnFocus: boolean;
   experimentalCollabEnabled: boolean;
   experimentalCollaborationModesEnabled: boolean;
   experimentalSteerEnabled: boolean;
