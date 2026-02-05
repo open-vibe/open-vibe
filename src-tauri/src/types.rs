@@ -464,7 +464,7 @@ pub(crate) struct AppSettings {
         default = "default_dictation_hold_key",
         rename = "dictationHoldKey"
     )]
-    pub(crate) dictation_hold_key: String,
+    pub(crate) dictation_hold_key: Option<String>,
     #[serde(default = "default_composer_editor_preset", rename = "composerEditorPreset")]
     pub(crate) composer_editor_preset: String,
     #[serde(
@@ -472,6 +472,11 @@ pub(crate) struct AppSettings {
         rename = "composerSendBehavior"
     )]
     pub(crate) composer_send_behavior: String,
+    #[serde(
+        default = "default_composer_send_confirmation_enabled",
+        rename = "composerSendConfirmationEnabled"
+    )]
+    pub(crate) composer_send_confirmation_enabled: bool,
     #[serde(default = "default_composer_fence_expand_on_space", rename = "composerFenceExpandOnSpace")]
     pub(crate) composer_fence_expand_on_space: bool,
     #[serde(default = "default_composer_fence_expand_on_enter", rename = "composerFenceExpandOnEnter")]
@@ -670,8 +675,8 @@ fn default_dictation_model_id() -> String {
     "base".to_string()
 }
 
-fn default_dictation_hold_key() -> String {
-    "alt".to_string()
+fn default_dictation_hold_key() -> Option<String> {
+    Some("alt".to_string())
 }
 
 fn default_composer_editor_preset() -> String {
@@ -680,6 +685,10 @@ fn default_composer_editor_preset() -> String {
 
 fn default_composer_send_behavior() -> String {
     "enter".to_string()
+}
+
+fn default_composer_send_confirmation_enabled() -> bool {
+    false
 }
 
 fn default_composer_fence_expand_on_space() -> bool {
@@ -828,6 +837,7 @@ impl Default for AppSettings {
             dictation_hold_key: default_dictation_hold_key(),
             composer_editor_preset: default_composer_editor_preset(),
             composer_send_behavior: default_composer_send_behavior(),
+            composer_send_confirmation_enabled: default_composer_send_confirmation_enabled(),
             composer_fence_expand_on_space: default_composer_fence_expand_on_space(),
             composer_fence_expand_on_enter: default_composer_fence_expand_on_enter(),
             composer_fence_language_tags: default_composer_fence_language_tags(),
@@ -928,9 +938,10 @@ mod tests {
         assert!(!settings.dictation_enabled);
         assert_eq!(settings.dictation_model_id, "base");
         assert!(settings.dictation_preferred_language.is_none());
-        assert_eq!(settings.dictation_hold_key, "alt");
+        assert_eq!(settings.dictation_hold_key.as_deref(), Some("alt"));
         assert_eq!(settings.composer_editor_preset, "default");
         assert_eq!(settings.composer_send_behavior, "enter");
+        assert!(!settings.composer_send_confirmation_enabled);
         assert!(!settings.composer_fence_expand_on_space);
         assert!(!settings.composer_fence_expand_on_enter);
         assert!(!settings.composer_fence_language_tags);

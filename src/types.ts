@@ -217,6 +217,7 @@ export type AppSettings = {
   dictationHoldKey: string | null;
   composerEditorPreset: ComposerEditorPreset;
   composerSendBehavior: ComposerSendBehavior;
+  composerSendConfirmationEnabled: boolean;
   composerFenceExpandOnSpace: boolean;
   composerFenceExpandOnEnter: boolean;
   composerFenceLanguageTags: boolean;

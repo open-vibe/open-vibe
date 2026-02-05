@@ -66,15 +66,132 @@
 
 
 .composer-input {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: 12px;
-  align-items: center;
+  position: relative;
 }
 
 .composer-input-area {
   position: relative;
   min-width: 0;
+}
+
+.composer-input-actions {
+  position: absolute;
+  right: 0;
+  bottom: -20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.composer-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.composer-target-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+.composer-target-prefix {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+.composer-target-name {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+.composer-context-chart {
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+
+.composer-send-confirm {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 5;
+  padding: 10px 12px;
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.composer-send-confirm-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.composer-send-confirm-description {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.composer-send-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.composer-send-confirm-action {
+  border: none;
+  background: var(--surface-card);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.composer-send-confirm-action:hover {
+  background: var(--surface-control-hover);
+  color: var(--text-strong);
+}
+
+.composer-send-confirm-action.is-confirm {
+  color: var(--primary);
+}
+
+.composer-input-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.composer-copy-other {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.composer-copy-other:hover {
+  color: var(--text-strong);
+  background: var(--surface-control-hover);
+}
+
+.composer-copy-other:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .composer-input-area.is-drag-over {
@@ -235,7 +352,7 @@
   border: none;
   background: transparent;
   color: inherit;
-  padding: 8px 4px;
+  padding: 8px 96px 8px 4px;
   font-size: 14px;
   -webkit-app-region: no-drag;
   overflow-y: hidden;
@@ -312,7 +429,7 @@
 }
 
 .composer-waveform {
-  margin-top: 10px;
+  margin-top: 0;
   padding: 6px 8px;
   border-radius: 10px;
   border: 1px solid var(--border-muted);
@@ -414,11 +531,20 @@
 
 .composer-action-spinner {
   position: absolute;
-  width: 18px;
-  height: 18px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
-  border: 2px solid rgba(255, 120, 120, 0.35);
-  border-top-color: rgba(255, 120, 120, 0.9);
+}
+
+.composer-action-spinner::before {
+  content: "";
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
   animation: composer-action-spin 0.8s linear infinite;
 }
 

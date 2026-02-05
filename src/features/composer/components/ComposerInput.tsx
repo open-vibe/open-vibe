@@ -4,8 +4,11 @@ import type { AutocompleteItem } from "../hooks/useComposerAutocomplete";
 import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
+import Copy from "lucide-react/dist/esm/icons/copy";
+import CornerDownLeft from "lucide-react/dist/esm/icons/corner-down-left";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Square from "lucide-react/dist/esm/icons/square";
+import X from "lucide-react/dist/esm/icons/x";
 import { useComposerImageDrop } from "../hooks/useComposerImageDrop";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { DictationWaveform } from "../../dictation/components/DictationWaveform";
@@ -19,6 +22,18 @@ type ComposerInputProps = {
   isProcessing: boolean;
   onStop: () => void;
   onSend: () => void;
+  targetLabel?: string | null;
+  targetPrefix?: string | null;
+  placeholder?: string;
+  sendConfirmOpen?: boolean;
+  sendConfirmTitle?: string;
+  sendConfirmDescription?: string;
+  sendConfirmCancelLabel?: string;
+  sendConfirmConfirmLabel?: string;
+  onSendConfirm?: () => void;
+  onSendCancel?: () => void;
+  copySourceTooltip?: string | null;
+  onCopySource?: () => void;
   dictationState?: "idle" | "listening" | "processing";
   dictationLevel?: number;
   dictationEnabled?: boolean;
@@ -57,6 +72,18 @@ export function ComposerInput({
   isProcessing,
   onStop,
   onSend,
+  targetLabel = null,
+  targetPrefix = null,
+  placeholder,
+  sendConfirmOpen = false,
+  sendConfirmTitle = "Input reminder",
+  sendConfirmDescription = "Send this message?",
+  sendConfirmCancelLabel = "Cancel send",
+  sendConfirmConfirmLabel = "Confirm send",
+  onSendConfirm,
+  onSendCancel,
+  copySourceTooltip = null,
+  onCopySource,
   dictationState = "idle",
   dictationLevel = 0,
   dictationEnabled = false,
@@ -217,6 +244,9 @@ export function ComposerInput({
     }
     onToggleDictation();
   };
+  const showCopySource = Boolean(copySourceTooltip && onCopySource);
+  const showSendConfirm =
+    sendConfirmOpen && Boolean(onSendConfirm) && Boolean(onSendCancel);
 
   return (
     <div className="composer-input">
@@ -228,6 +258,47 @@ export function ComposerInput({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        {showSendConfirm && (
+          <div
+            className="composer-send-confirm popover-surface"
+            role="dialog"
+            aria-label={sendConfirmTitle}
+          >
+            <div className="composer-send-confirm-title">{sendConfirmTitle}</div>
+            <div className="composer-send-confirm-description">
+              {sendConfirmDescription}
+            </div>
+            <div className="composer-send-confirm-actions">
+              <button
+                type="button"
+                className="composer-send-confirm-action"
+                onClick={onSendCancel}
+                aria-label={sendConfirmCancelLabel}
+                title={sendConfirmCancelLabel}
+              >
+                <X size={14} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="composer-send-confirm-action is-confirm"
+                onClick={onSendConfirm}
+                aria-label={sendConfirmConfirmLabel}
+                title={sendConfirmConfirmLabel}
+              >
+                <CornerDownLeft size={14} aria-hidden />
+              </button>
+            </div>
+          </div>
+        )}
+        {targetLabel && (
+          <div className="composer-target">
+            <span className="composer-target-dot" aria-hidden="true" />
+            {targetPrefix && (
+              <span className="composer-target-prefix">{targetPrefix}</span>
+            )}
+            <span className="composer-target-name">{targetLabel}</span>
+          </div>
+        )}
         <ComposerAttachments
           attachments={attachments}
           disabled={disabled}
@@ -246,11 +317,7 @@ export function ComposerInput({
           </button>
           <textarea
             ref={textareaRef}
-            placeholder={
-              disabled
-                ? "Review in progress. Chat will re-enable when it completes."
-                : "Ask Codex to do something..."
-            }
+            placeholder={placeholder}
             value={text}
             onChange={(event) =>
               onTextChange(event.target.value, event.target.selectionStart)
@@ -274,6 +341,20 @@ export function ComposerInput({
             }}
           />
         </div>
+        {showCopySource && (
+          <div className="composer-input-footer">
+            <button
+              type="button"
+              className="composer-copy-other"
+              onClick={onCopySource}
+              disabled={disabled}
+              aria-label={copySourceTooltip ?? "Copy draft"}
+              title={copySourceTooltip ?? "Copy draft"}
+            >
+              <Copy size={14} aria-hidden />
+            </button>
+          </div>
+        )}
         {isDictationBusy && (
           <DictationWaveform
             active={isDictating}
@@ -362,69 +443,74 @@ export function ComposerInput({
           </div>
         )}
       </div>
-      {onToggleExpand && (
+      <div className="composer-input-actions">
+        {onToggleExpand && (
+          <button
+            className={`composer-action composer-action--expand${
+              isExpanded ? " is-active" : ""
+            }`}
+            onClick={onToggleExpand}
+            disabled={disabled}
+            aria-label={isExpanded ? "Collapse input" : "Expand input"}
+            title={isExpanded ? "Collapse input" : "Expand input"}
+          >
+            {isExpanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
+          </button>
+        )}
         <button
-          className={`composer-action composer-action--expand${
-            isExpanded ? " is-active" : ""
+          className={`composer-action composer-action--mic${
+            isDictationBusy ? " is-active" : ""
+          }${dictationState === "processing" ? " is-processing" : ""}${
+            micDisabled ? " is-disabled" : ""
           }`}
-          onClick={onToggleExpand}
-          disabled={disabled}
-          aria-label={isExpanded ? "Collapse input" : "Expand input"}
-          title={isExpanded ? "Collapse input" : "Expand input"}
+          onClick={handleMicClick}
+          disabled={
+            disabled ||
+            dictationState === "processing" ||
+            (!onToggleDictation && !allowOpenDictationSettings)
+          }
+          aria-label={micAriaLabel}
+          title={micTitle}
         >
-          {isExpanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
+          {isDictating ? <Square aria-hidden /> : <Mic aria-hidden />}
+          <span
+            className={`composer-action--mic-indicator${
+              dictationEnabled ? " is-available" : " is-unavailable"
+            }`}
+            aria-hidden
+          />
         </button>
-      )}
-      <button
-        className={`composer-action composer-action--mic${
-          isDictationBusy ? " is-active" : ""
-        }${dictationState === "processing" ? " is-processing" : ""}${
-          micDisabled ? " is-disabled" : ""
-        }`}
-        onClick={handleMicClick}
-        disabled={
-          disabled ||
-          dictationState === "processing" ||
-          (!onToggleDictation && !allowOpenDictationSettings)
-        }
-        aria-label={micAriaLabel}
-        title={micTitle}
-      >
-        {isDictating ? <Square aria-hidden /> : <Mic aria-hidden />}
-        <span
-          className={`composer-action--mic-indicator${
-            dictationEnabled ? " is-available" : " is-unavailable"
+        <button
+          className={`composer-action${canStop ? " is-stop" : " is-send"}${
+            canStop && isProcessing ? " is-loading" : ""
           }`}
-          aria-hidden
-        />
-      </button>
-      <button
-        className={`composer-action${canStop ? " is-stop" : " is-send"}${
-          canStop && isProcessing ? " is-loading" : ""
-        }`}
-        onClick={handleActionClick}
-        disabled={disabled || isDictationBusy || (!canStop && !canSend)}
-        aria-label={canStop ? "Stop" : sendLabel}
-      >
-        {canStop ? (
-          <>
+          onClick={handleActionClick}
+          disabled={disabled || isDictationBusy || (!canStop && !canSend)}
+          aria-label={canStop ? "Stop" : sendLabel}
+        >
+          {canStop ? (
+            <>
             <span className="composer-action-stop-square" aria-hidden />
             {isProcessing && (
-              <span className="composer-action-spinner" aria-hidden />
+              <span
+                className="composer-action-spinner relative grid size-5 place-items-center rounded-full"
+                aria-hidden
+              />
             )}
-          </>
-        ) : (
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M12 5l6 6m-6-6L6 11m6-6v14"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </button>
+            </>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M12 5l6 6m-6-6L6 11m6-6v14"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

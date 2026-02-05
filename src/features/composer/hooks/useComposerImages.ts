@@ -80,6 +80,11 @@ export function useComposerImages({
     });
   }, []);
 
+  const getImagesForThread = useCallback(
+    (threadId: string) => imagesByThread[threadId] ?? [],
+    [imagesByThread],
+  );
+
   return {
     activeImages,
     attachImages,
@@ -88,5 +93,6 @@ export function useComposerImages({
     clearActiveImages,
     setImagesForThread,
     removeImagesForThread,
+    getImagesForThread,
   };
 }

@@ -2115,6 +2115,26 @@ export function SettingsView({
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 p-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="composer-send-confirm">
+                            {t("settings.composer.sendConfirm.title")}
+                          </Label>
+                          <div className="text-sm text-muted-foreground">
+                            {t("settings.composer.sendConfirm.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          id="composer-send-confirm"
+                          checked={appSettings.composerSendConfirmationEnabled}
+                          onCheckedChange={(value) =>
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              composerSendConfirmationEnabled: value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                     <Separator />
                     <div className="space-y-3">

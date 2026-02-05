@@ -27,7 +27,6 @@ import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
 import { SidebarFooter } from "./SidebarFooter";
 import { ThreadList } from "./ThreadList";
-import { ThreadLoading } from "./ThreadLoading";
 import { WorktreeSection } from "./WorktreeSection";
 import { PinnedThreadList } from "./PinnedThreadList";
 import { WorkspaceCard } from "./WorkspaceCard";
@@ -460,10 +459,6 @@ export function Sidebar({
                     threadListCursorByWorkspace[entry.id] ?? null;
                   const showThreadList =
                     !isCollapsed && (threads.length > 0 || Boolean(nextCursor));
-                  const isLoadingThreads =
-                    threadListLoadingByWorkspace[entry.id] ?? false;
-                  const showThreadLoader =
-                    !isCollapsed && isLoadingThreads && threads.length === 0;
                   const isPaging = threadListPagingByWorkspace[entry.id] ?? false;
                   const worktrees = worktreesByParent.get(entry.id) ?? [];
                   const addMenuOpen = addMenuAnchor?.workspaceId === entry.id;
@@ -576,7 +571,6 @@ export function Sidebar({
                           onShowThreadMenu={showThreadMenu}
                         />
                       )}
-                      {showThreadLoader && <ThreadLoading />}
                     </WorkspaceCard>
                   );
                 })}

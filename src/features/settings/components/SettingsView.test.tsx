@@ -72,6 +72,7 @@ const baseSettings: AppSettings = {
   dictationHoldKey: null,
   composerEditorPreset: "default",
   composerSendBehavior: "enter",
+  composerSendConfirmationEnabled: false,
   composerFenceExpandOnSpace: false,
   composerFenceExpandOnEnter: false,
   composerFenceLanguageTags: false,

@@ -53,6 +53,10 @@ type ComposerProps = {
   onDeleteQueued?: (id: string) => void;
   sendLabel?: string;
   sendBehavior?: ComposerSendBehavior;
+  sendConfirmationEnabled?: boolean;
+  targetLabel?: string | null;
+  copySourceLabel?: string | null;
+  onCopySource?: () => void;
   draftText?: string;
   onDraftChange?: (text: string, options?: { immediate?: boolean }) => void;
   historyKey?: string | null;
@@ -121,6 +125,10 @@ export function Composer({
   onDeleteQueued,
   sendLabel = "Send",
   sendBehavior: sendBehaviorProp = "enter",
+  sendConfirmationEnabled = false,
+  targetLabel = null,
+  copySourceLabel = null,
+  onCopySource,
   draftText = "",
   onDraftChange,
   historyKey = null,
@@ -150,6 +158,8 @@ export function Composer({
 }: ComposerProps) {
   const [text, setText] = useState(draftText);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
+  const pendingSendRef = useRef<{ text: string; images: string[] } | null>(null);
   const internalRef = useRef<HTMLTextAreaElement | null>(null);
   const textareaRef = externalTextareaRef ?? internalRef;
   const editorSettings = editorSettingsProp ?? DEFAULT_EDITOR_SETTINGS;
@@ -161,6 +171,15 @@ export function Composer({
   const hasNewline = text.includes("\n");
   const shouldSendOnEnter =
     sendBehavior === "enter" || (sendBehavior === "smart" && !hasNewline);
+  const placeholder = disabled
+    ? t("composer.placeholder.disabled")
+    : targetLabel
+      ? t("composer.placeholder.target", { target: targetLabel })
+      : t("composer.placeholder.default");
+  const sendConfirmTarget = targetLabel ?? t("composer.target.unknown");
+  const copySourceTooltip = copySourceLabel
+    ? t("composer.copyFromTab", { target: copySourceLabel })
+    : null;
   const {
     expandFenceOnSpace,
     expandFenceOnEnter,
@@ -228,27 +247,43 @@ export function Composer({
     [handleHistoryTextChange, handleTextChange],
   );
 
+  const performSend = useCallback(
+    (nextText: string, nextImages: string[]) => {
+      const trimmed = nextText.trim();
+      if (!trimmed && nextImages.length === 0) {
+        return;
+      }
+      if (trimmed) {
+        recordHistory(trimmed);
+      }
+      onSend(trimmed, nextImages);
+      resetHistoryNavigation();
+      setComposerText("");
+    },
+    [onSend, recordHistory, resetHistoryNavigation, setComposerText],
+  );
+
   const handleSend = useCallback(() => {
     if (disabled) {
       return;
     }
-    const trimmed = text.trim();
-    if (!trimmed && attachedImages.length === 0) {
+    if (!text.trim() && attachedImages.length === 0) {
       return;
     }
-    if (trimmed) {
-      recordHistory(trimmed);
+    if (sendConfirmationEnabled) {
+      pendingSendRef.current = {
+        text,
+        images: [...attachedImages],
+      };
+      setSendConfirmOpen(true);
+      return;
     }
-    onSend(trimmed, attachedImages);
-    resetHistoryNavigation();
-    setComposerText("");
+    performSend(text, attachedImages);
   }, [
     attachedImages,
     disabled,
-    onSend,
-    recordHistory,
-    resetHistoryNavigation,
-    setComposerText,
+    performSend,
+    sendConfirmationEnabled,
     text,
   ]);
 
@@ -275,6 +310,50 @@ export function Composer({
     setComposerText,
     text,
   ]);
+
+  const handleConfirmSend = useCallback(() => {
+    const pending = pendingSendRef.current;
+    pendingSendRef.current = null;
+    setSendConfirmOpen(false);
+    if (!pending) {
+      return;
+    }
+    if (disabled) {
+      return;
+    }
+    performSend(pending.text, pending.images);
+  }, [disabled, performSend]);
+
+  const handleCancelSend = useCallback(() => {
+    pendingSendRef.current = null;
+    setSendConfirmOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!sendConfirmOpen) {
+      return;
+    }
+    const pending = pendingSendRef.current;
+    if (!pending) {
+      setSendConfirmOpen(false);
+      return;
+    }
+    const imagesMatch =
+      pending.images.length === attachedImages.length &&
+      pending.images.every((item, index) => item === attachedImages[index]);
+    if (pending.text !== text || !imagesMatch) {
+      pendingSendRef.current = null;
+      setSendConfirmOpen(false);
+    }
+  }, [attachedImages, sendConfirmOpen, text]);
+
+  useEffect(() => {
+    if (sendConfirmationEnabled || !sendConfirmOpen) {
+      return;
+    }
+    pendingSendRef.current = null;
+    setSendConfirmOpen(false);
+  }, [sendConfirmationEnabled, sendConfirmOpen]);
 
   useEffect(() => {
     if (!prefillDraft) {
@@ -464,6 +543,20 @@ export function Composer({
         isProcessing={isProcessing}
         onStop={onStop}
         onSend={handleSend}
+        targetLabel={targetLabel}
+        targetPrefix={t("composer.target.label")}
+        placeholder={placeholder}
+        sendConfirmOpen={sendConfirmOpen}
+        sendConfirmTitle={t("composer.sendConfirm.title")}
+        sendConfirmDescription={t("composer.sendConfirm.description", {
+          target: sendConfirmTarget,
+        })}
+        sendConfirmCancelLabel={t("composer.sendConfirm.cancel")}
+        sendConfirmConfirmLabel={t("composer.sendConfirm.confirm")}
+        onSendConfirm={handleConfirmSend}
+        onSendCancel={handleCancelSend}
+        copySourceTooltip={copySourceTooltip}
+        onCopySource={onCopySource}
         dictationEnabled={dictationEnabled}
         dictationUnavailableMessage={dictationUnavailableMessage}
         dictationState={dictationState}
@@ -485,6 +578,20 @@ export function Composer({
         onToggleExpand={onToggleEditorExpanded}
         onKeyDown={(event) => {
           if (isComposingEvent(event)) {
+            return;
+          }
+          if (sendConfirmOpen) {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              handleCancelSend();
+              return;
+            }
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleConfirmSend();
+              return;
+            }
+            event.preventDefault();
             return;
           }
           handleHistoryKeyDown(event);

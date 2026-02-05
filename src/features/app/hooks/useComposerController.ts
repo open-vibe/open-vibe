@@ -38,6 +38,7 @@ export function useComposerController({
     clearActiveImages,
     setImagesForThread,
     removeImagesForThread,
+    getImagesForThread,
   } = useComposerImages({ activeThreadId, activeWorkspaceId });
 
   const {
@@ -115,6 +116,11 @@ export function useComposerController({
     }
   }, []);
 
+  const getDraftForThread = useCallback(
+    (threadId: string) => draftsRef.current[threadId] ?? "",
+    [],
+  );
+
   return {
     activeImages,
     attachImages,
@@ -123,6 +129,7 @@ export function useComposerController({
     clearActiveImages,
     setImagesForThread,
     removeImagesForThread,
+    getImagesForThread,
     activeQueue,
     handleSend,
     queueMessage,
@@ -137,5 +144,6 @@ export function useComposerController({
     handleEditQueued,
     handleDeleteQueued,
     clearDraftForThread,
+    getDraftForThread,
   };
 }

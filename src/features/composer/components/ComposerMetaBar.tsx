@@ -1,5 +1,10 @@
-import { type CSSProperties } from "react";
 import { Brain, ChevronDown, ShieldCheck, Sparkles, Users } from "lucide-react";
+import {
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  RadialBar,
+  RadialBarChart,
+} from "recharts";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +14,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import type { AccessMode, ThreadTokenUsage } from "../../../types";
 import { formatCollaborationModeLabel } from "../../../utils/collaborationModes";
 import { useI18n } from "../../../i18n";
@@ -76,6 +82,25 @@ export function ComposerMetaBar({
     contextFreePercent === null
       ? null
       : Math.min(Math.max(100 - contextFreePercent, 0), 100);
+  const contextLabel =
+    contextFreePercent === null
+      ? t("composer.contextFreeUnknown")
+      : t("composer.contextFree", {
+          percent: Math.round(contextFreePercent),
+        });
+  const contextChartConfig = {
+    context: {
+      label: t("composer.contextFreeUnknown"),
+      color: "var(--primary)",
+    },
+  } satisfies ChartConfig;
+  const contextChartData = [
+    {
+      name: "context",
+      value: contextFreePercent ?? 0,
+      fill: "var(--color-context)",
+    },
+  ];
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
@@ -240,35 +265,33 @@ export function ComposerMetaBar({
             ? "—"
             : `${Math.round(contextUsedPercent)}%`}
         </span>
-        <div
-          className="relative grid size-5 place-items-center rounded-full"
-          aria-label={
-            contextFreePercent === null
-              ? t("composer.contextFreeUnknown")
-              : t("composer.contextFree", {
-                  percent: Math.round(contextFreePercent),
-                })
-          }
-          title={
-            contextFreePercent === null
-              ? t("composer.contextFreeUnknown")
-              : t("composer.contextFree", {
-                  percent: Math.round(contextFreePercent),
-                })
-          }
-          style={
-            {
-              "--context-free": contextFreePercent ?? 0,
-              background: `radial-gradient(circle, var(--surface-card-strong) 52%, transparent 55%), 
-               conic-gradient(from 180deg, var(--primary) calc(var(--context-free) * 1%), var(--surface-control) 0)`,
-              boxShadow: "inset 0 0 0 1px var(--border-subtle)",
-            } as CSSProperties
-          }
+        <ChartContainer
+          config={contextChartConfig}
+          className="composer-context-chart"
+          aria-label={contextLabel}
+          title={contextLabel}
         >
-          <span className="text-[6px] font-semibold text-muted-foreground">
-            ●
-          </span>
-        </div>
+          <RadialBarChart
+            data={contextChartData}
+            startAngle={90}
+            endAngle={-270}
+            innerRadius="60%"
+            outerRadius="100%"
+          >
+            <PolarAngleAxis
+              type="number"
+              domain={[0, 100]}
+              tick={false}
+              axisLine={false}
+            />
+            <RadialBar
+              dataKey="value"
+              background={{ fill: "var(--surface-control)" }}
+              cornerRadius={12}
+            />
+            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false} />
+          </RadialBarChart>
+        </ChartContainer>
       </div>
     </div>
   );

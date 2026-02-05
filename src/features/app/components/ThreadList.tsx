@@ -50,7 +50,7 @@ export function ThreadList({
   nextCursor,
   isPaging,
   nested,
-  showLoadOlder = true,
+  showLoadOlder = false,
   activeWorkspaceId,
   activeThreadId,
   threadStatusById,
@@ -142,7 +142,7 @@ export function ThreadList({
     );
   };
 
-  return (
+  const menu = (
     <SidebarMenu className={cn("gap-1", nested && "pl-2")}>
       {pinnedRows.map((row) => renderThreadRow(row))}
       {pinnedRows.length > 0 && unpinnedRows.length > 0 && (
@@ -181,5 +181,15 @@ export function ThreadList({
         </SidebarMenuItem>
       )}
     </SidebarMenu>
+  );
+
+  if (nested) {
+    return menu;
+  }
+
+  return (
+    <div className="mt-px rounded-md border border-border/50 bg-sidebar-accent/5">
+      {menu}
+    </div>
   );
 }

@@ -83,6 +83,7 @@ const defaultSettings: AppSettings = {
   dictationHoldKey: "alt",
   composerEditorPreset: "default",
   composerSendBehavior: "enter",
+  composerSendConfirmationEnabled: false,
   composerFenceExpandOnSpace: false,
   composerFenceExpandOnEnter: false,
   composerFenceLanguageTags: false,
@@ -140,6 +141,10 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       DEFAULT_CODE_FONT_FAMILY,
     ),
     codeFontSize: clampCodeFontSize(settings.codeFontSize),
+    dictationHoldKey:
+      settings.dictationHoldKey && settings.dictationHoldKey.trim()
+        ? settings.dictationHoldKey.trim()
+        : null,
     experimentalYunyiToken: settings.experimentalYunyiToken?.trim() ?? "",
     composerSendBehavior: allowedComposerSendBehaviors.has(
       settings.composerSendBehavior,

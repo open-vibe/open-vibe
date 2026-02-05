@@ -46,6 +46,7 @@ export function WorkspaceCard({
         onContextMenu={(event) => onShowWorkspaceMenu(event, workspace.id)}
         className={cn(
           "h-9 rounded-md px-2 text-sm",
+          "bg-sidebar-accent/10",
           "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
         )}

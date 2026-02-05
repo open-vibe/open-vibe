@@ -121,6 +121,10 @@ type LayoutNodesOptions = {
   selectedOpenAppId: string;
   onSelectOpenAppId: (id: string) => void;
   composerSendBehavior: ComposerSendBehavior;
+  composerSendConfirmationEnabled: boolean;
+  composerTargetLabel?: string | null;
+  composerCopyLabel?: string | null;
+  onCopyComposerDraft?: () => void;
   approvals: ApprovalRequest[];
   userInputRequests: RequestUserInputRequest[];
   handleApprovalDecision: (
@@ -520,6 +524,10 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
         (options.isProcessing && !options.steerEnabled ? "Queue" : "Send")
       }
       sendBehavior={options.composerSendBehavior}
+      sendConfirmationEnabled={options.composerSendConfirmationEnabled}
+      targetLabel={options.composerTargetLabel ?? null}
+      copySourceLabel={options.composerCopyLabel ?? null}
+      onCopySource={options.onCopyComposerDraft}
       steerEnabled={options.steerEnabled}
       isProcessing={options.isProcessing}
       draftText={options.draftText}

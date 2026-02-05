@@ -102,7 +102,7 @@ import { useWorkspaceAgentMd } from "./features/workspaces/hooks/useWorkspaceAge
 import { pickWorkspacePath } from "./services/tauri";
 import { ThreadTabsBar } from "./features/app/components/ThreadTabsBar";
 import { ThreadTabsContent } from "./features/app/components/ThreadTabsContent";
-import { useThreadTabs } from "./features/app/hooks/useThreadTabs";
+import { useThreadTabs, type ThreadTab } from "./features/app/hooks/useThreadTabs";
 import type { ThreadTopbarOverrides } from "./features/app/types/threadTabs";
 import { DebugErrorBoundary } from "./features/app/components/DebugErrorBoundary";
 import type {
@@ -699,6 +699,22 @@ function MainApp() {
         : null,
     [activeThreadTabId, threadTabs],
   );
+  const activeThreadName = useMemo(() => {
+    if (!activeWorkspaceId || !activeThreadId) {
+      return null;
+    }
+    const resolved =
+      threadsByWorkspace[activeWorkspaceId]?.find(
+        (thread) => thread.id === activeThreadId,
+      )?.name ?? activeThreadTab?.title ?? null;
+    return resolved ?? `Agent ${activeThreadId.slice(0, 4)}`;
+  }, [activeThreadId, activeThreadTab?.title, activeWorkspaceId, threadsByWorkspace]);
+  const composerTargetLabel = useMemo(() => {
+    if (!activeWorkspace || !activeThreadName) {
+      return null;
+    }
+    return `${activeWorkspace.name} / ${activeThreadName}`;
+  }, [activeThreadName, activeWorkspace]);
 
   useEffect(() => {
     if (!activeThreadTab || homeView) {
@@ -1159,7 +1175,9 @@ function MainApp() {
     pickImages,
     removeImage,
     clearActiveImages,
+    setImagesForThread,
     removeImagesForThread,
+    getImagesForThread,
     activeQueue,
     handleSend,
     queueMessage,
@@ -1173,6 +1191,7 @@ function MainApp() {
     handleEditQueued,
     handleDeleteQueued,
     clearDraftForThread,
+    getDraftForThread,
   } = useComposerController({
     activeThreadId,
     activeWorkspaceId,
@@ -1184,6 +1203,61 @@ function MainApp() {
     sendUserMessage,
     startReview,
   });
+
+  const otherDraftSource = useMemo(() => {
+    if (!activeThreadId) {
+      return null;
+    }
+    let best:
+      | {
+          tab: ThreadTab;
+          text: string;
+          images: string[];
+        }
+      | null = null;
+    for (const tab of threadTabs) {
+      if (tab.threadId === activeThreadId) {
+        continue;
+      }
+      const text = getDraftForThread(tab.threadId);
+      const images = getImagesForThread(tab.threadId);
+      if (!text.trim() && images.length === 0) {
+        continue;
+      }
+      if (!best || tab.lastActiveAt > best.tab.lastActiveAt) {
+        best = { tab, text, images };
+      }
+    }
+    if (!best) {
+      return null;
+    }
+    return {
+      workspaceId: best.tab.workspaceId,
+      threadId: best.tab.threadId,
+      title: best.tab.title,
+      text: best.text,
+      images: best.images,
+    };
+  }, [activeThreadId, getDraftForThread, getImagesForThread, threadTabs]);
+
+  const handleCopyOtherDraft = useCallback(() => {
+    if (!otherDraftSource || !activeThreadId) {
+      return;
+    }
+    handleDraftChange(otherDraftSource.text, { immediate: true });
+    setImagesForThread(activeThreadId, otherDraftSource.images);
+    composerInputRef.current?.focus();
+  }, [activeThreadId, handleDraftChange, otherDraftSource, setImagesForThread]);
+  const otherDraftLabel = useMemo(() => {
+    if (!otherDraftSource) {
+      return null;
+    }
+    const workspaceName = workspacesById.get(otherDraftSource.workspaceId)?.name;
+    if (!workspaceName) {
+      return otherDraftSource.title;
+    }
+    return `${workspaceName} / ${otherDraftSource.title}`;
+  }, [otherDraftSource, workspacesById]);
 
   const handleInsertComposerText = useComposerInsert({
     activeThreadId,
@@ -2135,6 +2209,10 @@ function MainApp() {
     composerEditorExpanded,
     onToggleComposerEditorExpanded: toggleComposerEditorExpanded,
     composerSendBehavior: appSettings.composerSendBehavior,
+    composerSendConfirmationEnabled: appSettings.composerSendConfirmationEnabled,
+    composerTargetLabel,
+    composerCopyLabel: otherDraftLabel,
+    onCopyComposerDraft: otherDraftLabel ? handleCopyOtherDraft : undefined,
     dictationEnabled: appSettings.dictationEnabled && dictationReady,
     dictationState,
     dictationLevel,
