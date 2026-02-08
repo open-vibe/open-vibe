@@ -73,7 +73,12 @@ export function ThreadTabsBar({
                 aria-controls={`thread-tab-panel-${tab.id}`}
                 className="thread-tab-button"
                 onClick={() => onSelectTab(tab.id)}
-                onDoubleClick={() => onRenameThread(tab.workspaceId, tab.threadId)}
+                onDoubleClick={() => {
+                  if (tab.kind !== "thread") {
+                    return;
+                  }
+                  onRenameThread(tab.workspaceId, tab.threadId);
+                }}
                 data-tauri-drag-region="false"
               >
                 <span className="thread-tab-title">{displayTitle}</span>

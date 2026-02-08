@@ -970,7 +970,7 @@ pub(crate) async fn get_commit_message_prompt(
     let prompt = format!(
         "Generate a concise git commit message for the following changes. \
 Follow conventional commit format (e.g., feat:, fix:, refactor:, docs:, etc.). \
-Focus on the 'why' rather than the 'what'. Keep the summary line under 72 characters. \
+Keep the summary line under 72 characters. \
 Only output the commit message, nothing else.\n\n\
 Changes:\n{diff}"
     );
@@ -1063,7 +1063,7 @@ pub(crate) async fn generate_commit_message(
     let prompt = format!(
         "Generate a concise git commit message for the following changes. \
 Follow conventional commit format (e.g., feat:, fix:, refactor:, docs:, etc.). \
-Focus on the 'why' rather than the 'what'. Keep the summary line under 72 characters. \
+Keep the summary line under 72 characters. \
 Only output the commit message, nothing else.\n\n\
 Changes:\n{diff}"
     );

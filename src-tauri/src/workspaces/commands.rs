@@ -1379,22 +1379,23 @@ pub(crate) async fn update_workspace_codex_bin(
 }
 
 
-#[tauri::command]
-pub(crate) async fn connect_workspace(
-    id: String,
-    state: State<'_, AppState>,
+async fn connect_workspace_inner(
+    id: &str,
+    state: &AppState,
     app: AppHandle,
+    force_respawn: bool,
 ) -> Result<(), String> {
-    if remote_backend::is_remote_mode(&*state).await {
-        remote_backend::call_remote(&*state, app, "connect_workspace", json!({ "id": id }))
-            .await?;
-        return Ok(());
+    if !force_respawn {
+        let sessions = state.sessions.lock().await;
+        if sessions.contains_key(id) {
+            return Ok(());
+        }
     }
 
     let (entry, parent_entry) = {
         let workspaces = state.workspaces.lock().await;
         workspaces
-            .get(&id)
+            .get(id)
             .cloned()
             .map(|entry| {
                 let parent_entry = entry
@@ -1417,8 +1418,40 @@ pub(crate) async fn connect_workspace(
     let codex_home = resolve_workspace_codex_home(&entry, parent_entry.as_ref());
     let session =
         spawn_workspace_session(entry.clone(), default_bin, codex_args, app, codex_home).await?;
-    state.sessions.lock().await.insert(entry.id, session);
+    let old_session = state.sessions.lock().await.insert(entry.id.clone(), session);
+    if let Some(old_session) = old_session {
+        let mut child = old_session.child.lock().await;
+        let _ = child.kill().await;
+    }
     Ok(())
+}
+
+#[tauri::command]
+pub(crate) async fn connect_workspace(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        remote_backend::call_remote(&*state, app, "connect_workspace", json!({ "id": id }))
+            .await?;
+        return Ok(());
+    }
+    connect_workspace_inner(&id, &state, app, false).await
+}
+
+#[tauri::command]
+pub(crate) async fn reconnect_workspace(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        remote_backend::call_remote(&*state, app, "reconnect_workspace", json!({ "id": id }))
+            .await?;
+        return Ok(());
+    }
+    connect_workspace_inner(&id, &state, app, true).await
 }
 
 

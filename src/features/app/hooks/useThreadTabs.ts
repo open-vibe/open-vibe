@@ -7,15 +7,26 @@ const ACTIVE_TAB_STORAGE_KEY = "openvibe.activeThreadTabId";
 export type ThreadTab = {
   id: string;
   workspaceId: string;
-  threadId: string;
   title: string;
   lastActiveAt: number;
   loaded: boolean;
-};
+} & (
+  | {
+      kind: "thread";
+      threadId: string;
+    }
+  | {
+      kind: "workspace";
+    }
+  | {
+      kind: "home";
+    }
+);
 
 type UseThreadTabsOptions = {
   workspaces: WorkspaceInfo[];
   threadsByWorkspace: Record<string, ThreadSummary[]>;
+  homeTabTitle: string;
 };
 
 const parseStoredTabs = (raw: string | null): ThreadTab[] => {
@@ -32,18 +43,42 @@ const parseStoredTabs = (raw: string | null): ThreadTab[] => {
         if (!entry || typeof entry !== "object") {
           return null;
         }
-        const tab = entry as Partial<ThreadTab>;
-        if (!tab.id || !tab.workspaceId || !tab.threadId || !tab.title) {
+        const tab = entry as {
+          id?: unknown;
+          workspaceId?: unknown;
+          title?: unknown;
+          lastActiveAt?: unknown;
+          loaded?: unknown;
+          kind?: unknown;
+          threadId?: unknown;
+        };
+        if (!tab.id || !tab.title) {
+          return null;
+        }
+        const kind =
+          tab.kind === "workspace"
+            ? "workspace"
+            : tab.kind === "home" || tab.id === HOME_TAB_ID
+              ? "home"
+              : "thread";
+        if (kind !== "home" && !tab.workspaceId) {
+          return null;
+        }
+        if (kind === "thread" && !tab.threadId) {
           return null;
         }
         return {
           id: String(tab.id),
-          workspaceId: String(tab.workspaceId),
-          threadId: String(tab.threadId),
+          workspaceId:
+            kind === "home"
+              ? HOME_TAB_WORKSPACE_ID
+              : String(tab.workspaceId),
           title: String(tab.title),
           lastActiveAt:
             typeof tab.lastActiveAt === "number" ? tab.lastActiveAt : Date.now(),
           loaded: Boolean(tab.loaded),
+          kind,
+          ...(kind === "thread" ? { threadId: String(tab.threadId) } : {}),
         };
       })
       .filter(Boolean) as ThreadTab[];
@@ -69,10 +104,14 @@ const loadStoredActiveTab = () => {
 
 const makeTabId = (workspaceId: string, threadId: string) =>
   `${workspaceId}:${threadId}`;
+const makeWorkspaceTabId = (workspaceId: string) => `${workspaceId}:workspace-home`;
+const HOME_TAB_WORKSPACE_ID = "__home__";
+const HOME_TAB_ID = `${HOME_TAB_WORKSPACE_ID}:home`;
 
 export function useThreadTabs({
   workspaces,
   threadsByWorkspace,
+  homeTabTitle,
 }: UseThreadTabsOptions) {
   const [tabs, setTabs] = useState<ThreadTab[]>(() => loadStoredTabs());
   const [activeTabId, setActiveTabId] = useState<string | null>(() =>
@@ -81,6 +120,10 @@ export function useThreadTabs({
 
   const workspaceIds = useMemo(
     () => new Set(workspaces.map((workspace) => workspace.id)),
+    [workspaces],
+  );
+  const workspaceNameLookup = useMemo(
+    () => new Map(workspaces.map((workspace) => [workspace.id, workspace.name])),
     [workspaces],
   );
 
@@ -97,17 +140,21 @@ export function useThreadTabs({
   useEffect(() => {
     setTabs((prev) =>
       prev
-        .filter((tab) => workspaceIds.has(tab.workspaceId))
+        .filter((tab) => tab.kind === "home" || workspaceIds.has(tab.workspaceId))
         .map((tab) => {
-          const lookupKey = makeTabId(tab.workspaceId, tab.threadId);
-          const nextTitle = threadNameLookup.get(lookupKey);
+          const nextTitle =
+            tab.kind === "thread"
+              ? threadNameLookup.get(makeTabId(tab.workspaceId, tab.threadId))
+              : tab.kind === "workspace"
+                ? workspaceNameLookup.get(tab.workspaceId)
+                : homeTabTitle;
           if (nextTitle && nextTitle !== tab.title) {
             return { ...tab, title: nextTitle };
           }
           return tab;
         }),
     );
-  }, [threadNameLookup, workspaceIds]);
+  }, [homeTabTitle, threadNameLookup, workspaceIds, workspaceNameLookup]);
 
   useEffect(() => {
     if (!tabs.length) {
@@ -155,6 +202,7 @@ export function useThreadTabs({
           ...prev,
           {
             id,
+            kind: "thread",
             workspaceId,
             threadId,
             title,
@@ -167,6 +215,57 @@ export function useThreadTabs({
     },
     [],
   );
+
+  const openWorkspaceTab = useCallback((workspaceId: string, title: string) => {
+    const id = makeWorkspaceTabId(workspaceId);
+    setTabs((prev) => {
+      const existing = prev.find((tab) => tab.id === id);
+      if (existing) {
+        return prev.map((tab) =>
+          tab.id === id
+            ? { ...tab, title, lastActiveAt: Date.now() }
+            : tab,
+        );
+      }
+      return [
+        ...prev,
+        {
+          id,
+          kind: "workspace",
+          workspaceId,
+          title,
+          lastActiveAt: Date.now(),
+          loaded: false,
+        },
+      ];
+    });
+    setActiveTabId(id);
+  }, []);
+
+  const openHomeTab = useCallback((title: string) => {
+    setTabs((prev) => {
+      const existing = prev.find((tab) => tab.id === HOME_TAB_ID);
+      if (existing) {
+        return prev.map((tab) =>
+          tab.id === HOME_TAB_ID
+            ? { ...tab, title, lastActiveAt: Date.now() }
+            : tab,
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: HOME_TAB_ID,
+          kind: "home",
+          workspaceId: HOME_TAB_WORKSPACE_ID,
+          title,
+          lastActiveAt: Date.now(),
+          loaded: true,
+        },
+      ];
+    });
+    setActiveTabId(HOME_TAB_ID);
+  }, []);
 
   const closeTab = useCallback((tabId: string) => {
     setTabs((prev) => {
@@ -224,6 +323,8 @@ export function useThreadTabs({
     activeTabId,
     setActiveTab,
     openTab,
+    openWorkspaceTab,
+    openHomeTab,
     closeTab,
     markTabLoaded,
     reorderTabs,

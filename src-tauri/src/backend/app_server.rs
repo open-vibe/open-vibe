@@ -17,11 +17,19 @@ use crate::codex_args::apply_codex_args;
 use crate::types::WorkspaceEntry;
 
 fn extract_thread_id(value: &Value) -> Option<String> {
-    value
-        .get("params")
-        .and_then(|p| p.get("threadId").or_else(|| p.get("thread_id")))
+    let params = value.get("params")?;
+    params
+        .get("threadId")
+        .or_else(|| params.get("thread_id"))
         .and_then(|t| t.as_str())
         .map(|s| s.to_string())
+        .or_else(|| {
+            params
+                .get("thread")
+                .and_then(|thread| thread.get("id"))
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string())
+        })
 }
 
 pub(crate) struct WorkspaceSession {
@@ -139,7 +147,7 @@ pub(crate) fn build_codex_command_with_bin(codex_bin: Option<String>) -> Command
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| "codex".into());
     let bin = normalize_windows_bin_path(&raw_bin);
-    let mut command = if cfg!(windows) && is_windows_cmd_script(&bin) {
+    let mut command = if should_run_via_cmd_on_windows(&bin) {
         let mut command = Command::new("cmd");
         command.arg("/C").arg(&bin);
         command
@@ -179,6 +187,26 @@ fn is_windows_cmd_script(path: &str) -> bool {
         .and_then(|ext| ext.to_str())
         .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "cmd" | "bat"))
         .unwrap_or(false)
+}
+
+fn should_run_via_cmd_on_windows(path: &str) -> bool {
+    if !cfg!(windows) {
+        return false;
+    }
+    if is_windows_cmd_script(path) {
+        return true;
+    }
+
+    let normalized = path.trim();
+    let has_extension = Path::new(normalized).extension().is_some();
+    if has_extension {
+        return false;
+    }
+
+    let has_path_hint = normalized.contains('\\')
+        || normalized.contains('/')
+        || normalized.contains(':');
+    !has_path_hint
 }
 
 pub(crate) async fn check_codex_installation(

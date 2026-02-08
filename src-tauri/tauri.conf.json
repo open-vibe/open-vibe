@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "CodexMonitor",
-  "version": "0.7.30",
-  "identifier": "com.dimillian.codexmonitor",
+  "productName": "open-vibe",
+  "version": "1.0.0",
+  "identifier": "com.openvibe.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "CodexMonitor",
+        "title": "OpenVibe",
         "width": 1200,
         "height": 700,
         "minWidth": 360,
@@ -39,6 +39,9 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "resources": [
+      "../bridge/happy-bridge.js"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -53,9 +56,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY0QTgzQUU0QTc2MEVBNDMKUldSRDZtQ241RHFvOURJbm1KeC81aEZaOXlhZHlHd2NEZVpPVWs5NjdjOFNhUFEyZGJpTkV0S2YK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyMTNCNTFCMjk4MTZBNTAKUldSUWFvRXBHN1VUMHRFWHBETTlTZjR2MlJrcWtVMS82QWhadnlNaGgrN25yaDk1MU1DMjFjTVoK",
       "endpoints": [
-        "https://github.com/Dimillian/CodexMonitor/releases/latest/download/latest.json"
+        "https://github.com/open-vibe/open-vibe/releases/latest/download/latest.json"
       ]
     }
   }

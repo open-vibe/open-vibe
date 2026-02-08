@@ -251,6 +251,10 @@ export async function connectWorkspace(id: string): Promise<void> {
   return invoke("connect_workspace", { id });
 }
 
+export async function reconnectWorkspace(id: string): Promise<void> {
+  return invoke("reconnect_workspace", { id });
+}
+
 export async function startThread(workspaceId: string) {
   return invoke<any>("start_thread", { workspaceId });
 }

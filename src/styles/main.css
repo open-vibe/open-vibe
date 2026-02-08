@@ -12,6 +12,12 @@
   transition: grid-template-columns 220ms ease;
 }
 
+@media (min-width: 768px) {
+  .main {
+    margin-top: 0 !important;
+  }
+}
+
 .app.reduced-transparency .main {
   background: var(--surface-messages);
 }

@@ -16,6 +16,7 @@ import {
   isWorkspacePathDir as isWorkspacePathDirService,
   listWorkspaces,
   pickWorkspacePath,
+  reconnectWorkspace as reconnectWorkspaceService,
   removeWorkspace as removeWorkspaceService,
   removeWorktree as removeWorktreeService,
   renameWorktree as renameWorktreeService,
@@ -404,6 +405,38 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
     }
   }
 
+  async function reconnectWorkspace(entry: WorkspaceInfo) {
+    onDebug?.({
+      id: `${Date.now()}-client-reconnect-workspace`,
+      timestamp: Date.now(),
+      source: "client",
+      label: "workspace/reconnect",
+      payload: { workspaceId: entry.id, path: entry.path },
+    });
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    try {
+      await reconnectWorkspaceService(entry.id);
+      const durationMs = Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
+      );
+      if (typeof console !== "undefined") {
+        console.info("[workspace/reconnect]", {
+          workspaceId: entry.id,
+          durationMs,
+        });
+      }
+    } catch (error) {
+      onDebug?.({
+        id: `${Date.now()}-client-reconnect-workspace-error`,
+        timestamp: Date.now(),
+        source: "error",
+        label: "workspace/reconnect error",
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
   function markWorkspaceConnected(id: string) {
     setWorkspaces((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, connected: true } : entry)),
@@ -716,14 +749,18 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
         prev && (prev === workspaceId || childIds.has(prev)) ? null : prev,
       );
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       onDebug?.({
         id: `${Date.now()}-client-remove-workspace-error`,
         timestamp: Date.now(),
         source: "error",
         label: "workspace/remove error",
-        payload: error instanceof Error ? error.message : String(error),
+        payload: errorMessage,
       });
-      throw error;
+      void message(errorMessage, {
+        title: "Delete workspace failed",
+        kind: "error",
+      });
     }
   }
 
@@ -874,6 +911,7 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
     addCloneAgent,
     addWorktreeAgent,
     connectWorkspace,
+    reconnectWorkspace,
     markWorkspaceConnected,
     updateWorkspaceSettings,
     updateWorkspaceCodexBin,

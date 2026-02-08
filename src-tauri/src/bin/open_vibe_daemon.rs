@@ -45,7 +45,7 @@ use uuid::Uuid;
 use utils::{git_env_path, resolve_git_binary};
 
 use backend::app_server::{spawn_workspace_session, WorkspaceSession};
-use backend::events::{AppServerEvent, EventSink, TerminalOutput};
+use backend::events::{AppServerEvent, EventSink, TerminalExit, TerminalOutput};
 use storage::{read_settings, read_workspaces, write_settings, write_workspaces};
 use types::{
     AppSettings, WorkspaceEntry, WorkspaceInfo, WorkspaceKind, WorkspaceSettings, WorktreeInfo,
@@ -90,6 +90,8 @@ impl EventSink for DaemonEventSink {
     fn emit_terminal_output(&self, event: TerminalOutput) {
         let _ = self.tx.send(DaemonEvent::TerminalOutput(event));
     }
+
+    fn emit_terminal_exit(&self, _event: TerminalExit) {}
 }
 
 struct DaemonConfig {
@@ -1096,6 +1098,11 @@ impl DaemonState {
 
         self.sessions.lock().await.insert(id, session);
         Ok(())
+    }
+
+    async fn reconnect_workspace(&self, id: String, client_version: String) -> Result<(), String> {
+        self.kill_session(&id).await;
+        self.connect_workspace(id, client_version).await
     }
 
     async fn update_app_settings(&self, settings: AppSettings) -> Result<AppSettings, String> {
@@ -2135,6 +2142,11 @@ async fn handle_rpc_request(
         "connect_workspace" => {
             let id = parse_string(&params, "id")?;
             state.connect_workspace(id, client_version).await?;
+            Ok(json!({ "ok": true }))
+        }
+        "reconnect_workspace" => {
+            let id = parse_string(&params, "id")?;
+            state.reconnect_workspace(id, client_version).await?;
             Ok(json!({ "ok": true }))
         }
         "remove_workspace" => {

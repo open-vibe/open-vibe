@@ -9,9 +9,10 @@ import type {
   WorkspaceInfo,
   WorkspaceSettings,
 } from "../../../types";
+import { cn } from "@/lib/utils";
 import type { ThreadTab } from "../hooks/useThreadTabs";
 import { ThreadTabView } from "./ThreadTabView";
-import { useEffect, useMemo, type MouseEvent } from "react";
+import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
 import type { ThreadTopbarOverrides } from "../types/threadTabs";
 
 type ThreadActivityStatus = {
@@ -32,6 +33,8 @@ type ComposerOverrides = {
 type ThreadTabsContentProps = {
   tabs: ThreadTab[];
   activeTabId: string | null;
+  activeWorkspaceId: string | null;
+  workspaceHomeNode: ReactNode;
   workspacesById: Map<string, WorkspaceInfo>;
   itemsByThread: Record<string, ConversationItem[]>;
   threadStatusById: Record<string, ThreadActivityStatus>;
@@ -89,6 +92,8 @@ type ThreadTabsContentProps = {
 export function ThreadTabsContent({
   tabs,
   activeTabId,
+  activeWorkspaceId,
+  workspaceHomeNode,
   workspacesById,
   itemsByThread,
   threadStatusById,
@@ -136,7 +141,7 @@ export function ThreadTabsContent({
     if (!onComposerOverridesChange) {
       return;
     }
-    if (!activeThreadTab) {
+    if (!activeThreadTab || activeThreadTab.kind !== "thread") {
       onComposerOverridesChange(null);
     }
   }, [activeThreadTab, onComposerOverridesChange]);
@@ -145,7 +150,7 @@ export function ThreadTabsContent({
     if (!onTopbarOverridesChange) {
       return;
     }
-    if (!activeThreadTab) {
+    if (!activeThreadTab || activeThreadTab.kind !== "thread") {
       onTopbarOverridesChange(null);
     }
   }, [activeThreadTab, onTopbarOverridesChange]);
@@ -164,6 +169,22 @@ export function ThreadTabsContent({
           const isActive = tab.id === activeTabId;
           const shouldRender = isActive || tab.loaded;
           if (!shouldRender) {
+            return null;
+          }
+          if (tab.kind === "workspace") {
+            return (
+              <div
+                key={tab.id}
+                className={cn("thread-tab-view", !isActive && "is-hidden")}
+                data-tab-id={tab.id}
+              >
+                {isActive && activeWorkspaceId === tab.workspaceId
+                  ? workspaceHomeNode
+                  : null}
+              </div>
+            );
+          }
+          if (tab.kind !== "thread") {
             return null;
           }
           const parentWorkspace = workspace.parentId

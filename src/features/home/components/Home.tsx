@@ -212,7 +212,7 @@ export function Home({
   return (
     <div
       className="home-scroll mx-auto flex h-full w-full max-w-5xl flex-col gap-6 overflow-y-auto overflow-x-hidden px-6 py-8"
-      style={{ gridColumn: "1 / -1", gridRow: "1 / -1" }}
+      style={{ gridColumn: "1 / -1", gridRow: "3 / 4" }}
     >
       <Card className="shadow-none">
         <CardHeader className="text-center">

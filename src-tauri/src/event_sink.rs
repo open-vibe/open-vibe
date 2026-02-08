@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::backend::events::{AppServerEvent, EventSink, TerminalOutput};
+use crate::backend::events::{AppServerEvent, EventSink, TerminalExit, TerminalOutput};
 
 #[derive(Clone)]
 pub(crate) struct TauriEventSink {
@@ -48,5 +48,9 @@ impl EventSink for TauriEventSink {
             return;
         }
         let _ = self.app.emit("terminal-output", event);
+    }
+
+    fn emit_terminal_exit(&self, event: TerminalExit) {
+        let _ = self.app.emit("terminal-exit", event);
     }
 }

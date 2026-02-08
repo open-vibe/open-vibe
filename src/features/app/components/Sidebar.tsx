@@ -446,232 +446,238 @@ export function Sidebar({
             {workspaceDropText}
           </div>
         </div>
-        <SidebarContent className="gap-3 px-2 pb-3">
-          <SidebarGroup className="px-0">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={onSelectHome} tooltip={t("sidebar.home")}>
-                  <Home />
-                  <span>{t("sidebar.home")}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={onAddWorkspace}
-                  tooltip={t("sidebar.addWorkspace")}
-                >
-                  <Plus />
-                  <span>{t("sidebar.addWorkspace")}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-          {pinnedThreadRows.length > 0 && (
-            <SidebarGroup className="px-0">
-              <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                {t("sidebar.pinned")}
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="px-1">
-                <PinnedThreadList
-                  rows={pinnedThreadRows}
-                  openThreadIds={openThreadIds}
-                  activeWorkspaceId={activeWorkspaceId}
-                  activeThreadId={activeThreadId}
-                  threadStatusById={threadStatusById}
-                  getThreadTime={getThreadTime}
-                  isThreadPinned={isThreadPinned}
-                  onSelectThread={onSelectThread}
-                  onShowThreadMenu={showThreadMenu}
-                />
-              </SidebarGroupContent>
+        <SidebarContent className="overflow-hidden px-2 pb-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <SidebarGroup className="shrink-0 px-0">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={onSelectHome} tooltip={t("sidebar.home")}>
+                    <Home />
+                    <span>{t("sidebar.home")}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={onAddWorkspace}
+                    tooltip={t("sidebar.addWorkspace")}
+                  >
+                    <Plus />
+                    <span>{t("sidebar.addWorkspace")}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarGroup>
-          )}
-          {visibleGroups.map((group) => {
-            const groupId = group.id;
-            const showGroupHeader = Boolean(groupId) || hasWorkspaceGroups;
-            const toggleId = groupId ?? (showGroupHeader ? UNGROUPED_COLLAPSE_ID : null);
-            const isGroupCollapsed = Boolean(
-              toggleId && collapsedGroups.has(toggleId),
-            );
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+              {pinnedThreadRows.length > 0 && (
+                <SidebarGroup className="px-0">
+                  <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {t("sidebar.pinned")}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent className="px-1">
+                    <PinnedThreadList
+                      rows={pinnedThreadRows}
+                      openThreadIds={openThreadIds}
+                      activeWorkspaceId={activeWorkspaceId}
+                      activeThreadId={activeThreadId}
+                      threadStatusById={threadStatusById}
+                      getThreadTime={getThreadTime}
+                      isThreadPinned={isThreadPinned}
+                      onSelectThread={onSelectThread}
+                      onShowThreadMenu={showThreadMenu}
+                    />
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+              {visibleGroups.map((group) => {
+                const groupId = group.id;
+                const showGroupHeader = Boolean(groupId) || hasWorkspaceGroups;
+                const toggleId = groupId ?? (showGroupHeader ? UNGROUPED_COLLAPSE_ID : null);
+                const isGroupCollapsed = Boolean(
+                  toggleId && collapsedGroups.has(toggleId),
+                );
 
-            return (
-              <WorkspaceGroup
-                key={group.id ?? "ungrouped"}
-                toggleId={toggleId}
-                name={group.name}
-                showHeader={showGroupHeader}
-                isCollapsed={isGroupCollapsed}
-                onToggleCollapse={toggleGroupCollapse}
-              >
-                {group.workspaces.map((entry) => {
-                  const threads = threadsByWorkspace[entry.id] ?? [];
-                  const isCollapsed = entry.settings.sidebarCollapsed;
-                  const isExpanded = expandedWorkspaces.has(entry.id);
-                  const {
-                    unpinnedRows,
-                    totalRoots: totalThreadRoots,
-                  } = getThreadRows(
-                    threads,
-                    isExpanded,
-                    entry.id,
-                    getPinTimestamp,
-                  );
-                  const nextCursor =
-                    threadListCursorByWorkspace[entry.id] ?? null;
-                  const showThreadList =
-                    !isCollapsed && (threads.length > 0 || Boolean(nextCursor));
-                  const isPaging = threadListPagingByWorkspace[entry.id] ?? false;
-                  const worktrees = worktreesByParent.get(entry.id) ?? [];
-                  const addMenuOpen = addMenuAnchor?.workspaceId === entry.id;
+                return (
+                  <WorkspaceGroup
+                    key={group.id ?? "ungrouped"}
+                    toggleId={toggleId}
+                    name={group.name}
+                    showHeader={showGroupHeader}
+                    isCollapsed={isGroupCollapsed}
+                    onToggleCollapse={toggleGroupCollapse}
+                  >
+                    {group.workspaces.map((entry) => {
+                      const threads = threadsByWorkspace[entry.id] ?? [];
+                      const isCollapsed = entry.settings.sidebarCollapsed;
+                      const isExpanded = expandedWorkspaces.has(entry.id);
+                      const {
+                        unpinnedRows,
+                        totalRoots: totalThreadRoots,
+                      } = getThreadRows(
+                        threads,
+                        isExpanded,
+                        entry.id,
+                        getPinTimestamp,
+                      );
+                      const nextCursor =
+                        threadListCursorByWorkspace[entry.id] ?? null;
+                      const showThreadList =
+                        !isCollapsed && (threads.length > 0 || Boolean(nextCursor));
+                      const isPaging = threadListPagingByWorkspace[entry.id] ?? false;
+                      const worktrees = worktreesByParent.get(entry.id) ?? [];
+                      const addMenuOpen = addMenuAnchor?.workspaceId === entry.id;
 
-                  return (
-                    <WorkspaceCard
-                      key={entry.id}
-                      workspace={entry}
-                      isActive={entry.id === activeWorkspaceId}
-                      isCollapsed={isCollapsed}
-                      addMenuOpen={addMenuOpen}
-                      addMenuWidth={ADD_MENU_WIDTH}
-                      onSelectWorkspace={onSelectWorkspace}
-                      onShowWorkspaceMenu={showWorkspaceMenu}
-                      onToggleWorkspaceCollapse={onToggleWorkspaceCollapse}
-                      onConnectWorkspace={onConnectWorkspace}
-                      onToggleAddMenu={setAddMenuAnchor}
-                    >
-                      {addMenuOpen && addMenuAnchor &&
-                        createPortal(
-                          <div
-                            ref={addMenuRef}
-                            className="fixed z-[9999] flex w-48 flex-col gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
-                            style={{
-                              top: addMenuAnchor.top,
-                              left: addMenuAnchor.left,
-                              width: addMenuAnchor.width,
-                            }}
-                          >
-                            <button
-                              type="button"
-                              className="w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setAddMenuAnchor(null);
-                                onAddAgent(entry);
-                              }}
-                            >
-                              {t("sidebar.addMenu.newAgent")}
-                            </button>
-                            <button
-                              type="button"
-                              className="w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setAddMenuAnchor(null);
-                                onAddWorktreeAgent(entry);
-                              }}
-                            >
-                              {t("sidebar.addMenu.newWorktreeAgent")}
-                            </button>
-                            <button
-                              type="button"
-                              className="w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setAddMenuAnchor(null);
-                                onAddCloneAgent(entry);
-                              }}
-                            >
-                              {t("sidebar.addMenu.newCloneAgent")}
-                            </button>
-                          </div>,
-                          document.body,
-                        )}
-                      {!isCollapsed && worktrees.length > 0 && (
-                        <WorktreeSection
-                          worktrees={worktrees}
-                          deletingWorktreeIds={deletingWorktreeIds}
-                          threadsByWorkspace={threadsByWorkspace}
-                          threadStatusById={threadStatusById}
-                          openThreadIds={openThreadIds}
-                          threadListLoadingByWorkspace={threadListLoadingByWorkspace}
-                          threadListPagingByWorkspace={threadListPagingByWorkspace}
-                          threadListCursorByWorkspace={threadListCursorByWorkspace}
-                          expandedWorkspaces={expandedWorkspaces}
-                          activeWorkspaceId={activeWorkspaceId}
-                          activeThreadId={activeThreadId}
-                          getThreadRows={getThreadRows}
-                          getThreadTime={getThreadTime}
-                          isThreadPinned={isThreadPinned}
-                          getPinTimestamp={getPinTimestamp}
+                      return (
+                        <WorkspaceCard
+                          key={entry.id}
+                          workspace={entry}
+                          isActive={entry.id === activeWorkspaceId}
+                          isCollapsed={isCollapsed}
+                          addMenuOpen={addMenuOpen}
+                          addMenuWidth={ADD_MENU_WIDTH}
                           onSelectWorkspace={onSelectWorkspace}
-                          onConnectWorkspace={onConnectWorkspace}
+                          onShowWorkspaceMenu={showWorkspaceMenu}
                           onToggleWorkspaceCollapse={onToggleWorkspaceCollapse}
-                          onSelectThread={onSelectThread}
-                          onRenameThread={onRenameThread}
-                          onShowThreadMenu={showThreadMenu}
-                          onShowWorktreeMenu={showWorktreeMenu}
-                          onToggleExpanded={handleToggleExpanded}
-                          onLoadOlderThreads={onLoadOlderThreads}
-                        />
-                      )}
-                      {showThreadList && (
-                        <ThreadList
-                          workspaceId={entry.id}
-                          openThreadIds={openThreadIds}
-                          pinnedRows={[]}
-                          unpinnedRows={unpinnedRows}
-                          totalThreadRoots={totalThreadRoots}
-                          isExpanded={isExpanded}
-                          nextCursor={nextCursor}
-                          isPaging={isPaging}
-                          showLoadOlder={false}
-                          activeWorkspaceId={activeWorkspaceId}
-                          activeThreadId={activeThreadId}
-                          threadStatusById={threadStatusById}
-                          getThreadTime={getThreadTime}
-                          isThreadPinned={isThreadPinned}
-                          onToggleExpanded={handleToggleExpanded}
-                          onLoadOlderThreads={onLoadOlderThreads}
-                          onSelectThread={onSelectThread}
-                          onRenameThread={onRenameThread}
-                          onShowThreadMenu={showThreadMenu}
-                        />
-                      )}
-                    </WorkspaceCard>
-                  );
-                })}
-              </WorkspaceGroup>
-            );
-          })}
-          {!groupedWorkspaces.length && (
-            <div className="px-2 py-4 text-xs text-muted-foreground">
-              {t("sidebar.empty")}
+                          onConnectWorkspace={onConnectWorkspace}
+                          onToggleAddMenu={setAddMenuAnchor}
+                        >
+                          {addMenuOpen && addMenuAnchor &&
+                            createPortal(
+                              <div
+                                ref={addMenuRef}
+                                className="fixed z-[9999] flex w-48 flex-col gap-1 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+                                style={{
+                                  top: addMenuAnchor.top,
+                                  left: addMenuAnchor.left,
+                                  width: addMenuAnchor.width,
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setAddMenuAnchor(null);
+                                    onAddAgent(entry);
+                                  }}
+                                >
+                                  {t("sidebar.addMenu.newAgent")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setAddMenuAnchor(null);
+                                    onAddWorktreeAgent(entry);
+                                  }}
+                                >
+                                  {t("sidebar.addMenu.newWorktreeAgent")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-full rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setAddMenuAnchor(null);
+                                    onAddCloneAgent(entry);
+                                  }}
+                                >
+                                  {t("sidebar.addMenu.newCloneAgent")}
+                                </button>
+                              </div>,
+                              document.body,
+                            )}
+                          {!isCollapsed && worktrees.length > 0 && (
+                            <WorktreeSection
+                              worktrees={worktrees}
+                              deletingWorktreeIds={deletingWorktreeIds}
+                              threadsByWorkspace={threadsByWorkspace}
+                              threadStatusById={threadStatusById}
+                              openThreadIds={openThreadIds}
+                              threadListLoadingByWorkspace={threadListLoadingByWorkspace}
+                              threadListPagingByWorkspace={threadListPagingByWorkspace}
+                              threadListCursorByWorkspace={threadListCursorByWorkspace}
+                              expandedWorkspaces={expandedWorkspaces}
+                              activeWorkspaceId={activeWorkspaceId}
+                              activeThreadId={activeThreadId}
+                              getThreadRows={getThreadRows}
+                              getThreadTime={getThreadTime}
+                              isThreadPinned={isThreadPinned}
+                              getPinTimestamp={getPinTimestamp}
+                              onSelectWorkspace={onSelectWorkspace}
+                              onConnectWorkspace={onConnectWorkspace}
+                              onToggleWorkspaceCollapse={onToggleWorkspaceCollapse}
+                              onSelectThread={onSelectThread}
+                              onRenameThread={onRenameThread}
+                              onShowThreadMenu={showThreadMenu}
+                              onShowWorktreeMenu={showWorktreeMenu}
+                              onToggleExpanded={handleToggleExpanded}
+                              onLoadOlderThreads={onLoadOlderThreads}
+                            />
+                          )}
+                          {showThreadList && (
+                            <ThreadList
+                              workspaceId={entry.id}
+                              openThreadIds={openThreadIds}
+                              pinnedRows={[]}
+                              unpinnedRows={unpinnedRows}
+                              totalThreadRoots={totalThreadRoots}
+                              isExpanded={isExpanded}
+                              nextCursor={nextCursor}
+                              isPaging={isPaging}
+                              showLoadOlder={false}
+                              activeWorkspaceId={activeWorkspaceId}
+                              activeThreadId={activeThreadId}
+                              threadStatusById={threadStatusById}
+                              getThreadTime={getThreadTime}
+                              isThreadPinned={isThreadPinned}
+                              onToggleExpanded={handleToggleExpanded}
+                              onLoadOlderThreads={onLoadOlderThreads}
+                              onSelectThread={onSelectThread}
+                              onRenameThread={onRenameThread}
+                              onShowThreadMenu={showThreadMenu}
+                            />
+                          )}
+                        </WorkspaceCard>
+                      );
+                    })}
+                  </WorkspaceGroup>
+                );
+              })}
+              {!groupedWorkspaces.length && (
+                <div className="px-2 py-4 text-xs text-muted-foreground">
+                  {t("sidebar.empty")}
+                </div>
+              )}
             </div>
-          )}
-          <SidebarGroup className="mt-2 px-0">
-            <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              {t("sidebar.usage")}
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="px-1">
-              <SidebarFooter
-                sessionPercent={sessionPercent}
-                weeklyPercent={weeklyPercent}
-                sessionResetLabel={sessionResetLabel}
-                weeklyResetLabel={weeklyResetLabel}
-                creditsLabel={creditsLabel}
-                showWeekly={showWeekly}
-              />
-            </SidebarGroupContent>
-          </SidebarGroup>
-          {experimentalYunyiEnabled && (
-            <SidebarGroup className="mt-2 px-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
-              <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                {t("sidebar.yunyi.title")}
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="px-2 pb-2">
-                <YunyiQuotaCard token={experimentalYunyiToken} />
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
+            <div className="shrink-0 space-y-2">
+              <SidebarGroup className="px-0">
+                <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {t("sidebar.usage")}
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-1">
+                  <SidebarFooter
+                    sessionPercent={sessionPercent}
+                    weeklyPercent={weeklyPercent}
+                    sessionResetLabel={sessionResetLabel}
+                    weeklyResetLabel={weeklyResetLabel}
+                    creditsLabel={creditsLabel}
+                    showWeekly={showWeekly}
+                  />
+                </SidebarGroupContent>
+              </SidebarGroup>
+              {experimentalYunyiEnabled && (
+                <SidebarGroup className="px-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+                  <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {t("sidebar.yunyi.title")}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent className="px-2 pb-2">
+                    <YunyiQuotaCard token={experimentalYunyiToken} />
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+            </div>
+          </div>
         </SidebarContent>
         <ShadcnSidebarFooter className="px-2 pb-3">
           <NavUser

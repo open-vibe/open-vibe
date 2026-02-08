@@ -14,6 +14,11 @@ export type TerminalOutputEvent = {
   data: string;
 };
 
+export type TerminalExitEvent = {
+  workspaceId: string;
+  terminalId: string;
+};
+
 type SubscriptionOptions = {
   onError?: (error: unknown) => void;
 };
@@ -85,6 +90,7 @@ const dictationDownloadHub = createEventHub<DictationModelStatus>("dictation-dow
 const dictationEventHub = createEventHub<DictationEvent>("dictation-event");
 const terminalOutputHub = createEventHub<TerminalOutputEvent>("terminal-output");
 const happyBridgeHub = createEventHub<HappyBridgeEvent>("happy-bridge-event");
+const terminalExitHub = createEventHub<TerminalExitEvent>("terminal-exit");
 const updaterCheckHub = createEventHub<void>("updater-check");
 const menuNewAgentHub = createEventHub<void>("menu-new-agent");
 const menuNewWorktreeAgentHub = createEventHub<void>("menu-new-worktree-agent");
@@ -143,6 +149,13 @@ export function subscribeHappyBridgeEvents(
   options?: SubscriptionOptions,
 ): Unsubscribe {
   return happyBridgeHub.subscribe(onEvent, options);
+}
+
+export function subscribeTerminalExit(
+  onEvent: (event: TerminalExitEvent) => void,
+  options?: SubscriptionOptions,
+): Unsubscribe {
+  return terminalExitHub.subscribe(onEvent, options);
 }
 
 export function subscribeUpdaterCheck(

@@ -192,6 +192,7 @@ function MainApp() {
     addCloneAgent,
     addWorktreeAgent,
     connectWorkspace,
+    reconnectWorkspace,
     markWorkspaceConnected,
     updateWorkspaceSettings,
     updateWorkspaceCodexBin,
@@ -716,17 +717,25 @@ function MainApp() {
     activeTabId: activeThreadTabId,
     setActiveTab: setActiveThreadTabId,
     openTab: openThreadTab,
+    openWorkspaceTab,
+    openHomeTab,
     closeTab: closeThreadTab,
     markTabLoaded,
     reorderTabs: reorderThreadTabs,
   } = useThreadTabs({
     workspaces,
     threadsByWorkspace,
+    homeTabTitle: t("sidebar.home"),
   });
   const openThreadIds = useMemo(
     () =>
       new Set(
-        threadTabs.map((tab) => `${tab.workspaceId}:${tab.threadId}`),
+        threadTabs
+          .filter(
+            (tab): tab is ThreadTab & { kind: "thread"; threadId: string } =>
+              tab.kind === "thread",
+          )
+          .map((tab) => `${tab.workspaceId}:${tab.threadId}`),
       ),
     [threadTabs],
   );
@@ -737,6 +746,7 @@ function MainApp() {
     sendUserMessageToThread,
   });
   const closedThreadTabIdsRef = useRef<Set<string>>(new Set());
+  const selectHomeRef = useRef<() => void>(() => {});
   const makeThreadTabId = useCallback(
     (workspaceId: string, threadId: string) => `${workspaceId}:${threadId}`,
     [],
@@ -768,6 +778,27 @@ function MainApp() {
 
   useEffect(() => {
     if (!activeThreadTab || homeView) {
+      return;
+    }
+    if (activeThreadTab.kind === "home") {
+      setActiveThreadId(null);
+      setHomeView(true);
+      selectHomeRef.current();
+      if (!activeThreadTab.loaded) {
+        markTabLoaded(activeThreadTab.id);
+      }
+      return;
+    }
+    if (activeThreadTab.kind === "workspace") {
+      if (activeWorkspaceId !== activeThreadTab.workspaceId) {
+        setActiveWorkspaceId(activeThreadTab.workspaceId);
+      }
+      if (activeThreadId !== null || activeWorkspaceId !== activeThreadTab.workspaceId) {
+        setActiveThreadId(null, activeThreadTab.workspaceId);
+      }
+      if (!activeThreadTab.loaded) {
+        markTabLoaded(activeThreadTab.id);
+      }
       return;
     }
     if (activeWorkspaceId !== activeThreadTab.workspaceId) {
@@ -831,6 +862,15 @@ function MainApp() {
     [makeThreadTabId, openThreadTab, setHomeView, threadsByWorkspace],
   );
 
+  const openWorkspaceTabForWorkspace = useCallback(
+    (workspaceId: string) => {
+      setHomeView(false);
+      const title = workspacesById.get(workspaceId)?.name ?? "Workspace";
+      openWorkspaceTab(workspaceId, title);
+    },
+    [openWorkspaceTab, setHomeView, workspacesById],
+  );
+
   const handleCloseThreadTab = useCallback(
     (tabId: string) => {
       const closingIndex = threadTabs.findIndex((tab) => tab.id === tabId);
@@ -838,24 +878,47 @@ function MainApp() {
         return;
       }
       const closingTab = threadTabs[closingIndex];
-      closedThreadTabIdsRef.current.add(tabId);
+      if (closingTab.kind === "thread") {
+        closedThreadTabIdsRef.current.add(tabId);
+      }
       closeThreadTab(tabId);
       if (activeThreadTabId !== tabId) {
         return;
       }
       const remainingTabs = threadTabs.filter((tab) => tab.id !== tabId);
-      if (remainingTabs.length === 0) {
-        setActiveThreadId(null, closingTab.workspaceId);
-        setHomeView(true);
-        return;
-      }
-      const nextTab =
-        remainingTabs[closingIndex - 1] ?? remainingTabs[closingIndex] ?? null;
-      if (nextTab) {
-        setActiveThreadId(nextTab.threadId, nextTab.workspaceId);
+        if (remainingTabs.length === 0) {
+          if (closingTab.kind !== "home") {
+            setActiveThreadId(null, closingTab.workspaceId);
+          } else {
+            setActiveThreadId(null);
+          }
+          setHomeView(true);
+          selectHomeRef.current();
+          return;
+        }
+        const nextTab =
+          remainingTabs[closingIndex - 1] ?? remainingTabs[closingIndex] ?? null;
+        if (nextTab) {
+          if (nextTab.kind === "home") {
+            setHomeView(true);
+            selectHomeRef.current();
+            return;
+          }
+          setHomeView(false);
+        if (nextTab.kind === "thread") {
+          setActiveThreadId(nextTab.threadId, nextTab.workspaceId);
+        } else {
+          setActiveThreadId(null, nextTab.workspaceId);
+        }
       }
     },
-    [activeThreadTabId, closeThreadTab, setActiveThreadId, setHomeView, threadTabs],
+    [
+      activeThreadTabId,
+      closeThreadTab,
+      setActiveThreadId,
+      setHomeView,
+      threadTabs,
+    ],
   );
 
   useAutoExitEmptyDiff({
@@ -969,7 +1032,11 @@ function MainApp() {
     [worktreeSetupScriptState],
   );
 
-  const { exitDiffView, selectWorkspace, selectHome } = useWorkspaceSelection({
+  const {
+    exitDiffView,
+    selectWorkspace,
+    selectHome: selectHomeAction,
+  } = useWorkspaceSelection({
     workspaces,
     isCompact,
     activeWorkspaceId,
@@ -979,6 +1046,7 @@ function MainApp() {
     setCenterMode,
     setSelectedDiffPath,
   });
+  selectHomeRef.current = selectHomeAction;
   const {
     worktreePrompt,
     openPrompt: openWorktreePrompt,
@@ -1174,8 +1242,13 @@ function MainApp() {
   const hasActivePlan = Boolean(
     activePlan && (activePlan.steps.length > 0 || activePlan.explanation)
   );
-  const showHome = homeView;
-  const showWorkspaceHome = Boolean(!showHome && activeWorkspace && !activeThreadId);
+  const showHome = homeView || activeThreadTab?.kind === "home";
+  const showWorkspaceHome = Boolean(
+    !showHome &&
+      activeWorkspace &&
+      (activeThreadTab?.kind === "workspace" ||
+        (!activeThreadTab && !activeThreadId)),
+  );
   const [usageMetric, setUsageMetric] = useState<"tokens" | "time">("tokens");
   const [usageWorkspaceId, setUsageWorkspaceId] = useState<string | null>(null);
   const usageWorkspaceOptions = useMemo(
@@ -1260,12 +1333,15 @@ function MainApp() {
     }
     let best:
       | {
-          tab: ThreadTab;
+          tab: ThreadTab & { kind: "thread"; threadId: string };
           text: string;
           images: string[];
         }
       | null = null;
     for (const tab of threadTabs) {
+      if (tab.kind !== "thread") {
+        continue;
+      }
       if (tab.threadId === activeThreadId) {
         continue;
       }
@@ -1958,14 +2034,14 @@ function MainApp() {
     onSelectHome: () => {
       resetPullRequestSelection();
       setHomeView(true);
-      selectHome();
+      selectHomeAction();
+      openHomeTab(t("sidebar.home"));
     },
     onSelectWorkspace: (workspaceId) => {
       exitDiffView();
       resetPullRequestSelection();
-      setHomeView(false);
       selectWorkspace(workspaceId);
-      setActiveThreadId(null, workspaceId);
+      openWorkspaceTabForWorkspace(workspaceId);
       const workspace = workspacesById.get(workspaceId);
       if (workspace && !workspace.connected) {
         void connectWorkspace(workspace);
@@ -2040,7 +2116,23 @@ function MainApp() {
       if (!workspace) {
         return;
       }
-      void listThreadsForWorkspace(workspace);
+      void (async () => {
+        const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+        await reconnectWorkspace(workspace);
+        await listThreadsForWorkspace(workspace);
+        const durationMs = Math.round(
+          (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt,
+        );
+        console.info("[workspace/reload_threads]", {
+          workspaceId,
+          durationMs,
+        });
+      })().catch((error) => {
+        console.error("[workspace/reload_threads] failed", {
+          workspaceId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
     },
     updaterState,
     onUpdate: startUpdate,
@@ -2381,7 +2473,7 @@ function MainApp() {
     desktopTopbarLeftNode
   );
 
-  const showThreadTabs = !isCompact && threadTabs.length > 0 && !showHome;
+  const showThreadTabs = !isCompact && threadTabs.length > 0;
   useEffect(() => {
     if (!showThreadTabs) {
       handleTopbarOverridesChange(null);
@@ -2392,7 +2484,13 @@ function MainApp() {
       tabs={threadTabs}
       activeTabId={activeThreadTabId}
       onSelectTab={(tabId) => {
-        setHomeView(false);
+        const tab = threadTabs.find((entry) => entry.id === tabId);
+        if (tab?.kind === "home") {
+          setHomeView(true);
+          selectHomeAction();
+        } else {
+          setHomeView(false);
+        }
         setActiveThreadTabId(tabId);
       }}
       onCloseTab={handleCloseThreadTab}
@@ -2405,6 +2503,8 @@ function MainApp() {
     <ThreadTabsContent
       tabs={threadTabs}
       activeTabId={activeThreadTabId}
+      activeWorkspaceId={activeWorkspaceId}
+      workspaceHomeNode={workspaceHomeNode}
       workspacesById={workspacesById}
       itemsByThread={itemsByThread}
       threadStatusById={threadStatusById}
