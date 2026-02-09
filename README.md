@@ -1,171 +1,128 @@
 # Open Vibe
 
-![Open Vibe](screenshot.png)
+<div align="center">
+  <img src="screenshot.png" alt="Open Vibe" width="920" />
+  <h1>Open Vibe: Multi-Agent Desktop Workspace</h1>
+  <p>
+    <a href="https://github.com/open-vibe/open-vibe"><img src="https://img.shields.io/badge/OpenVibe-Desktop-111827" alt="OpenVibe"></a>
+    <img src="https://img.shields.io/badge/Tauri-2.x-24C8DB?logo=tauri&logoColor=white" alt="Tauri">
+    <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827" alt="React">
+    <img src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white" alt="Rust">
+    <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-4C8BF5" alt="Platform">
+    <img src="https://img.shields.io/badge/License-MIT-22C55E" alt="License">
+    <a href="https://github.com/citizenll/nanobot-rs"><img src="https://img.shields.io/badge/Nanobot-Integrated-16A34A" alt="Nanobot"></a>
+  </p>
+</div>
 
 中文版本: [README.zh-CN.md](README.zh-CN.md)
 
-## Nanobot Integration
-
 > **nanobot is an ultra-lightweight personal AI assistant inspired by [Clawdbot](https://github.com/openclaw/openclaw).**
+>
+> Open Vibe now integrates the Rust implementation: **[citizenll/nanobot-rs](https://github.com/citizenll/nanobot-rs)**.
 
-- Rust implementation used by Open Vibe: [citizenll/nanobot-rs](https://github.com/citizenll/nanobot-rs)
-- Current integration focus: DingTalk stream bridge + relay workflow into Open Vibe threads
+## ✨ Why Open Vibe
 
-Open Vibe is a desktop Tauri app for orchestrating multiple Codex agents across local workspaces. It provides a workspace sidebar, a home dashboard for quick entry, and a thread-centric conversation view powered by the Codex app-server protocol.
+- 🚀 **Multi-agent orchestration** across local workspaces, worktrees, and clones.
+- 🧠 **Codex app-server native flow**: threads, approvals, resume, streaming events.
+- 🤝 **Bridge channels**: Happy mobile relay + Nanobot DingTalk relay commands.
+- 🗂️ **Thread tabs + fast context switching** with persisted per-tab state.
+- 🛠️ **Deep Git/GitHub tooling**: status, diffs, logs, branches, PR context workflows.
+- 🎛️ **Power-user desktop UX**: resizable panes, terminal dock, theming, shortcuts, dictation.
 
-This project started as a CodexMonitor fork and has been heavily customized for:
+## 🧩 Core Capabilities
 
-- Nanobot bridge integration (DingTalk stream + relay command flow)
-- Multi-theme UI (light/dark + color themes)
-- Thread tabs with fast switching and persisted layout
-- Mobile handoff via Happy bridge (experimental)
-- Deeper Git + PR workflows in the right panel
-- Performance instrumentation for thread list/resume
+### 🏢 Workspaces and Threads
 
-## Features
+- Persist and manage workspaces with grouping, sorting, and activity tracking.
+- Start one `codex app-server` per workspace; list/resume/archive threads.
+- Pin, rename, and organize threads with unread and running state indicators.
+- Worktree and clone workflows for isolated development lanes.
 
-### Workspaces & Threads
+### 💬 Composer and Agent Controls
 
-- Add and persist workspaces, group/sort them, and jump into recent agent activity from the home dashboard.
-- Spawn one `codex app-server` per workspace, resume threads, and track unread/running state.
-- Worktree and clone agents for isolated work; worktrees live under the app data directory (legacy `.codex-worktrees` supported).
-- Thread management: pin/rename/archive/copy, per-thread drafts, and stop/interrupt in-flight turns.
-- Thread tabs with per-tab state, quick switching, and pinned ordering.
-- Optional remote backend (daemon) mode for running Codex on another machine.
+- Rich composer with image picker, drag/drop, paste, and queued send.
+- Autocomplete for skills (`$`), prompts (`/prompts:`), review (`/review`), and paths (`@`).
+- Model, reasoning, access mode, and collaboration controls in one place.
+- Approval handling and full thread item rendering (messages, tools, reasoning, diffs).
 
-### Composer & Agent Controls
+### 🔗 Nanobot + DingTalk (Bridge)
 
-- Compose with queueing plus image attachments (picker, drag/drop, paste).
-- Autocomplete for skills (`$`), prompts (`/prompts:`), reviews (`/review`), and file paths (`@`).
-- Model picker, collaboration modes (when enabled), reasoning effort, access mode, and context usage ring.
-- Dictation with hold-to-talk shortcuts and live waveform (Whisper).
-- Render reasoning/tool/diff items and handle approval prompts.
-- Optional Happy bridge to sync conversations to mobile (experimental).
+- Bridge mode routes DingTalk inbound messages into Open Vibe threads.
+- Default route target: current workspace.
+- Relay control commands supported in chat:
+  - `/menu`
+  - `/mode bridge`
+  - `/mode agent`
+  - `/relay`
+  - `/relay <number>`
 
-### Git & GitHub
+## 🏗️ Tech Stack
 
-- Diff stats, staged/unstaged file diffs, revert/stage controls, and commit log.
-- Branch list with checkout/create plus upstream ahead/behind counts.
-- GitHub Issues and Pull Requests via `gh` (lists, diffs, comments) and open commits/PRs in the browser.
-- PR composer: "Ask PR" to send PR context into a new agent thread.
+- **Frontend:** React + Vite + TypeScript
+- **Desktop Runtime:** Tauri 2
+- **Backend:** Rust (Tokio async runtime)
+- **Protocol:** Codex app-server JSON-RPC over stdio
+- **Bridge Runtime:** Happy bridge + Nanobot bridge daemon
 
-### Files & Prompts
-
-- File tree with search, file-type icons, and Reveal in Finder.
-- Prompt library for global/workspace prompts: create/edit/delete/move and run in current or new threads.
-
-### UI & Experience
-
-- Resizable sidebar/right/plan/terminal/debug panels with persisted sizes.
-- Responsive layouts (desktop/tablet/phone) with tabbed navigation.
-- Sidebar usage and credits meter for account rate limits plus a home usage snapshot.
-- Terminal dock with multiple tabs for background commands (experimental).
-- In-app updates with toast-driven download/install, debug panel copy/clear, sound notifications, and macOS overlay title bar with vibrancy + reduced transparency toggle.
-- Theme presets under `src/styles/theme-*.css` with light/dark support.
-
-## Requirements
+## ⚙️ Requirements
 
 - Node.js + npm
 - Rust toolchain (stable)
-- CMake (required for native dependencies; Whisper/dictation uses it on non-Windows)
-- Codex installed on your system and available as `codex` in `PATH`
-- Git CLI (used for worktree operations)
-- GitHub CLI (`gh`) for the Issues panel (optional)
+- CMake (native deps; used by dictation on non-Windows)
+- `codex` available in `PATH` (or configure path in Settings)
+- Git CLI (required)
+- GitHub CLI `gh` (optional, for GitHub panel)
 
-If the `codex` binary is not in `PATH`, configure the Codex path in Settings (per-workspace overrides supported).
-If you hit native build errors, run:
-
-```bash
-npm run doctor
-```
-
-## Getting Started
-
-Install dependencies:
+## 🚀 Quick Start
 
 ```bash
 npm install
-```
-
-Run in dev mode:
-
-```bash
 npm run tauri dev
 ```
 
-## Release Build
-
-Build the production Tauri bundle (app + dmg):
+## 📦 Build
 
 ```bash
 npm run tauri build
 ```
 
-The macOS app bundle will be in `src-tauri/target/release/bundle/macos/`.
-
-### Windows (opt-in)
-
-Windows builds are opt-in and use a separate Tauri config file to avoid macOS-only window effects.
+Windows build (opt-in):
 
 ```bash
 npm run tauri:build:win
 ```
 
-Artifacts will be in:
-
-- `src-tauri/target/release/bundle/nsis/` (installer exe)
-- `src-tauri/target/release/bundle/msi/` (msi)
-
-Note: dictation is currently disabled on Windows builds (to avoid requiring LLVM/libclang for `whisper-rs`/bindgen).
-
-## Type Checking
-
-Run the TypeScript checker (no emit):
+## 🧪 Validation
 
 ```bash
+npm run lint
+npm run test
 npm run typecheck
 ```
 
-Note: `npm run build` also runs `tsc` before bundling the frontend.
+## 📁 Project Structure
 
-## Project Structure
-
-```
+```text
 src/
   features/         feature-sliced UI + hooks
-  services/         Tauri IPC wrapper + event hubs
-  styles/           split CSS by area and theme presets
-  types.ts          shared types
+  services/         Tauri IPC wrappers + event hubs
+  styles/           split CSS by area/theme
+  types.ts          shared frontend types
 src-tauri/
-  src/lib.rs        Tauri backend + codex app-server client
-  src/happy_bridge.rs  Happy bridge integration
-  tauri.conf.json   window configuration
+  src/lib.rs        Tauri backend composition root
+  src/codex.rs      Codex app-server client logic
+  src/nanobot_bridge.rs
+  src/nanobot_bridge_daemon.rs
+  src/happy_bridge.rs
 ```
 
-## Notes
+## 📌 Notes
 
-- Workspaces persist to `workspaces.json` under the app data directory.
-- App settings persist to `settings.json` under the app data directory (Codex path, default access mode, UI scale).
-- Experimental settings supported in the UI: Collab mode (`features.collab`), Background terminal (`features.unified_exec`), Steer mode (`features.steer`), and Happy bridge (mobile sync).
-- On launch and on window focus, the app reconnects and refreshes thread lists for each workspace.
-- Threads are restored by filtering `thread/list` results using the workspace `cwd`.
-- Selecting a thread always calls `thread/resume` to refresh messages from disk.
-- CLI sessions appear if their `cwd` matches the workspace path; they are not live-streamed unless resumed.
-- The app uses `codex app-server` over stdio; see `src-tauri/src/lib.rs`.
-- Codex sessions use the default Codex home (usually `~/.codex`); if a legacy `.codexmonitor/` exists in a workspace, it is used for that workspace.
-- Worktree agents live under the app data directory (`worktrees/<workspace-id>`); legacy `.codex-worktrees/` paths remain supported, and the app no longer edits repo `.gitignore` files.
-- UI state (panel sizes, reduced transparency toggle, recent thread activity) is stored in `localStorage`.
-- Custom prompts load from `$CODEX_HOME/prompts` (or `~/.codex/prompts`) with optional frontmatter description/argument hints.
+- Settings persist in app data `settings.json`; workspaces in `workspaces.json`.
+- Thread restore is scoped by workspace `cwd` filtering.
+- Selecting a thread triggers `thread/resume` refresh.
+- Custom prompts are loaded from `$CODEX_HOME/prompts`.
 
-## Tauri IPC Surface
-
-Frontend calls live in `src/services/tauri.ts` and map to commands in `src-tauri/src/lib.rs`. Core commands include:
-
-- Workspace lifecycle: `list_workspaces`, `add_workspace`, `add_worktree`, `remove_workspace`, `remove_worktree`, `connect_workspace`, `update_workspace_settings`.
-- Threads: `start_thread`, `list_threads`, `resume_thread`, `archive_thread`, `send_user_message`, `turn_interrupt`, `respond_to_server_request`.
-- Reviews + models: `start_review`, `model_list`, `account_rate_limits`, `skills_list`.
-- Git + files: `get_git_status`, `get_git_diffs`, `get_git_log`, `get_git_remote`, `list_git_branches`, `checkout_git_branch`, `create_git_branch`, `list_workspace_files`.
-
-## Star History
+## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=open-vibe/open-vibe&type=date&legend=top-left)](https://www.star-history.com/#open-vibe/open-vibe&type=date&legend=top-left)
