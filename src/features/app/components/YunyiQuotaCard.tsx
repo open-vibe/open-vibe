@@ -1,16 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Label,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart,
-} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 
 const API_URL = "https://yunyi.cfd/user/api/v1/me";
 const REFRESH_MS = 5 * 60 * 1000;
@@ -221,19 +213,14 @@ export function YunyiQuotaCard({
   const updatedLabel = updatedAt
     ? t("sidebar.yunyi.updatedAt", { time: formatTime(updatedAt) })
     : "--";
-  const chartConfig = {
-    quota: {
-      label: t("sidebar.yunyi.dailyQuota"),
-      color: "var(--primary)",
-    },
-  } satisfies ChartConfig;
-  const chartData = [
-    {
-      name: "quota",
-      value: percent,
-      fill: "var(--color-quota)",
-    },
-  ];
+  const billingTypeLabel =
+    data?.billingType === "by_duration"
+      ? t("sidebar.yunyi.billing.duration")
+      : data?.billingType === "by_amount"
+        ? t("sidebar.yunyi.billing.amount")
+        : data?.billingType === "by_quota"
+          ? t("sidebar.yunyi.billing.quota")
+          : null;
 
   return (
     <Card
@@ -242,64 +229,29 @@ export function YunyiQuotaCard({
         className,
       )}
     >
-      <CardContent className="space-y-3 p-3">
-        <ChartContainer config={chartConfig} className="yunyi-chart">
-          <RadialBarChart
-            data={chartData}
-            startAngle={90}
-            endAngle={-270}
-            innerRadius={45}
-            outerRadius={55}
-          >
-            <PolarAngleAxis
-              type="number"
-              domain={[0, 100]}
-              tick={false}
-              axisLine={false}
-            />
-            <RadialBar
-              dataKey="value"
-              background={{ fill: "var(--sidebar-accent)" }}
-              cornerRadius={5}
-            />
-            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        <tspan
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          className="fill-foreground text-[18px] font-semibold"
-                        >
-                          {percentLabel}
-                        </tspan>
-                        <tspan
-                          x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 20}
-                          className="fill-muted-foreground text-[12px]"
-                        >
-                          {dailyValue}
-                        </tspan>
-                      </text>
-                    );
-                  }
-                  return null;
-                }}
-              />
-            </PolarRadiusAxis>
-          </RadialBarChart>
-        </ChartContainer>
-        <div className="yunyi-card-footer">
-          <span className="yunyi-card-sub">{resetText || "--"}</span>
-          <span className="yunyi-card-updated">{updatedLabel}</span>
+      <CardContent className="space-y-2 p-3">
+        <div className="flex items-center justify-between text-[11px] font-semibold">
+          <span className="inline-flex items-center gap-2 text-foreground">
+            <span>{t("sidebar.yunyi.dailyQuota")}</span>
+            {billingTypeLabel && (
+              <span className="text-[10px] font-medium text-muted-foreground">
+                · {billingTypeLabel}
+              </span>
+            )}
+          </span>
+          <span className="text-muted-foreground">{percentLabel}</span>
         </div>
+        <div className="h-1.5 w-full rounded-full bg-muted">
+          <span
+            className="block h-full rounded-full bg-primary/80 transition-[width]"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-semibold text-foreground">{dailyValue}</span>
+          <span className="text-muted-foreground">{resetText || "--"}</span>
+        </div>
+        <div className="text-[10px] text-muted-foreground">{updatedLabel}</div>
         {status === "error" && (
           <div className="text-xs text-destructive">
             {t("sidebar.yunyi.error")}

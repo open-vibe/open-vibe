@@ -2,6 +2,8 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { DebugEntry } from "../../../types";
 
 type DebugPanelProps = {
+  title?: string;
+  emptyText?: string;
   entries: DebugEntry[];
   isOpen: boolean;
   onClear: () => void;
@@ -25,6 +27,8 @@ function formatPayload(payload: unknown) {
 }
 
 export function DebugPanel({
+  title = "Debug",
+  emptyText = "No debug events yet.",
   entries,
   isOpen,
   onClear,
@@ -51,7 +55,7 @@ export function DebugPanel({
         />
       )}
       <div className="debug-header">
-        <div className="debug-title">Debug</div>
+        <div className="debug-title">{title}</div>
         <div className="debug-actions">
           <button className="ghost" onClick={onCopy}>
             Copy
@@ -64,7 +68,7 @@ export function DebugPanel({
       {isOpen && (
         <div className="debug-list">
           {entries.length === 0 && (
-            <div className="debug-empty">No debug events yet.</div>
+            <div className="debug-empty">{emptyText}</div>
           )}
           {entries.map((entry) => (
             <div key={entry.id} className="debug-row">

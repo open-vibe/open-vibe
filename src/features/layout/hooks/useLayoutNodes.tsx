@@ -398,6 +398,10 @@ type LayoutNodesOptions = {
   composerSendLabel?: string;
   plan: TurnPlan | null;
   debugEntries: DebugEntry[];
+  nanobotLogEntries: DebugEntry[];
+  logPanelMode: "debug" | "nanobot";
+  logPanelTitle: string;
+  logPanelEmptyText: string;
   debugOpen: boolean;
   terminalOpen: boolean;
   terminalTabs: TerminalTab[];
@@ -408,6 +412,19 @@ type LayoutNodesOptions = {
   terminalState: TerminalSessionState | null;
   onClearDebug: () => void;
   onCopyDebug: () => void;
+  onClearNanobotLog: () => void;
+  onCopyNanobotLog: () => void;
+  nanobotStatus: {
+    enabled: boolean;
+    mode: "bridge" | "agent";
+    dingtalkEnabled: boolean;
+    running: boolean;
+    configured: boolean;
+    connected: boolean;
+    reason: string | null;
+    lastEventAt: number | null;
+  };
+  onOpenNanobotLog: () => void;
   onResizeDebug: (event: MouseEvent<Element>) => void;
   onResizeTerminal: (event: MouseEvent<Element>) => void;
   onBackFromDiff: () => void;
@@ -460,8 +477,10 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       accountRateLimits={options.activeRateLimits}
       experimentalYunyiEnabled={options.experimentalYunyiEnabled}
       experimentalYunyiToken={options.experimentalYunyiToken}
+      nanobotStatus={options.nanobotStatus}
       onOpenSettings={options.onOpenSettings}
       onOpenDebug={options.onOpenDebug}
+      onOpenNanobotLog={options.onOpenNanobotLog}
       showDebugButton={options.showDebugButton}
       themePreference={options.themePreference}
       themeColor={options.themeColor}
@@ -847,22 +866,39 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
     />
   );
 
+  const activeLogEntries =
+    options.logPanelMode === "nanobot"
+      ? options.nanobotLogEntries
+      : options.debugEntries;
+  const activeLogClear =
+    options.logPanelMode === "nanobot"
+      ? options.onClearNanobotLog
+      : options.onClearDebug;
+  const activeLogCopy =
+    options.logPanelMode === "nanobot"
+      ? options.onCopyNanobotLog
+      : options.onCopyDebug;
+
   const debugPanelNode = (
     <DebugPanel
-      entries={options.debugEntries}
+      title={options.logPanelTitle}
+      emptyText={options.logPanelEmptyText}
+      entries={activeLogEntries}
       isOpen={options.debugOpen}
-      onClear={options.onClearDebug}
-      onCopy={options.onCopyDebug}
+      onClear={activeLogClear}
+      onCopy={activeLogCopy}
       onResizeStart={options.onResizeDebug}
     />
   );
 
   const debugPanelFullNode = (
     <DebugPanel
-      entries={options.debugEntries}
+      title={options.logPanelTitle}
+      emptyText={options.logPanelEmptyText}
+      entries={activeLogEntries}
       isOpen
-      onClear={options.onClearDebug}
-      onCopy={options.onCopyDebug}
+      onClear={activeLogClear}
+      onCopy={activeLogCopy}
       variant="full"
     />
   );

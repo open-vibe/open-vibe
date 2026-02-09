@@ -81,6 +81,7 @@ import { useLocalUsage } from "./features/home/hooks/useLocalUsage";
 import { useGitHubPanelController } from "./features/app/hooks/useGitHubPanelController";
 import { useHappyBridgeEvents } from "./features/happy/hooks/useHappyBridgeEvents";
 import { useNanobotBridgeEvents } from "./features/nanobot/hooks/useNanobotBridgeEvents";
+import { useNanobotMonitor } from "./features/nanobot/hooks/useNanobotMonitor";
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
 import { isMissingGitRepoError } from "./utils/gitErrors";
@@ -181,6 +182,9 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState<
     "projects" | "codex" | "git" | "log"
   >("codex");
+  const [logPanelMode, setLogPanelMode] = useState<"debug" | "nanobot">(
+    "debug",
+  );
   const [homeView, setHomeView] = useState(true);
   const tabletTab = activeTab === "projects" ? "codex" : activeTab;
   const {
@@ -254,6 +258,18 @@ function MainApp() {
     toggleDebugPanelShortcut: appSettings.toggleDebugPanelShortcut,
     toggleTerminalShortcut: appSettings.toggleTerminalShortcut,
   });
+  const handleOpenDebugLog = useCallback(() => {
+    setLogPanelMode("debug");
+    handleDebugClick();
+  }, [handleDebugClick]);
+  const handleOpenNanobotLog = useCallback(() => {
+    setLogPanelMode("nanobot");
+    if (isCompact) {
+      setActiveTab("log");
+      return;
+    }
+    setDebugOpen(true);
+  }, [isCompact, setDebugOpen]);
   const sidebarToggleProps = {
     isCompact,
     sidebarCollapsed,
@@ -324,6 +340,10 @@ function MainApp() {
     () => getTranslator(appSettings.language),
     [appSettings.language],
   );
+  const logPanelTitle =
+    logPanelMode === "nanobot" ? t("log.nanobot.title") : t("log.debug.title");
+  const logPanelEmptyText =
+    logPanelMode === "nanobot" ? t("log.nanobot.empty") : t("log.debug.empty");
 
   useEffect(() => {
     setAccessMode((prev) =>
@@ -651,6 +671,16 @@ function MainApp() {
     Boolean(appSettings.happySecret?.trim());
   const nanobotBridgeEnabled =
     appSettings.nanobotEnabled && appSettings.nanobotMode === "bridge";
+  const {
+    snapshot: nanobotStatusSnapshot,
+    logEntries: nanobotLogEntries,
+    clearLogEntries: clearNanobotLogEntries,
+    copyLogEntries: copyNanobotLogEntries,
+  } = useNanobotMonitor({
+    enabled: appSettings.nanobotEnabled,
+    mode: appSettings.nanobotMode,
+    dingtalkEnabled: appSettings.nanobotDingTalkEnabled,
+  });
   const getWorkspacePath = useCallback(
     (workspaceId: string) =>
       workspaces.find((workspace) => workspace.id === workspaceId)?.path ??
@@ -758,6 +788,7 @@ function MainApp() {
     workspaces,
     activeWorkspaceId,
     openThreadTabs: threadTabs,
+    t,
     startThreadForWorkspace,
     sendUserMessageToThread,
   });
@@ -1963,7 +1994,7 @@ function MainApp() {
     onOpenSettings: () => openSettings(),
     onCycleAgent: handleCycleAgent,
     onCycleWorkspace: handleCycleWorkspace,
-    onToggleDebug: handleDebugClick,
+    onToggleDebug: handleOpenDebugLog,
     onToggleTerminal: handleToggleTerminal,
     sidebarCollapsed,
     rightPanelCollapsed,
@@ -2040,8 +2071,10 @@ function MainApp() {
     onRetryHappyMessage: retryHappyMessage,
     onOpenSettings: () => openSettings(),
     onOpenDictationSettings: () => openSettings("dictation"),
-    onOpenDebug: handleDebugClick,
+    onOpenDebug: handleOpenDebugLog,
+    onOpenNanobotLog: handleOpenNanobotLog,
     showDebugButton,
+    nanobotStatus: nanobotStatusSnapshot,
     themePreference: appSettings.theme,
     themeColor: appSettings.themeColor,
     onToggleTheme: handleToggleTheme,
@@ -2394,6 +2427,10 @@ function MainApp() {
     showComposer,
     plan: activePlan,
     debugEntries,
+    nanobotLogEntries,
+    logPanelMode,
+    logPanelTitle,
+    logPanelEmptyText,
     debugOpen,
     terminalOpen,
     terminalTabs,
@@ -2404,6 +2441,8 @@ function MainApp() {
     terminalState,
     onClearDebug: clearDebugEntries,
     onCopyDebug: handleCopyDebug,
+    onClearNanobotLog: clearNanobotLogEntries,
+    onCopyNanobotLog: copyNanobotLogEntries,
     onResizeDebug: onDebugPanelResizeStart,
     onResizeTerminal: onTerminalPanelResizeStart,
     onBackFromDiff: () => {

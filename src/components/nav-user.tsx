@@ -1,4 +1,5 @@
 import {
+  Bot,
   ChevronUp,
   ChevronsUpDown,
   ScrollText,
@@ -33,7 +34,9 @@ export function NavUser({
   user,
   onOpenSettings,
   onOpenDebug,
+  onOpenNanobotLog,
   showDebugButton = true,
+  showNanobotLogButton = false,
   themePreference = "system",
   themeColor = "blue",
   onToggleTheme,
@@ -46,7 +49,9 @@ export function NavUser({
   }
   onOpenSettings?: () => void
   onOpenDebug?: () => void
+  onOpenNanobotLog?: () => void
   showDebugButton?: boolean
+  showNanobotLogButton?: boolean
   themePreference?: ThemePreference
   themeColor?: ThemeColor
   onToggleTheme?: () => void
@@ -232,6 +237,16 @@ export function NavUser({
                 >
                   <ScrollText />
                   {t("sidebar.user.debugLog")}
+                </DropdownMenuItem>
+              )}
+              {showNanobotLogButton && (
+                <DropdownMenuItem
+                  onSelect={() => {
+                    onOpenNanobotLog?.()
+                  }}
+                >
+                  <Bot />
+                  {t("sidebar.user.nanobotLog")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>

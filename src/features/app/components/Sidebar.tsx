@@ -44,6 +44,7 @@ import { getUsageLabels } from "../utils/usageLabels";
 import { formatRelativeTimeShort } from "../../../utils/time";
 import { useI18n } from "../../../i18n";
 import { YunyiQuotaCard } from "./YunyiQuotaCard";
+import { NanobotStatusCard } from "./NanobotStatusCard";
 
 const COLLAPSED_GROUPS_STORAGE_KEY = "codexmonitor.collapsedGroups";
 const UNGROUPED_COLLAPSE_ID = "__ungrouped__";
@@ -89,12 +90,23 @@ type SidebarProps = {
   accountRateLimits: RateLimitSnapshot | null;
   experimentalYunyiEnabled: boolean;
   experimentalYunyiToken: string;
+  nanobotStatus: {
+    enabled: boolean;
+    mode: "bridge" | "agent";
+    dingtalkEnabled: boolean;
+    running: boolean;
+    configured: boolean;
+    connected: boolean;
+    reason: string | null;
+    lastEventAt: number | null;
+  };
   themePreference: ThemePreference;
   themeColor: ThemeColor;
   onToggleTheme: () => void;
   onSelectThemeColor: (color: ThemeColor) => void;
   onOpenSettings: () => void;
   onOpenDebug: () => void;
+  onOpenNanobotLog: () => void;
   showDebugButton: boolean;
   onAddWorkspace: () => void;
   onSelectHome: () => void;
@@ -142,12 +154,14 @@ export function Sidebar({
   accountRateLimits,
   experimentalYunyiEnabled,
   experimentalYunyiToken,
+  nanobotStatus,
   themePreference,
   themeColor,
   onToggleTheme,
   onSelectThemeColor,
   onOpenSettings,
   onOpenDebug,
+  onOpenNanobotLog,
   showDebugButton,
   onAddWorkspace,
   onSelectHome,
@@ -666,6 +680,52 @@ export function Sidebar({
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
+              <SidebarGroup className="px-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+                <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {t("sidebar.nanobot.title")}
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-2 pb-2">
+                  <NanobotStatusCard
+                    enabled={nanobotStatus.enabled}
+                    running={nanobotStatus.running}
+                    connected={nanobotStatus.connected}
+                    reason={nanobotStatus.reason}
+                    statusLabel={
+                      !nanobotStatus.enabled
+                        ? t("sidebar.nanobot.status.disabled")
+                        : nanobotStatus.connected
+                          ? t("sidebar.nanobot.status.connected")
+                          : nanobotStatus.running
+                            ? t("sidebar.nanobot.status.connecting")
+                            : t("sidebar.nanobot.status.disconnected")
+                    }
+                    modeLabel={t("sidebar.nanobot.mode", {
+                      value:
+                        nanobotStatus.mode === "bridge"
+                          ? t("sidebar.nanobot.mode.bridge")
+                          : t("sidebar.nanobot.mode.agent"),
+                    })}
+                    channelLabel={t("sidebar.nanobot.channel", {
+                      value: nanobotStatus.dingtalkEnabled
+                        ? t("sidebar.nanobot.channel.enabled")
+                        : t("sidebar.nanobot.channel.disabled"),
+                    })}
+                    runtimeLabel={t("sidebar.nanobot.runtime", {
+                      value:
+                        nanobotStatus.running && nanobotStatus.configured
+                          ? t("sidebar.nanobot.runtime.running")
+                          : t("sidebar.nanobot.runtime.stopped"),
+                    })}
+                    lastEventLabel={t("sidebar.nanobot.lastEvent", {
+                      value: nanobotStatus.lastEventAt
+                        ? formatRelativeTimeShort(nanobotStatus.lastEventAt)
+                        : t("sidebar.nanobot.lastEvent.none"),
+                    })}
+                    reasonLabel={t("sidebar.nanobot.reason")}
+                    onOpenLog={onOpenNanobotLog}
+                  />
+                </SidebarGroupContent>
+              </SidebarGroup>
               {experimentalYunyiEnabled && (
                 <SidebarGroup className="px-0 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
                   <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -693,6 +753,8 @@ export function Sidebar({
             onOpenSettings={onOpenSettings}
             onOpenDebug={onOpenDebug}
             showDebugButton={showDebugButton}
+            onOpenNanobotLog={onOpenNanobotLog}
+            showNanobotLogButton
           />
         </ShadcnSidebarFooter>
       </div>

@@ -5,11 +5,35 @@ import { subscribeNanobotBridgeEvents } from "../../../services/events";
 import { useTauriEvent } from "../../app/hooks/useTauriEvent";
 import type { ThreadTab } from "../../app/hooks/useThreadTabs";
 
+type NanobotBridgeTranslationKey =
+  | "nanobot.bridge.menu.title"
+  | "nanobot.bridge.menu.currentMode"
+  | "nanobot.bridge.menu.mode.bridge"
+  | "nanobot.bridge.menu.mode.agent"
+  | "nanobot.bridge.menu.action.relayMode"
+  | "nanobot.bridge.menu.action.agentMode"
+  | "nanobot.bridge.menu.action.listRelay"
+  | "nanobot.bridge.menu.action.pickRelay"
+  | "nanobot.bridge.reply.agentMode"
+  | "nanobot.bridge.reply.modeSwitched.agent"
+  | "nanobot.bridge.reply.modeSwitched.bridge"
+  | "nanobot.bridge.reply.noRelaySessions"
+  | "nanobot.bridge.reply.relaySessionsHeader"
+  | "nanobot.bridge.reply.relaySessionsHint"
+  | "nanobot.bridge.reply.invalidRelayIndex"
+  | "nanobot.bridge.reply.relayBound";
+
+type NanobotBridgeTranslator = (
+  key: NanobotBridgeTranslationKey,
+  params?: Record<string, string | number>,
+) => string;
+
 type UseNanobotBridgeEventsOptions = {
   enabled: boolean;
   workspaces: WorkspaceInfo[];
   activeWorkspaceId: string | null;
   openThreadTabs: ThreadTab[];
+  t: NanobotBridgeTranslator;
   startThreadForWorkspace: (workspaceId: string) => Promise<string | null>;
   sendUserMessageToThread: (
     workspace: WorkspaceInfo,
@@ -35,9 +59,6 @@ type RelayCandidate = {
   threadId: string;
   title: string;
 };
-
-const AGENT_MODE_REPLY =
-  "Agent mode is selected, but agent execution is not wired yet. Send /mode bridge to resume relay mode.";
 
 function isMenuCommand(raw: string) {
   const lower = raw.toLowerCase();
@@ -71,24 +92,12 @@ function parseRelayCommand(raw: string): number | null | undefined {
   return undefined;
 }
 
-function buildMenuText(currentMode: SessionMode) {
-  const modeLabel = currentMode === "agent" ? "agent" : "bridge";
-  return [
-    "OpenVibe Nanobot menu",
-    `Current mode: ${modeLabel}`,
-    "",
-    "- Relay mode: /mode bridge",
-    "- Agent mode: /mode agent",
-    "- List relay sessions: /relay",
-    "- Pick relay session: /relay <number>",
-  ].join("\n");
-}
-
 export function useNanobotBridgeEvents({
   enabled,
   workspaces,
   activeWorkspaceId,
   openThreadTabs,
+  t,
   startThreadForWorkspace,
   sendUserMessageToThread,
 }: UseNanobotBridgeEventsOptions) {
@@ -98,6 +107,24 @@ export function useNanobotBridgeEvents({
   );
   const sessionModeRef = useRef<Map<string, SessionMode>>(new Map());
   const relayOptionsRef = useRef<Map<string, RelayCandidate[]>>(new Map());
+  const buildMenuText = useCallback(
+    (currentMode: SessionMode) => {
+      const modeLabel =
+        currentMode === "agent"
+          ? t("nanobot.bridge.menu.mode.agent")
+          : t("nanobot.bridge.menu.mode.bridge");
+      return [
+        t("nanobot.bridge.menu.title"),
+        t("nanobot.bridge.menu.currentMode", { value: modeLabel }),
+        "",
+        `- ${t("nanobot.bridge.menu.action.relayMode")}: /mode bridge`,
+        `- ${t("nanobot.bridge.menu.action.agentMode")}: /mode agent`,
+        `- ${t("nanobot.bridge.menu.action.listRelay")}: /relay`,
+        `- ${t("nanobot.bridge.menu.action.pickRelay")}: /relay <number>`,
+      ].join("\n");
+    },
+    [t],
+  );
 
   const resolveDefaultWorkspace = useCallback(() => {
     if (!workspaces.length) {
@@ -223,8 +250,8 @@ export function useNanobotBridgeEvents({
         await sendBridgeReply(
           event,
           mode === "agent"
-            ? "Mode switched to agent."
-            : "Mode switched to bridge.",
+            ? t("nanobot.bridge.reply.modeSwitched.agent")
+            : t("nanobot.bridge.reply.modeSwitched.bridge"),
         );
         return true;
       }
@@ -236,7 +263,7 @@ export function useNanobotBridgeEvents({
 
       const candidates = getRelayCandidates();
       if (!candidates.length) {
-        await sendBridgeReply(event, "No open sessions available for relay.");
+        await sendBridgeReply(event, t("nanobot.bridge.reply.noRelaySessions"));
         return true;
       }
 
@@ -247,7 +274,7 @@ export function useNanobotBridgeEvents({
           .join("\n");
         await sendBridgeReply(
           event,
-          `Relay sessions:\n${listText}\n\nSend /relay <number> to bind this chat.`,
+          `${t("nanobot.bridge.reply.relaySessionsHeader")}\n${listText}\n\n${t("nanobot.bridge.reply.relaySessionsHint")}`,
         );
         return true;
       }
@@ -255,7 +282,10 @@ export function useNanobotBridgeEvents({
       const available = relayOptionsRef.current.get(event.sessionKey) ?? candidates;
       const selected = available[relayIndex - 1];
       if (!selected) {
-        await sendBridgeReply(event, `Invalid relay index: ${relayIndex}`);
+        await sendBridgeReply(
+          event,
+          t("nanobot.bridge.reply.invalidRelayIndex", { value: relayIndex }),
+        );
         return true;
       }
 
@@ -276,10 +306,13 @@ export function useNanobotBridgeEvents({
       });
       routesRef.current.set(route.sessionKey, route);
       sessionModeRef.current.set(route.sessionKey, "bridge");
-      await sendBridgeReply(event, `Relay bound: ${selected.title}`);
+      await sendBridgeReply(
+        event,
+        t("nanobot.bridge.reply.relayBound", { value: selected.title }),
+      );
       return true;
     },
-    [getRelayCandidates, sendBridgeReply],
+    [buildMenuText, getRelayCandidates, sendBridgeReply, t],
   );
 
   const handleEvent = useCallback(
@@ -298,7 +331,7 @@ export function useNanobotBridgeEvents({
 
         const mode = sessionModeRef.current.get(event.sessionKey) ?? "bridge";
         if (mode === "agent") {
-          await sendBridgeReply(event, AGENT_MODE_REPLY);
+          await sendBridgeReply(event, t("nanobot.bridge.reply.agentMode"));
           return;
         }
 
@@ -323,6 +356,7 @@ export function useNanobotBridgeEvents({
       ensureRoute,
       sendBridgeReply,
       sendUserMessageToThread,
+      t,
       tryHandleControlCommand,
       workspaces,
     ],
