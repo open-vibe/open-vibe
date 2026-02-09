@@ -4,10 +4,18 @@
 
 中文版本: [README.zh-CN.md](README.zh-CN.md)
 
+## Nanobot Integration
+
+> **nanobot is an ultra-lightweight personal AI assistant inspired by [Clawdbot](https://github.com/openclaw/openclaw).**
+
+- Rust implementation used by Open Vibe: [citizenll/nanobot-rs](https://github.com/citizenll/nanobot-rs)
+- Current integration focus: DingTalk stream bridge + relay workflow into Open Vibe threads
+
 Open Vibe is a desktop Tauri app for orchestrating multiple Codex agents across local workspaces. It provides a workspace sidebar, a home dashboard for quick entry, and a thread-centric conversation view powered by the Codex app-server protocol.
 
 This project started as a CodexMonitor fork and has been heavily customized for:
 
+- Nanobot bridge integration (DingTalk stream + relay command flow)
 - Multi-theme UI (light/dark + color themes)
 - Thread tabs with fast switching and persisted layout
 - Mobile handoff via Happy bridge (experimental)
