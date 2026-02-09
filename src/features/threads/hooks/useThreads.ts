@@ -4,10 +4,15 @@ import type {
   CustomPromptOption,
   DebugEntry,
   HappyBridgeCommand,
+  NanobotBridgeCommand,
   WorkspaceInfo,
 } from "../../../types";
 import { useAppServerEvents } from "../../app/hooks/useAppServerEvents";
-import { getThreadTokenUsage, sendHappyBridgeCommand } from "../../../services/tauri";
+import {
+  getThreadTokenUsage,
+  sendHappyBridgeCommand,
+  sendNanobotBridgeCommand,
+} from "../../../services/tauri";
 import { initialState, threadReducer } from "./useThreadsReducer";
 import { useThreadStorage } from "./useThreadStorage";
 import { useThreadLinking } from "./useThreadLinking";
@@ -40,6 +45,7 @@ type UseThreadsOptions = {
   customPrompts?: CustomPromptOption[];
   onMessageActivity?: () => void;
   happyEnabled?: boolean;
+  nanobotBridgeEnabled?: boolean;
   getWorkspacePath?: (workspaceId: string) => string | null;
 };
 
@@ -56,6 +62,7 @@ export function useThreads({
   customPrompts = [],
   onMessageActivity,
   happyEnabled = false,
+  nanobotBridgeEnabled = false,
   getWorkspacePath,
 }: UseThreadsOptions) {
   const [state, dispatch] = useReducer(threadReducer, initialState);
@@ -315,6 +322,19 @@ export function useThreads({
       setHappyConnected(false);
     }
   }, [happyEnabled]);
+  const queueNanobotBridgeCommand = useCallback(
+    async (command: NanobotBridgeCommand) => {
+      if (!nanobotBridgeEnabled) {
+        return;
+      }
+      try {
+        await sendNanobotBridgeCommand(command);
+      } catch {
+        // Ignore bridge failures to avoid breaking local chat flow.
+      }
+    },
+    [nanobotBridgeEnabled],
+  );
   const { applyCollabThreadLinks, applyCollabThreadLinksFromThread } =
     useThreadLinking({
       dispatch,
@@ -343,6 +363,7 @@ export function useThreads({
     onWorkspaceConnected: handleWorkspaceConnected,
     getWorkspacePath,
     onHappyBridgeCommand: queueHappyBridgeCommand,
+    onNanobotBridgeCommand: queueNanobotBridgeCommand,
     onUserMessageItem: mapHappyMessageToItem,
     applyCollabThreadLinks,
     approvalAllowlistRef,

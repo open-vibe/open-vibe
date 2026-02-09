@@ -37,6 +37,7 @@ const allowedThemeColors = new Set([
 ]);
 const allowedLanguages = new Set(["system", "en", "zh-CN"]);
 const allowedComposerSendBehaviors = new Set(["enter", "ctrl-enter", "smart"]);
+const allowedNanobotModes = new Set(["bridge", "agent"]);
 const DEFAULT_HAPPY_SERVER_URL = "https://api.cluster-fluster.com";
 
 const defaultSettings: AppSettings = {
@@ -49,6 +50,12 @@ const defaultSettings: AppSettings = {
   happyServerUrl: DEFAULT_HAPPY_SERVER_URL,
   happyToken: null,
   happySecret: null,
+  nanobotMode: "bridge",
+  nanobotEnabled: false,
+  nanobotDingTalkEnabled: false,
+  nanobotDingTalkClientId: "",
+  nanobotDingTalkClientSecret: "",
+  nanobotDingTalkAllowFrom: "",
   defaultAccessMode: "current",
   composerModelShortcut: "cmd+shift+m",
   composerAccessShortcut: "cmd+shift+a",
@@ -158,6 +165,15 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       settings.happyServerUrl?.trim() || DEFAULT_HAPPY_SERVER_URL,
     happyToken: settings.happyToken?.trim() ? settings.happyToken.trim() : null,
     happySecret: settings.happySecret?.trim() ? settings.happySecret.trim() : null,
+    nanobotMode: allowedNanobotModes.has(settings.nanobotMode)
+      ? settings.nanobotMode
+      : "bridge",
+    nanobotEnabled: Boolean(settings.nanobotEnabled),
+    nanobotDingTalkEnabled: Boolean(settings.nanobotDingTalkEnabled),
+    nanobotDingTalkClientId: settings.nanobotDingTalkClientId?.trim() ?? "",
+    nanobotDingTalkClientSecret:
+      settings.nanobotDingTalkClientSecret?.trim() ?? "",
+    nanobotDingTalkAllowFrom: settings.nanobotDingTalkAllowFrom ?? "",
     uiScale: clampUiScale(settings.uiScale),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
     themeColor: allowedThemeColors.has(settings.themeColor)

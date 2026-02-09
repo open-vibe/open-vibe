@@ -20,10 +20,12 @@ import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import X from "lucide-react/dist/esm/icons/x";
 import FlaskConical from "lucide-react/dist/esm/icons/flask-conical";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
+import Bot from "lucide-react/dist/esm/icons/bot";
 import type {
   AppSettings,
   CodexDoctorResult,
   DictationModelStatus,
+  NanobotDingTalkTestResult,
   OpenAppTarget,
   WorkspaceGroup,
   WorkspaceInfo,
@@ -249,6 +251,11 @@ export type SettingsViewProps = {
     codexBin: string | null,
     codexArgs: string | null,
   ) => Promise<CodexDoctorResult>;
+  onGetNanobotConfigPath: () => Promise<string>;
+  onTestNanobotDingTalk: (
+    clientId: string,
+    clientSecret: string,
+  ) => Promise<NanobotDingTalkTestResult>;
   onUpdateWorkspaceCodexBin: (
     id: string,
     codexBin: string | null,
@@ -276,7 +283,8 @@ type SettingsSection =
   | "composer"
   | "dictation"
   | "shortcuts"
-  | "open-apps";
+  | "open-apps"
+  | "nanobot";
 type CodexSection = SettingsSection | "codex" | "experimental";
 type ShortcutSettingKey =
   | "composerModelShortcut"
@@ -369,6 +377,8 @@ export function SettingsView({
   openAppIconById,
   onUpdateAppSettings,
   onRunDoctor,
+  onGetNanobotConfigPath,
+  onTestNanobotDingTalk,
   onUpdateWorkspaceCodexBin,
   onUpdateWorkspaceSettings,
   scaleShortcutTitle,
@@ -619,6 +629,23 @@ export function SettingsView({
   const [yunyiTokenDraft, setYunyiTokenDraft] = useState(
     appSettings.experimentalYunyiToken,
   );
+  const [nanobotClientIdDraft, setNanobotClientIdDraft] = useState(
+    appSettings.nanobotDingTalkClientId,
+  );
+  const [nanobotClientSecretDraft, setNanobotClientSecretDraft] = useState(
+    appSettings.nanobotDingTalkClientSecret,
+  );
+  const [nanobotAllowFromDraft, setNanobotAllowFromDraft] = useState(
+    appSettings.nanobotDingTalkAllowFrom,
+  );
+  const [nanobotConfigPath, setNanobotConfigPath] = useState<string | null>(null);
+  const [nanobotConfigPathError, setNanobotConfigPathError] = useState<string | null>(
+    null,
+  );
+  const [nanobotTestState, setNanobotTestState] = useState<{
+    status: "idle" | "running" | "done";
+    result: NanobotDingTalkTestResult | null;
+  }>({ status: "idle", result: null });
   const [scaleDraft, setScaleDraft] = useState(
     `${Math.round(clampUiScale(appSettings.uiScale) * 100)}%`,
   );
@@ -825,6 +852,43 @@ export function SettingsView({
   }, [appSettings.experimentalYunyiToken]);
 
   useEffect(() => {
+    setNanobotClientIdDraft(appSettings.nanobotDingTalkClientId);
+  }, [appSettings.nanobotDingTalkClientId]);
+
+  useEffect(() => {
+    setNanobotClientSecretDraft(appSettings.nanobotDingTalkClientSecret);
+  }, [appSettings.nanobotDingTalkClientSecret]);
+
+  useEffect(() => {
+    setNanobotAllowFromDraft(appSettings.nanobotDingTalkAllowFrom);
+  }, [appSettings.nanobotDingTalkAllowFrom]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const path = await onGetNanobotConfigPath();
+        if (!active) {
+          return;
+        }
+        setNanobotConfigPath(path);
+        setNanobotConfigPathError(null);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setNanobotConfigPath(null);
+        setNanobotConfigPathError(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [onGetNanobotConfigPath]);
+
+  useEffect(() => {
     setScaleDraft(`${Math.round(clampUiScale(appSettings.uiScale) * 100)}%`);
   }, [appSettings.uiScale]);
 
@@ -944,6 +1008,13 @@ export function SettingsView({
   const codexDirty =
     nextCodexBin !== (appSettings.codexBin ?? null) ||
     nextCodexArgs !== (appSettings.codexArgs ?? null);
+  const nextNanobotClientId = nanobotClientIdDraft.trim();
+  const nextNanobotClientSecret = nanobotClientSecretDraft.trim();
+  const nextNanobotAllowFrom = nanobotAllowFromDraft.trim();
+  const nanobotDirty =
+    nextNanobotClientId !== appSettings.nanobotDingTalkClientId ||
+    nextNanobotClientSecret !== appSettings.nanobotDingTalkClientSecret ||
+    nextNanobotAllowFrom !== appSettings.nanobotDingTalkAllowFrom;
 
   const trimmedScale = scaleDraft.trim();
   const parsedPercent = trimmedScale
@@ -960,6 +1031,20 @@ export function SettingsView({
         ...appSettings,
         codexBin: nextCodexBin,
         codexArgs: nextCodexArgs,
+      });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleSaveNanobotSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      await onUpdateAppSettings({
+        ...appSettings,
+        nanobotDingTalkClientId: nextNanobotClientId,
+        nanobotDingTalkClientSecret: nextNanobotClientSecret,
+        nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
       });
     } finally {
       setIsSavingSettings(false);
@@ -1337,6 +1422,26 @@ export function SettingsView({
     }
   };
 
+  const handleTestNanobotDingTalk = async () => {
+    setNanobotTestState({ status: "running", result: null });
+    try {
+      const result = await onTestNanobotDingTalk(
+        nextNanobotClientId,
+        nextNanobotClientSecret,
+      );
+      setNanobotTestState({ status: "done", result });
+    } catch (error) {
+      setNanobotTestState({
+        status: "done",
+        result: {
+          ok: false,
+          endpoint: null,
+          message: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  };
+
   const updateShortcut = async (
     key: ShortcutSettingKey,
     value: string | null,
@@ -1546,6 +1651,13 @@ export function SettingsView({
               >
                 <ExternalLink className="h-4 w-4" aria-hidden />
                 <span>{t("settings.nav.openIn")}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="nanobot"
+                className="justify-start gap-2 data-[state=active]:bg-muted/60 data-[state=active]:shadow-none"
+              >
+                <Bot className="h-4 w-4" aria-hidden />
+                <span>{t("settings.nav.nanobot")}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="codex"
@@ -3897,6 +4009,204 @@ export function SettingsView({
                       </Button>
                       <div className="text-xs text-muted-foreground">
                         {t("settings.openApps.help")}
+                      </div>
+                    </div>
+                  </SettingsSection>
+                </div>
+              </TabsContent>
+              <TabsContent value="nanobot" className="mt-0">
+                <div className="space-y-4">
+                  <SettingsSection
+                    title={t("settings.nanobot.title")}
+                    description={t("settings.nanobot.subtitle")}
+                  >
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="nanobot-mode">
+                          {t("settings.nanobot.mode.label")}
+                        </Label>
+                        <Select
+                          value={appSettings.nanobotMode}
+                          onValueChange={(value) => {
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              nanobotMode: value as AppSettings["nanobotMode"],
+                            });
+                          }}
+                        >
+                          <SelectTrigger
+                            id="nanobot-mode"
+                            className="w-full max-w-[280px]"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bridge">
+                              {t("settings.nanobot.mode.bridge")}
+                            </SelectItem>
+                            <SelectItem value="agent">
+                              {t("settings.nanobot.mode.agent")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-xs text-muted-foreground">
+                          {appSettings.nanobotMode === "bridge"
+                            ? t("settings.nanobot.mode.bridgeHelp")
+                            : t("settings.nanobot.mode.agentHelp")}
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                        <div>
+                          <div className="text-sm font-medium">
+                            {t("settings.nanobot.enable.title")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.nanobot.enable.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={appSettings.nanobotEnabled}
+                          onCheckedChange={(checked) => {
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              nanobotEnabled: checked,
+                              nanobotDingTalkClientId: nextNanobotClientId,
+                              nanobotDingTalkClientSecret: nextNanobotClientSecret,
+                              nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
+                            });
+                          }}
+                        />
+                      </div>
+                      {appSettings.nanobotMode !== "bridge" ? (
+                        <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
+                          {t("settings.nanobot.agent.todo")}
+                        </div>
+                      ) : null}
+                      <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                        <div>
+                          <div className="text-sm font-medium">
+                            {t("settings.nanobot.dingtalk.enable.title")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.nanobot.dingtalk.enable.subtitle")}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={appSettings.nanobotDingTalkEnabled}
+                          onCheckedChange={(checked) => {
+                            void onUpdateAppSettings({
+                              ...appSettings,
+                              nanobotDingTalkEnabled: checked,
+                              nanobotDingTalkClientId: nextNanobotClientId,
+                              nanobotDingTalkClientSecret: nextNanobotClientSecret,
+                              nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="nanobot-dingtalk-client-id">
+                            {t("settings.nanobot.dingtalk.clientId.label")}
+                          </Label>
+                          <Input
+                            id="nanobot-dingtalk-client-id"
+                            value={nanobotClientIdDraft}
+                            placeholder={t(
+                              "settings.nanobot.dingtalk.clientId.placeholder",
+                            )}
+                            onChange={(event) =>
+                              setNanobotClientIdDraft(event.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="nanobot-dingtalk-client-secret">
+                            {t("settings.nanobot.dingtalk.clientSecret.label")}
+                          </Label>
+                          <Input
+                            id="nanobot-dingtalk-client-secret"
+                            type="password"
+                            value={nanobotClientSecretDraft}
+                            placeholder={t(
+                              "settings.nanobot.dingtalk.clientSecret.placeholder",
+                            )}
+                            onChange={(event) =>
+                              setNanobotClientSecretDraft(event.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="nanobot-dingtalk-allow-from">
+                          {t("settings.nanobot.dingtalk.allowFrom.label")}
+                        </Label>
+                        <Input
+                          id="nanobot-dingtalk-allow-from"
+                          value={nanobotAllowFromDraft}
+                          placeholder={t(
+                            "settings.nanobot.dingtalk.allowFrom.placeholder",
+                          )}
+                          onChange={(event) =>
+                            setNanobotAllowFromDraft(event.target.value)
+                          }
+                        />
+                        <div className="text-xs text-muted-foreground">
+                          {t("settings.nanobot.dingtalk.allowFrom.help")}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {nanobotDirty ? (
+                          <Button
+                            type="button"
+                            onClick={handleSaveNanobotSettings}
+                            disabled={isSavingSettings}
+                          >
+                            {isSavingSettings
+                              ? t("settings.action.saving")
+                              : t("settings.action.save")}
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleTestNanobotDingTalk}
+                          disabled={nanobotTestState.status === "running"}
+                        >
+                          {nanobotTestState.status === "running"
+                            ? t("settings.action.running")
+                            : t("settings.action.testConnection")}
+                        </Button>
+                      </div>
+                      {nanobotTestState.result ? (
+                        <div
+                          className={cn(
+                            "rounded-md border border-border/60 p-3 text-sm",
+                            nanobotTestState.result.ok
+                              ? "border-emerald-500/40 bg-emerald-50/40"
+                              : "border-destructive/40 bg-destructive/10",
+                          )}
+                        >
+                          <div>{nanobotTestState.result.message}</div>
+                          {nanobotTestState.result.endpoint ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {t("settings.nanobot.test.endpoint", {
+                                value: nanobotTestState.result.endpoint,
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <div className="text-xs text-muted-foreground">
+                        {nanobotConfigPath
+                          ? t("settings.nanobot.configPath", {
+                            value: nanobotConfigPath,
+                          })
+                          : nanobotConfigPathError
+                            ? t("settings.nanobot.configPathError", {
+                              value: nanobotConfigPathError,
+                            })
+                            : t("settings.status.loading")}
                       </div>
                     </div>
                   </SettingsSection>

@@ -4,6 +4,7 @@ import type {
   DictationEvent,
   DictationModelStatus,
   HappyBridgeEvent,
+  NanobotBridgeEvent,
 } from "../types";
 
 export type Unsubscribe = () => void;
@@ -90,6 +91,7 @@ const dictationDownloadHub = createEventHub<DictationModelStatus>("dictation-dow
 const dictationEventHub = createEventHub<DictationEvent>("dictation-event");
 const terminalOutputHub = createEventHub<TerminalOutputEvent>("terminal-output");
 const happyBridgeHub = createEventHub<HappyBridgeEvent>("happy-bridge-event");
+const nanobotBridgeHub = createEventHub<NanobotBridgeEvent>("nanobot-bridge-event");
 const terminalExitHub = createEventHub<TerminalExitEvent>("terminal-exit");
 const updaterCheckHub = createEventHub<void>("updater-check");
 const menuNewAgentHub = createEventHub<void>("menu-new-agent");
@@ -149,6 +151,13 @@ export function subscribeHappyBridgeEvents(
   options?: SubscriptionOptions,
 ): Unsubscribe {
   return happyBridgeHub.subscribe(onEvent, options);
+}
+
+export function subscribeNanobotBridgeEvents(
+  onEvent: (event: NanobotBridgeEvent) => void,
+  options?: SubscriptionOptions,
+): Unsubscribe {
+  return nanobotBridgeHub.subscribe(onEvent, options);
 }
 
 export function subscribeTerminalExit(

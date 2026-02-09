@@ -8,6 +8,9 @@ import type {
   HappyBridgeCommand,
   HappyBridgeStatus,
   LocalUsageSnapshot,
+  NanobotBridgeCommand,
+  NanobotBridgeStatus,
+  NanobotDingTalkTestResult,
   WorkspaceInfo,
   WorkspaceSettings,
 } from "../types";
@@ -81,6 +84,16 @@ export async function sendHappyBridgeCommand(
   command: HappyBridgeCommand,
 ): Promise<void> {
   return invoke("happy_bridge_send", { command });
+}
+
+export async function getNanobotBridgeStatus(): Promise<NanobotBridgeStatus> {
+  return invoke<NanobotBridgeStatus>("nanobot_bridge_status");
+}
+
+export async function sendNanobotBridgeCommand(
+  command: NanobotBridgeCommand,
+): Promise<void> {
+  return invoke("nanobot_bridge_send", { command });
 }
 
 export type TextFileResponse = {
@@ -568,6 +581,20 @@ export async function getAppSettings(): Promise<AppSettings> {
 
 export async function updateAppSettings(settings: AppSettings): Promise<AppSettings> {
   return invoke<AppSettings>("update_app_settings", { settings });
+}
+
+export async function getNanobotConfigPath(): Promise<string> {
+  return invoke<string>("nanobot_config_path");
+}
+
+export async function testNanobotDingTalk(
+  clientId: string,
+  clientSecret: string,
+): Promise<NanobotDingTalkTestResult> {
+  return invoke<NanobotDingTalkTestResult>("nanobot_test_dingtalk", {
+    clientId,
+    clientSecret,
+  });
 }
 
 type MenuAcceleratorUpdate = {

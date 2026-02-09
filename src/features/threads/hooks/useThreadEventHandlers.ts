@@ -1,6 +1,11 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, MutableRefObject } from "react";
-import type { AppServerEvent, DebugEntry, HappyBridgeCommand } from "../../../types";
+import type {
+  AppServerEvent,
+  DebugEntry,
+  HappyBridgeCommand,
+  NanobotBridgeCommand,
+} from "../../../types";
 import { useThreadApprovalEvents } from "./useThreadApprovalEvents";
 import { useThreadItemEvents } from "./useThreadItemEvents";
 import { useThreadTurnEvents } from "./useThreadTurnEvents";
@@ -25,6 +30,7 @@ type ThreadEventHandlersOptions = {
   onWorkspaceConnected: (workspaceId: string) => void;
   getWorkspacePath?: (workspaceId: string) => string | null;
   onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
+  onNanobotBridgeCommand?: (command: NanobotBridgeCommand) => void;
   onUserMessageItem?: (
     workspaceId: string,
     threadId: string,
@@ -54,6 +60,7 @@ export function useThreadEventHandlers({
   onWorkspaceConnected,
   getWorkspacePath,
   onHappyBridgeCommand,
+  onNanobotBridgeCommand,
   onUserMessageItem,
   applyCollabThreadLinks,
   approvalAllowlistRef,
@@ -88,6 +95,7 @@ export function useThreadEventHandlers({
     recordThreadActivity,
     getWorkspacePath,
     onHappyBridgeCommand,
+    onNanobotBridgeCommand,
     onUserMessageItem,
     applyCollabThreadLinks,
   });

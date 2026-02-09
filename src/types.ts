@@ -158,6 +158,7 @@ export type ThemeColor =
   | "yellow";
 export type AppLanguage = "system" | "en" | "zh-CN";
 export type ComposerSendBehavior = "enter" | "ctrl-enter" | "smart";
+export type NanobotMode = "bridge" | "agent";
 
 
 export type ComposerEditorPreset = "default" | "helpful" | "smart";
@@ -192,6 +193,12 @@ export type AppSettings = {
   happyServerUrl: string;
   happyToken: string | null;
   happySecret: string | null;
+  nanobotMode: NanobotMode;
+  nanobotEnabled: boolean;
+  nanobotDingTalkEnabled: boolean;
+  nanobotDingTalkClientId: string;
+  nanobotDingTalkClientSecret: string;
+  nanobotDingTalkAllowFrom: string;
   defaultAccessMode: AccessMode;
   composerModelShortcut: string | null;
   composerAccessShortcut: string | null;
@@ -266,6 +273,66 @@ export type CodexDoctorResult = {
   nodeVersion: string | null;
   nodeDetails: string | null;
 };
+
+export type NanobotDingTalkTestResult = {
+  ok: boolean;
+  endpoint: string | null;
+  message: string;
+};
+
+export type NanobotBridgeStatus = {
+  running: boolean;
+  configured: boolean;
+  mode: NanobotMode;
+};
+
+export type NanobotBridgeCommand =
+  | {
+      type: "bind-session";
+      sessionKey: string;
+      channel: string;
+      chatId: string;
+      workspaceId: string;
+      threadId: string;
+    }
+  | {
+      type: "direct-message";
+      channel: string;
+      chatId: string;
+      content: string;
+    }
+  | {
+      type: "thread-message";
+      messageId?: string;
+      threadId: string;
+      role: "user" | "assistant";
+      content: string;
+    };
+
+export type NanobotBridgeEvent =
+  | {
+      type: "status";
+      connected: boolean;
+      reason?: string;
+    }
+  | {
+      type: "message-sync";
+      messageId: string;
+      threadId: string;
+      status: "success" | "failed";
+      reason?: string;
+    }
+  | {
+      type: "remote-message";
+      channel: string;
+      chatId: string;
+      senderId: string;
+      sessionKey: string;
+      content: string;
+      createdAt: number;
+      workspaceId?: string;
+      threadId?: string;
+    };
 
 export type ApprovalRequest = {
   workspace_id: string;

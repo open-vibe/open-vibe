@@ -6,6 +6,7 @@ use tokio::sync::{Mutex, OnceCell};
 
 use crate::dictation::DictationState;
 use crate::happy_bridge::HappyBridgeState;
+use crate::nanobot_bridge::NanobotBridgeState;
 use crate::storage::{read_settings, read_workspaces};
 use crate::types::{AppSettings, WorkspaceEntry};
 
@@ -23,6 +24,7 @@ pub(crate) struct AppState {
     pub(crate) app_settings: Mutex<AppSettings>,
     pub(crate) dictation: Mutex<DictationState>,
     pub(crate) happy_bridge: Mutex<HappyBridgeState>,
+    pub(crate) nanobot_bridge: Mutex<NanobotBridgeState>,
 }
 
 impl AppState {
@@ -47,6 +49,7 @@ impl AppState {
             app_settings: Mutex::new(app_settings),
             dictation: Mutex::new(DictationState::default()),
             happy_bridge: Mutex::new(HappyBridgeState::default()),
+            nanobot_bridge: Mutex::new(NanobotBridgeState::default()),
         }
     }
 }

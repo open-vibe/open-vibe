@@ -20,6 +20,7 @@ const en = {
   "settings.nav.dictation": "Dictation",
   "settings.nav.shortcuts": "Shortcuts",
   "settings.nav.openIn": "Open in",
+  "settings.nav.nanobot": "Nanobot",
   "settings.nav.codex": "Codex",
   "settings.nav.experimental": "Experimental",
   "settings.projects.title": "Projects",
@@ -195,6 +196,7 @@ const en = {
   "settings.action.saving": "Saving...",
   "settings.action.running": "Running...",
   "settings.action.runDoctor": "Run doctor",
+  "settings.action.testConnection": "Test connection",
   "settings.action.addApp": "Add app",
   "settings.action.downloadModel": "Download model",
   "settings.action.cancelDownload": "Cancel download",
@@ -381,6 +383,36 @@ const en = {
   "settings.openApps.aria.command": "Open app command {index}",
   "settings.openApps.aria.args": "Open app args {index}",
   "settings.openApps.newApp": "New App",
+  "settings.nanobot.title": "Nanobot",
+  "settings.nanobot.subtitle":
+    "Configure Nanobot channel integration. DingTalk is supported first.",
+  "settings.nanobot.mode.label": "Mode",
+  "settings.nanobot.mode.bridge": "Bridge",
+  "settings.nanobot.mode.agent": "Agent",
+  "settings.nanobot.mode.bridgeHelp":
+    "Channel bridge mode: incoming messages are routed to the current OpenVibe workspace.",
+  "settings.nanobot.mode.agentHelp":
+    "Agent mode: Nanobot runs its own agent loop (provider wiring is next).",
+  "settings.nanobot.agent.todo":
+    "Agent mode provider bridge to Codex is not wired yet. Use Bridge mode for now.",
+  "settings.nanobot.enable.title": "Enable Nanobot integration",
+  "settings.nanobot.enable.subtitle":
+    "Sync settings to ~/.nanobot/config.json when values change.",
+  "settings.nanobot.dingtalk.enable.title": "Enable DingTalk channel",
+  "settings.nanobot.dingtalk.enable.subtitle":
+    "When enabled, Nanobot can receive and send DingTalk messages.",
+  "settings.nanobot.dingtalk.clientId.label": "Client ID (appKey)",
+  "settings.nanobot.dingtalk.clientId.placeholder": "dingxxxx",
+  "settings.nanobot.dingtalk.clientSecret.label": "Client Secret (appSecret)",
+  "settings.nanobot.dingtalk.clientSecret.placeholder": "secretxxxx",
+  "settings.nanobot.dingtalk.allowFrom.label": "Allowed senders",
+  "settings.nanobot.dingtalk.allowFrom.placeholder":
+    "user_a, user_b (comma separated)",
+  "settings.nanobot.dingtalk.allowFrom.help":
+    "Use sender IDs separated by commas, semicolons, or new lines.",
+  "settings.nanobot.test.endpoint": "Endpoint: {value}",
+  "settings.nanobot.configPath": "Config path: {value}",
+  "settings.nanobot.configPathError": "Config path unavailable: {value}",
   "settings.codex.title": "Codex",
   "settings.codex.subtitle":
     "Configure the Codex CLI used by OpenVibe and validate the install.",
@@ -635,6 +667,7 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nav.dictation": "语音输入",
   "settings.nav.shortcuts": "快捷键",
   "settings.nav.openIn": "打开方式",
+  "settings.nav.nanobot": "Nanobot",
   "settings.nav.codex": "Codex",
   "settings.nav.experimental": "实验功能",
   "settings.projects.title": "项目",
@@ -795,6 +828,7 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.action.saving": "保存中...",
   "settings.action.running": "运行中...",
   "settings.action.runDoctor": "运行检查",
+  "settings.action.testConnection": "测试连接",
   "settings.action.addApp": "添加应用",
   "settings.action.downloadModel": "下载模型",
   "settings.action.cancelDownload": "取消下载",
@@ -974,6 +1008,35 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.openApps.aria.command": "打开应用命令 {index}",
   "settings.openApps.aria.args": "打开应用参数 {index}",
   "settings.openApps.newApp": "新应用",
+  "settings.nanobot.title": "Nanobot",
+  "settings.nanobot.subtitle": "配置 Nanobot 渠道集成，当前先接入钉钉。",
+  "settings.nanobot.mode.label": "模式",
+  "settings.nanobot.mode.bridge": "通道桥接",
+  "settings.nanobot.mode.agent": "Agent",
+  "settings.nanobot.mode.bridgeHelp":
+    "桥接模式：渠道消息会路由到当前 OpenVibe 工作区。",
+  "settings.nanobot.mode.agentHelp":
+    "Agent 模式：Nanobot 运行自身 agent 流程（Provider 对接下一步接入）。",
+  "settings.nanobot.agent.todo":
+    "Agent 模式到 Codex 的 Provider 桥接尚未接入，当前请先使用桥接模式。",
+  "settings.nanobot.enable.title": "启用 Nanobot 集成",
+  "settings.nanobot.enable.subtitle":
+    "设置变更后会同步到 ~/.nanobot/config.json。",
+  "settings.nanobot.dingtalk.enable.title": "启用钉钉渠道",
+  "settings.nanobot.dingtalk.enable.subtitle":
+    "开启后，Nanobot 可接收并发送钉钉消息。",
+  "settings.nanobot.dingtalk.clientId.label": "Client ID（appKey）",
+  "settings.nanobot.dingtalk.clientId.placeholder": "dingxxxx",
+  "settings.nanobot.dingtalk.clientSecret.label": "Client Secret（appSecret）",
+  "settings.nanobot.dingtalk.clientSecret.placeholder": "secretxxxx",
+  "settings.nanobot.dingtalk.allowFrom.label": "允许发送者",
+  "settings.nanobot.dingtalk.allowFrom.placeholder":
+    "user_a, user_b（逗号分隔）",
+  "settings.nanobot.dingtalk.allowFrom.help":
+    "可使用逗号、分号或换行分隔 sender ID。",
+  "settings.nanobot.test.endpoint": "接口：{value}",
+  "settings.nanobot.configPath": "配置文件路径：{value}",
+  "settings.nanobot.configPathError": "无法读取配置路径：{value}",
   "settings.codex.title": "Codex",
   "settings.codex.subtitle": "配置 OpenVibe 使用的 Codex CLI，并验证安装。",
   "settings.codex.path.label": "默认 Codex 路径",

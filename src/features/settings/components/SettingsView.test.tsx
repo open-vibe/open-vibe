@@ -29,6 +29,12 @@ const baseSettings: AppSettings = {
   happyServerUrl: "https://api.cluster-fluster.com",
   happyToken: null,
   happySecret: null,
+  nanobotMode: "bridge",
+  nanobotEnabled: false,
+  nanobotDingTalkEnabled: false,
+  nanobotDingTalkClientId: "",
+  nanobotDingTalkClientSecret: "",
+  nanobotDingTalkAllowFrom: "",
   defaultAccessMode: "current",
   composerModelShortcut: null,
   composerAccessShortcut: null,
@@ -145,6 +151,12 @@ const renderDisplaySection = async (
     onDeleteWorkspaceGroup: vi.fn().mockResolvedValue(null),
     onAssignWorkspaceGroup: vi.fn().mockResolvedValue(null),
     onRunDoctor: vi.fn().mockResolvedValue(createDoctorResult()),
+    onGetNanobotConfigPath: vi.fn().mockResolvedValue("C:/Users/test/.nanobot/config.json"),
+    onTestNanobotDingTalk: vi.fn().mockResolvedValue({
+      ok: true,
+      endpoint: "https://api.dingtalk.com/v1.0/oauth2/accessToken",
+      message: "ok",
+    }),
     onUpdateWorkspaceCodexBin: vi.fn().mockResolvedValue(undefined),
     onUpdateWorkspaceSettings: vi.fn().mockResolvedValue(undefined),
     scaleShortcutTitle: "Scale shortcut",
@@ -359,6 +371,12 @@ describe("SettingsView Codex overrides", () => {
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onGetNanobotConfigPath={vi.fn().mockResolvedValue("C:/Users/test/.nanobot/config.json")}
+          onTestNanobotDingTalk={vi.fn().mockResolvedValue({
+            ok: true,
+            endpoint: null,
+            message: "ok",
+          })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={onUpdateWorkspaceSettings}
           scaleShortcutTitle="Scale shortcut"
@@ -408,6 +426,12 @@ describe("SettingsView Shortcuts", () => {
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onGetNanobotConfigPath={vi.fn().mockResolvedValue("C:/Users/test/.nanobot/config.json")}
+          onTestNanobotDingTalk={vi.fn().mockResolvedValue({
+            ok: true,
+            endpoint: null,
+            message: "ok",
+          })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
           scaleShortcutTitle="Scale shortcut"
@@ -452,6 +476,12 @@ describe("SettingsView Shortcuts", () => {
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onGetNanobotConfigPath={vi.fn().mockResolvedValue("C:/Users/test/.nanobot/config.json")}
+          onTestNanobotDingTalk={vi.fn().mockResolvedValue({
+            ok: true,
+            endpoint: null,
+            message: "ok",
+          })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
           scaleShortcutTitle="Scale shortcut"
@@ -501,6 +531,12 @@ describe("SettingsView Experimental", () => {
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onGetNanobotConfigPath={vi.fn().mockResolvedValue("C:/Users/test/.nanobot/config.json")}
+          onTestNanobotDingTalk={vi.fn().mockResolvedValue({
+            ok: true,
+            endpoint: null,
+            message: "ok",
+          })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
           scaleShortcutTitle="Scale shortcut"

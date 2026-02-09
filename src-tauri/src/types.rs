@@ -312,6 +312,30 @@ pub(crate) struct AppSettings {
     pub(crate) happy_token: Option<String>,
     #[serde(default, rename = "happySecret")]
     pub(crate) happy_secret: Option<String>,
+    #[serde(default = "default_nanobot_mode", rename = "nanobotMode")]
+    pub(crate) nanobot_mode: String,
+    #[serde(default = "default_nanobot_enabled", rename = "nanobotEnabled")]
+    pub(crate) nanobot_enabled: bool,
+    #[serde(
+        default = "default_nanobot_dingtalk_enabled",
+        rename = "nanobotDingTalkEnabled"
+    )]
+    pub(crate) nanobot_dingtalk_enabled: bool,
+    #[serde(
+        default = "default_nanobot_dingtalk_client_id",
+        rename = "nanobotDingTalkClientId"
+    )]
+    pub(crate) nanobot_dingtalk_client_id: String,
+    #[serde(
+        default = "default_nanobot_dingtalk_client_secret",
+        rename = "nanobotDingTalkClientSecret"
+    )]
+    pub(crate) nanobot_dingtalk_client_secret: String,
+    #[serde(
+        default = "default_nanobot_dingtalk_allow_from",
+        rename = "nanobotDingTalkAllowFrom"
+    )]
+    pub(crate) nanobot_dingtalk_allow_from: String,
     #[serde(default = "default_access_mode", rename = "defaultAccessMode")]
     pub(crate) default_access_mode: String,
     #[serde(
@@ -565,6 +589,30 @@ fn default_happy_enabled() -> bool {
 
 fn default_happy_server_url() -> String {
     "https://api.cluster-fluster.com".to_string()
+}
+
+fn default_nanobot_enabled() -> bool {
+    false
+}
+
+fn default_nanobot_mode() -> String {
+    "bridge".to_string()
+}
+
+fn default_nanobot_dingtalk_enabled() -> bool {
+    false
+}
+
+fn default_nanobot_dingtalk_client_id() -> String {
+    String::new()
+}
+
+fn default_nanobot_dingtalk_client_secret() -> String {
+    String::new()
+}
+
+fn default_nanobot_dingtalk_allow_from() -> String {
+    String::new()
 }
 
 fn default_ui_scale() -> f64 {
@@ -854,6 +902,12 @@ impl Default for AppSettings {
             happy_server_url: default_happy_server_url(),
             happy_token: None,
             happy_secret: None,
+            nanobot_mode: default_nanobot_mode(),
+            nanobot_enabled: default_nanobot_enabled(),
+            nanobot_dingtalk_enabled: default_nanobot_dingtalk_enabled(),
+            nanobot_dingtalk_client_id: default_nanobot_dingtalk_client_id(),
+            nanobot_dingtalk_client_secret: default_nanobot_dingtalk_client_secret(),
+            nanobot_dingtalk_allow_from: default_nanobot_dingtalk_allow_from(),
             default_access_mode: "current".to_string(),
             composer_model_shortcut: default_composer_model_shortcut(),
             composer_access_shortcut: default_composer_access_shortcut(),
@@ -936,6 +990,12 @@ mod tests {
         assert_eq!(settings.happy_server_url, "https://api.cluster-fluster.com");
         assert!(settings.happy_token.is_none());
         assert!(settings.happy_secret.is_none());
+        assert_eq!(settings.nanobot_mode, "bridge");
+        assert!(!settings.nanobot_enabled);
+        assert!(!settings.nanobot_dingtalk_enabled);
+        assert!(settings.nanobot_dingtalk_client_id.is_empty());
+        assert!(settings.nanobot_dingtalk_client_secret.is_empty());
+        assert!(settings.nanobot_dingtalk_allow_from.is_empty());
         assert_eq!(settings.default_access_mode, "current");
         assert_eq!(
             settings.composer_model_shortcut.as_deref(),

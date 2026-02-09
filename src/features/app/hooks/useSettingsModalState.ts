@@ -6,6 +6,7 @@ export type SettingsSection =
   | "dictation"
   | "shortcuts"
   | "open-apps"
+  | "nanobot"
   | "codex"
   | "experimental";
 

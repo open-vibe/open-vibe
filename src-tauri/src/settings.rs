@@ -3,6 +3,8 @@ use tauri::{Manager, State, Window};
 use crate::codex_config;
 use crate::happy_bridge;
 use crate::menu;
+use crate::nanobot_bridge;
+use crate::nanobot_integration;
 use crate::state::AppState;
 use crate::storage::write_settings;
 use crate::types::AppSettings;
@@ -14,6 +16,9 @@ pub(crate) async fn get_app_settings(
     window: Window,
 ) -> Result<AppSettings, String> {
     let mut settings = state.app_settings.lock().await.clone();
+    if let Err(error) = nanobot_integration::hydrate_settings_from_nanobot(&mut settings) {
+        eprintln!("nanobot settings hydrate failed: {error}");
+    }
     if let Ok(Some(collab_enabled)) = codex_config::read_collab_enabled() {
         settings.experimental_collab_enabled = collab_enabled;
     }
@@ -51,6 +56,9 @@ pub(crate) async fn update_app_settings(
     );
     let _ = codex_config::write_steer_enabled(settings.experimental_steer_enabled);
     let _ = codex_config::write_unified_exec_enabled(settings.experimental_unified_exec_enabled);
+    if let Err(error) = nanobot_integration::apply_settings_to_nanobot(&settings) {
+        eprintln!("nanobot settings sync failed: {error}");
+    }
     write_settings(&state.settings_path, &settings)?;
     let mut current = state.app_settings.lock().await;
     *current = settings.clone();
@@ -59,6 +67,7 @@ pub(crate) async fn update_app_settings(
     }
     let app_handle = window.app_handle();
     let _ = happy_bridge::apply_settings(&app_handle, &state, &settings).await;
+    let _ = nanobot_bridge::apply_settings(&app_handle, &state, &settings).await;
     if language_changed {
         if let Err(error) = menu::apply_menu_language(&app_handle, settings.language.as_str()) {
             eprintln!("menu language apply failed: {error}");

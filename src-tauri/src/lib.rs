@@ -28,6 +28,9 @@ mod git_utils;
 mod happy_bridge;
 mod local_usage;
 mod menu;
+mod nanobot_bridge;
+mod nanobot_bridge_daemon;
+mod nanobot_integration;
 mod prompts;
 mod remote_backend;
 mod rules;
@@ -93,6 +96,16 @@ pub fn run() {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<state::AppState>();
+                let settings = state.app_settings.lock().await.clone();
+                if let Err(error) =
+                    nanobot_bridge::apply_settings(&app_handle, &state, &settings).await
+                {
+                    eprintln!("nanobot bridge apply failed: {error}");
+                }
+            });
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<state::AppState>();
                 if remote_backend::is_remote_mode(&*state).await {
                     return;
                 }
@@ -129,6 +142,10 @@ pub fn run() {
             settings::get_app_settings,
             settings::update_app_settings,
             settings::get_codex_config_path,
+            nanobot_integration::nanobot_config_path,
+            nanobot_integration::nanobot_test_dingtalk,
+            nanobot_bridge::nanobot_bridge_status,
+            nanobot_bridge::nanobot_bridge_send,
             files::file_read,
             files::file_write,
             codex::get_config_model,
@@ -250,6 +267,7 @@ pub fn run() {
 async fn shutdown_children(app_handle: &tauri::AppHandle) {
     let state = app_handle.state::<state::AppState>();
     happy_bridge::shutdown(&state).await;
+    nanobot_bridge::shutdown(&state).await;
 
     let sessions = {
         let guard = state.sessions.lock().await;
@@ -275,4 +293,8 @@ async fn shutdown_children(app_handle: &tauri::AppHandle) {
         let mut child = terminal.child.lock().await;
         let _ = child.kill();
     }
+}
+
+pub fn run_nanobot_bridge_daemon_from_args() -> bool {
+    nanobot_bridge_daemon::run_if_requested()
 }

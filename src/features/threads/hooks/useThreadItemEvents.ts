@@ -2,7 +2,11 @@ import { useCallback, useRef } from "react";
 import type { Dispatch } from "react";
 import { buildConversationItem } from "../../../utils/threadItems";
 import { asString } from "../utils/threadNormalize";
-import type { ConversationItem, HappyBridgeCommand } from "../../../types";
+import type {
+  ConversationItem,
+  HappyBridgeCommand,
+  NanobotBridgeCommand,
+} from "../../../types";
 import type { ThreadAction } from "./useThreadsReducer";
 
 type UseThreadItemEventsOptions = {
@@ -19,6 +23,7 @@ type UseThreadItemEventsOptions = {
   ) => void;
   getWorkspacePath?: (workspaceId: string) => string | null;
   onHappyBridgeCommand?: (command: HappyBridgeCommand) => void;
+  onNanobotBridgeCommand?: (command: NanobotBridgeCommand) => void;
   onUserMessageItem?: (
     workspaceId: string,
     threadId: string,
@@ -41,6 +46,7 @@ export function useThreadItemEvents({
   recordThreadActivity,
   getWorkspacePath,
   onHappyBridgeCommand,
+  onNanobotBridgeCommand,
   onUserMessageItem,
   applyCollabThreadLinks,
 }: UseThreadItemEventsOptions) {
@@ -219,6 +225,15 @@ export function useThreadItemEvents({
           createdAt: timestamp,
         });
       }
+      if (onNanobotBridgeCommand && resolvedText.trim()) {
+        onNanobotBridgeCommand({
+          type: "thread-message",
+          messageId: itemId,
+          threadId,
+          role: "assistant",
+          content: resolvedText,
+        });
+      }
       markProcessing(threadId, false);
       recordThreadActivity(workspaceId, threadId, timestamp);
       safeMessageActivity();
@@ -232,6 +247,7 @@ export function useThreadItemEvents({
       getCustomName,
       getWorkspacePath,
       onHappyBridgeCommand,
+      onNanobotBridgeCommand,
       markProcessing,
       recordThreadActivity,
       safeMessageActivity,

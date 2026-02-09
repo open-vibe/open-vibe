@@ -80,6 +80,7 @@ import { useWorkspaceSelection } from "./features/workspaces/hooks/useWorkspaceS
 import { useLocalUsage } from "./features/home/hooks/useLocalUsage";
 import { useGitHubPanelController } from "./features/app/hooks/useGitHubPanelController";
 import { useHappyBridgeEvents } from "./features/happy/hooks/useHappyBridgeEvents";
+import { useNanobotBridgeEvents } from "./features/nanobot/hooks/useNanobotBridgeEvents";
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
 import { isMissingGitRepoError } from "./utils/gitErrors";
@@ -102,7 +103,11 @@ import { useGitCommitController } from "./features/app/hooks/useGitCommitControl
 import { WorkspaceHome } from "./features/workspaces/components/WorkspaceHome";
 import { useWorkspaceHome } from "./features/workspaces/hooks/useWorkspaceHome";
 import { useWorkspaceAgentMd } from "./features/workspaces/hooks/useWorkspaceAgentMd";
-import { pickWorkspacePath } from "./services/tauri";
+import {
+  getNanobotConfigPath,
+  pickWorkspacePath,
+  testNanobotDingTalk,
+} from "./services/tauri";
 import { ThreadTabsBar } from "./features/app/components/ThreadTabsBar";
 import { ThreadTabsContent } from "./features/app/components/ThreadTabsContent";
 import { useThreadTabs, type ThreadTab } from "./features/app/hooks/useThreadTabs";
@@ -644,6 +649,8 @@ function MainApp() {
     appSettings.happyEnabled &&
     Boolean(appSettings.happyToken?.trim()) &&
     Boolean(appSettings.happySecret?.trim());
+  const nanobotBridgeEnabled =
+    appSettings.nanobotEnabled && appSettings.nanobotMode === "bridge";
   const getWorkspacePath = useCallback(
     (workspaceId: string) =>
       workspaces.find((workspace) => workspace.id === workspaceId)?.path ??
@@ -704,6 +711,7 @@ function MainApp() {
     customPrompts: prompts,
     onMessageActivity: queueGitStatusRefresh,
     happyEnabled,
+    nanobotBridgeEnabled,
     getWorkspacePath,
   });
   const activeThreadIdRef = useRef<string | null>(activeThreadId ?? null);
@@ -743,6 +751,14 @@ function MainApp() {
     enabled: happyEnabled,
     workspaces,
     getWorkspaceIdForThread,
+    sendUserMessageToThread,
+  });
+  useNanobotBridgeEvents({
+    enabled: nanobotBridgeEnabled,
+    workspaces,
+    activeWorkspaceId,
+    openThreadTabs: threadTabs,
+    startThreadForWorkspace,
     sendUserMessageToThread,
   });
   const closedThreadTabIdsRef = useRef<Set<string>>(new Set());
@@ -2674,6 +2690,8 @@ function MainApp() {
               await queueSaveSettings(next);
             },
             onRunDoctor: doctor,
+            onGetNanobotConfigPath: getNanobotConfigPath,
+            onTestNanobotDingTalk: testNanobotDingTalk,
             onUpdateWorkspaceCodexBin: async (id, codexBin) => {
               await updateWorkspaceCodexBin(id, codexBin);
             },
