@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "open-vibe",
+  "productName": "OpenVibe",
   "version": "1.0.0",
   "identifier": "com.openvibe.desktop",
   "build": {

@@ -66,7 +66,32 @@ pub(crate) fn hydrate_settings_from_nanobot(settings: &mut AppSettings) -> Resul
     settings.nanobot_dingtalk_client_id = config.channels.dingtalk.client_id;
     settings.nanobot_dingtalk_client_secret = config.channels.dingtalk.client_secret;
     settings.nanobot_dingtalk_allow_from = serialize_allow_from(&config.channels.dingtalk.allow_from);
-    if settings.nanobot_dingtalk_enabled {
+    settings.nanobot_email_enabled = config.channels.email.enabled;
+    settings.nanobot_email_consent_granted = config.channels.email.consent_granted;
+    settings.nanobot_email_imap_host = config.channels.email.imap_host;
+    settings.nanobot_email_imap_port = config.channels.email.imap_port;
+    settings.nanobot_email_imap_username = config.channels.email.imap_username;
+    settings.nanobot_email_imap_password = config.channels.email.imap_password;
+    settings.nanobot_email_imap_mailbox = config.channels.email.imap_mailbox;
+    settings.nanobot_email_imap_use_ssl = config.channels.email.imap_use_ssl;
+    settings.nanobot_email_smtp_host = config.channels.email.smtp_host;
+    settings.nanobot_email_smtp_port = config.channels.email.smtp_port;
+    settings.nanobot_email_smtp_username = config.channels.email.smtp_username;
+    settings.nanobot_email_smtp_password = config.channels.email.smtp_password;
+    settings.nanobot_email_smtp_use_tls = config.channels.email.smtp_use_tls;
+    settings.nanobot_email_smtp_use_ssl = config.channels.email.smtp_use_ssl;
+    settings.nanobot_email_from_address = config.channels.email.from_address;
+    settings.nanobot_email_auto_reply_enabled = config.channels.email.auto_reply_enabled;
+    settings.nanobot_email_poll_interval_seconds = config.channels.email.poll_interval_seconds;
+    settings.nanobot_email_allow_from = serialize_allow_from(&config.channels.email.allow_from);
+    settings.nanobot_qq_enabled = config.channels.qq.enabled;
+    settings.nanobot_qq_app_id = config.channels.qq.app_id;
+    settings.nanobot_qq_secret = config.channels.qq.secret;
+    settings.nanobot_qq_allow_from = serialize_allow_from(&config.channels.qq.allow_from);
+    if settings.nanobot_dingtalk_enabled
+        || settings.nanobot_email_enabled
+        || settings.nanobot_qq_enabled
+    {
         settings.nanobot_enabled = true;
     }
     Ok(())
@@ -78,6 +103,28 @@ pub(crate) fn apply_settings_to_nanobot(settings: &AppSettings) -> Result<(), St
     config.channels.dingtalk.client_id = settings.nanobot_dingtalk_client_id.trim().to_string();
     config.channels.dingtalk.client_secret = settings.nanobot_dingtalk_client_secret.trim().to_string();
     config.channels.dingtalk.allow_from = parse_allow_from(&settings.nanobot_dingtalk_allow_from);
+    config.channels.email.enabled = settings.nanobot_enabled && settings.nanobot_email_enabled;
+    config.channels.email.consent_granted = settings.nanobot_email_consent_granted;
+    config.channels.email.imap_host = settings.nanobot_email_imap_host.trim().to_string();
+    config.channels.email.imap_port = settings.nanobot_email_imap_port;
+    config.channels.email.imap_username = settings.nanobot_email_imap_username.trim().to_string();
+    config.channels.email.imap_password = settings.nanobot_email_imap_password.trim().to_string();
+    config.channels.email.imap_mailbox = settings.nanobot_email_imap_mailbox.trim().to_string();
+    config.channels.email.imap_use_ssl = settings.nanobot_email_imap_use_ssl;
+    config.channels.email.smtp_host = settings.nanobot_email_smtp_host.trim().to_string();
+    config.channels.email.smtp_port = settings.nanobot_email_smtp_port;
+    config.channels.email.smtp_username = settings.nanobot_email_smtp_username.trim().to_string();
+    config.channels.email.smtp_password = settings.nanobot_email_smtp_password.trim().to_string();
+    config.channels.email.smtp_use_tls = settings.nanobot_email_smtp_use_tls;
+    config.channels.email.smtp_use_ssl = settings.nanobot_email_smtp_use_ssl;
+    config.channels.email.from_address = settings.nanobot_email_from_address.trim().to_string();
+    config.channels.email.auto_reply_enabled = settings.nanobot_email_auto_reply_enabled;
+    config.channels.email.poll_interval_seconds = settings.nanobot_email_poll_interval_seconds;
+    config.channels.email.allow_from = parse_allow_from(&settings.nanobot_email_allow_from);
+    config.channels.qq.enabled = settings.nanobot_enabled && settings.nanobot_qq_enabled;
+    config.channels.qq.app_id = settings.nanobot_qq_app_id.trim().to_string();
+    config.channels.qq.secret = settings.nanobot_qq_secret.trim().to_string();
+    config.channels.qq.allow_from = parse_allow_from(&settings.nanobot_qq_allow_from);
     save_nanobot_config_safe(&config)
 }
 

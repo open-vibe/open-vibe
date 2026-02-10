@@ -104,7 +104,7 @@ export function DesktopLayout({
 
         {showWorkspace && (
           <>
-            <MainTopbar leftNode={topbarLeftNode} />
+            {topbarLeftNode ? <MainTopbar leftNode={topbarLeftNode} /> : null}
             {approvalToastsNode}
             {threadTabsNode ?? (
               <>

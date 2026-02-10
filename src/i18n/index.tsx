@@ -160,14 +160,16 @@ const en = {
   "nanobot.bridge.menu.action.listRelay": "List relay sessions",
   "nanobot.bridge.menu.action.pickRelay": "Pick relay session",
   "nanobot.bridge.reply.agentMode":
-    "Agent mode is selected, but agent execution is not wired yet. Send /mode bridge to resume relay mode.",
+    "Agent mode enabled. Incoming messages will run through Nanobot's workflow.",
   "nanobot.bridge.reply.modeSwitched.agent": "Mode switched to agent.",
   "nanobot.bridge.reply.modeSwitched.bridge": "Mode switched to bridge.",
   "nanobot.bridge.reply.noRelaySessions": "No open sessions available for relay.",
   "nanobot.bridge.reply.relaySessionsHeader": "Relay sessions:",
-  "nanobot.bridge.reply.relaySessionsHint": "Send /relay <number> to bind this chat.",
+  "nanobot.bridge.reply.relaySessionsHint": "Send /relay 1 to bind this chat.",
   "nanobot.bridge.reply.invalidRelayIndex": "Invalid relay index: {value}",
   "nanobot.bridge.reply.relayBound": "Relay bound: {value}",
+  "nanobot.bridge.reply.unexpectedError":
+    "Bridge handling failed: {value}",
   "settings.composer.codeFences.title": "Code fences",
   "settings.composer.codeFences.expandSpace.title": "Expand fences on Space",
   "settings.composer.codeFences.expandSpace.subtitle":
@@ -325,8 +327,10 @@ const en = {
   "sidebar.nanobot.mode": "Mode: {value}",
   "sidebar.nanobot.mode.bridge": "Bridge",
   "sidebar.nanobot.mode.agent": "Agent",
-  "sidebar.nanobot.channel": "DingTalk: {value}",
-  "sidebar.nanobot.channel.enabled": "Enabled",
+  "sidebar.nanobot.channel": "Channels: {value}",
+  "sidebar.nanobot.channel.dingtalk": "DingTalk",
+  "sidebar.nanobot.channel.email": "Email",
+  "sidebar.nanobot.channel.qq": "QQ",
   "sidebar.nanobot.channel.disabled": "Disabled",
   "sidebar.nanobot.runtime": "Runtime: {value}",
   "sidebar.nanobot.runtime.running": "Running",
@@ -362,6 +366,8 @@ const en = {
   "log.debug.empty": "No debug events yet.",
   "log.nanobot.title": "Nanobot log",
   "log.nanobot.empty": "No Nanobot events yet.",
+  "log.actions.copy": "Copy",
+  "log.actions.clear": "Clear",
   "sidebar.addMenu.newAgent": "New agent",
   "sidebar.addMenu.newWorktreeAgent": "New worktree agent",
   "sidebar.addMenu.newCloneAgent": "New clone agent",
@@ -424,19 +430,20 @@ const en = {
   "settings.openApps.newApp": "New App",
   "settings.nanobot.title": "Nanobot",
   "settings.nanobot.subtitle":
-    "Configure Nanobot channel integration. DingTalk is supported first.",
+    "Configure Nanobot channels. DingTalk, Email, and QQ are supported.",
   "settings.nanobot.mode.label": "Mode",
   "settings.nanobot.mode.bridge": "Bridge",
   "settings.nanobot.mode.agent": "Agent",
   "settings.nanobot.mode.bridgeHelp":
     "Channel bridge mode: incoming messages are routed to the current OpenVibe workspace.",
   "settings.nanobot.mode.agentHelp":
-    "Agent mode: Nanobot runs its own agent loop (provider wiring is next).",
+    "Agent mode: Nanobot runs the full agent loop, and OpenVibe acts as the provider bridge.",
   "settings.nanobot.agent.todo":
-    "Agent mode provider bridge to Codex is not wired yet. Use Bridge mode for now.",
+    "Agent mode is ready.",
   "settings.nanobot.enable.title": "Enable Nanobot integration",
   "settings.nanobot.enable.subtitle":
     "Sync settings to ~/.nanobot/config.json when values change.",
+  "settings.nanobot.dingtalk.sectionTitle": "DingTalk channel",
   "settings.nanobot.dingtalk.enable.title": "Enable DingTalk channel",
   "settings.nanobot.dingtalk.enable.subtitle":
     "When enabled, Nanobot can receive and send DingTalk messages.",
@@ -448,6 +455,56 @@ const en = {
   "settings.nanobot.dingtalk.allowFrom.placeholder":
     "user_a, user_b (comma separated)",
   "settings.nanobot.dingtalk.allowFrom.help":
+    "Use sender IDs separated by commas, semicolons, or new lines.",
+  "settings.nanobot.email.sectionTitle": "Email channel (IMAP + SMTP)",
+  "settings.nanobot.email.enable.title": "Enable Email channel",
+  "settings.nanobot.email.enable.subtitle":
+    "When enabled, Nanobot polls incoming emails and can send replies.",
+  "settings.nanobot.email.consent.title": "Consent granted",
+  "settings.nanobot.email.consent.subtitle":
+    "Must be enabled before Nanobot can access mailbox content.",
+  "settings.nanobot.email.imapHost.label": "IMAP host",
+  "settings.nanobot.email.imapHost.placeholder": "imap.example.com",
+  "settings.nanobot.email.imapPort.label": "IMAP port",
+  "settings.nanobot.email.imapUsername.label": "IMAP username",
+  "settings.nanobot.email.imapPassword.label": "IMAP password",
+  "settings.nanobot.email.imapMailbox.label": "IMAP mailbox",
+  "settings.nanobot.email.imapUseSsl.title": "Use SSL for IMAP",
+  "settings.nanobot.email.imapUseSsl.subtitle":
+    "Recommended for secure inbound connections.",
+  "settings.nanobot.email.smtpHost.label": "SMTP host",
+  "settings.nanobot.email.smtpHost.placeholder": "smtp.example.com",
+  "settings.nanobot.email.smtpPort.label": "SMTP port",
+  "settings.nanobot.email.smtpUsername.label": "SMTP username",
+  "settings.nanobot.email.smtpPassword.label": "SMTP password",
+  "settings.nanobot.email.smtpUseTls.title": "Use TLS for SMTP",
+  "settings.nanobot.email.smtpUseTls.subtitle":
+    "Enable STARTTLS for outbound mail transport.",
+  "settings.nanobot.email.smtpUseSsl.title": "Use SSL for SMTP",
+  "settings.nanobot.email.smtpUseSsl.subtitle":
+    "Enable only if your provider requires SMTPS.",
+  "settings.nanobot.email.fromAddress.label": "From address",
+  "settings.nanobot.email.pollIntervalSeconds.label":
+    "Poll interval (seconds)",
+  "settings.nanobot.email.allowFrom.label": "Allowed senders",
+  "settings.nanobot.email.allowFrom.placeholder":
+    "alice@example.com, bob@example.com",
+  "settings.nanobot.email.allowFrom.help":
+    "Use sender addresses separated by commas, semicolons, or new lines.",
+  "settings.nanobot.email.autoReply.title": "Enable auto reply",
+  "settings.nanobot.email.autoReply.subtitle":
+    "When disabled, inbound emails are read but no reply is sent.",
+  "settings.nanobot.qq.sectionTitle": "QQ channel",
+  "settings.nanobot.qq.enable.title": "Enable QQ channel",
+  "settings.nanobot.qq.enable.subtitle":
+    "When enabled, Nanobot can receive and send QQ bot messages.",
+  "settings.nanobot.qq.appId.label": "App ID",
+  "settings.nanobot.qq.appId.placeholder": "123456789",
+  "settings.nanobot.qq.secret.label": "App Secret",
+  "settings.nanobot.qq.secret.placeholder": "qq-secret",
+  "settings.nanobot.qq.allowFrom.label": "Allowed senders",
+  "settings.nanobot.qq.allowFrom.placeholder": "user_a, user_b",
+  "settings.nanobot.qq.allowFrom.help":
     "Use sender IDs separated by commas, semicolons, or new lines.",
   "settings.nanobot.test.endpoint": "Endpoint: {value}",
   "settings.nanobot.configPath": "Config path: {value}",
@@ -839,14 +896,15 @@ const zhCN: Record<TranslationKey, string> = {
   "nanobot.bridge.menu.action.listRelay": "查看接力会话",
   "nanobot.bridge.menu.action.pickRelay": "选择接力会话",
   "nanobot.bridge.reply.agentMode":
-    "当前是 Agent 模式，但 Agent 执行流程还未接线。发送 /mode bridge 可切回桥接模式。",
+    "已启用 Agent 模式，后续消息会进入 Nanobot 工作流。",
   "nanobot.bridge.reply.modeSwitched.agent": "已切换到 Agent 模式。",
   "nanobot.bridge.reply.modeSwitched.bridge": "已切换到桥接模式。",
   "nanobot.bridge.reply.noRelaySessions": "当前没有可接力的已打开会话。",
   "nanobot.bridge.reply.relaySessionsHeader": "接力会话列表：",
-  "nanobot.bridge.reply.relaySessionsHint": "发送 /relay <编号> 绑定当前聊天。",
+  "nanobot.bridge.reply.relaySessionsHint": "发送 /relay 1 绑定当前聊天。",
   "nanobot.bridge.reply.invalidRelayIndex": "接力编号无效：{value}",
   "nanobot.bridge.reply.relayBound": "已绑定接力：{value}",
+  "nanobot.bridge.reply.unexpectedError": "桥接处理失败：{value}",
   "settings.composer.codeFences.title": "代码围栏",
   "settings.composer.codeFences.expandSpace.title": "空格自动展开围栏",
   "settings.composer.codeFences.expandSpace.subtitle": "输入 ``` 后按空格插入代码围栏。",
@@ -993,8 +1051,10 @@ const zhCN: Record<TranslationKey, string> = {
   "sidebar.nanobot.mode": "模式：{value}",
   "sidebar.nanobot.mode.bridge": "桥接",
   "sidebar.nanobot.mode.agent": "Agent",
-  "sidebar.nanobot.channel": "钉钉：{value}",
-  "sidebar.nanobot.channel.enabled": "已启用",
+  "sidebar.nanobot.channel": "渠道：{value}",
+  "sidebar.nanobot.channel.dingtalk": "钉钉",
+  "sidebar.nanobot.channel.email": "邮件",
+  "sidebar.nanobot.channel.qq": "QQ",
   "sidebar.nanobot.channel.disabled": "未启用",
   "sidebar.nanobot.runtime": "运行状态：{value}",
   "sidebar.nanobot.runtime.running": "运行中",
@@ -1030,6 +1090,8 @@ const zhCN: Record<TranslationKey, string> = {
   "log.debug.empty": "暂无调试事件。",
   "log.nanobot.title": "Nanobot 日志",
   "log.nanobot.empty": "暂无 Nanobot 事件。",
+  "log.actions.copy": "复制",
+  "log.actions.clear": "清空",
   "sidebar.addMenu.newAgent": "新建代理",
   "sidebar.addMenu.newWorktreeAgent": "新建工作树代理",
   "sidebar.addMenu.newCloneAgent": "新建克隆代理",
@@ -1087,19 +1149,20 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.openApps.aria.args": "打开应用参数 {index}",
   "settings.openApps.newApp": "新应用",
   "settings.nanobot.title": "Nanobot",
-  "settings.nanobot.subtitle": "配置 Nanobot 渠道集成，当前先接入钉钉。",
+  "settings.nanobot.subtitle": "配置 Nanobot 渠道，已支持钉钉、邮件和 QQ。",
   "settings.nanobot.mode.label": "模式",
   "settings.nanobot.mode.bridge": "通道桥接",
   "settings.nanobot.mode.agent": "Agent",
   "settings.nanobot.mode.bridgeHelp":
     "桥接模式：渠道消息会路由到当前 OpenVibe 工作区。",
   "settings.nanobot.mode.agentHelp":
-    "Agent 模式：Nanobot 运行自身 agent 流程（Provider 对接下一步接入）。",
+    "Agent 模式：Nanobot 运行完整 Agent 流程，OpenVibe 作为 Provider 桥接层。",
   "settings.nanobot.agent.todo":
-    "Agent 模式到 Codex 的 Provider 桥接尚未接入，当前请先使用桥接模式。",
+    "Agent 模式已可用。",
   "settings.nanobot.enable.title": "启用 Nanobot 集成",
   "settings.nanobot.enable.subtitle":
     "设置变更后会同步到 ~/.nanobot/config.json。",
+  "settings.nanobot.dingtalk.sectionTitle": "钉钉渠道",
   "settings.nanobot.dingtalk.enable.title": "启用钉钉渠道",
   "settings.nanobot.dingtalk.enable.subtitle":
     "开启后，Nanobot 可接收并发送钉钉消息。",
@@ -1111,6 +1174,53 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.dingtalk.allowFrom.placeholder":
     "user_a, user_b（逗号分隔）",
   "settings.nanobot.dingtalk.allowFrom.help":
+    "可使用逗号、分号或换行分隔 sender ID。",
+  "settings.nanobot.email.sectionTitle": "邮件渠道（IMAP + SMTP）",
+  "settings.nanobot.email.enable.title": "启用邮件渠道",
+  "settings.nanobot.email.enable.subtitle":
+    "开启后，Nanobot 会轮询收件并可发送回复邮件。",
+  "settings.nanobot.email.consent.title": "授权邮箱访问",
+  "settings.nanobot.email.consent.subtitle":
+    "未授权时不会读取或发送邮件。",
+  "settings.nanobot.email.imapHost.label": "IMAP 主机",
+  "settings.nanobot.email.imapHost.placeholder": "imap.example.com",
+  "settings.nanobot.email.imapPort.label": "IMAP 端口",
+  "settings.nanobot.email.imapUsername.label": "IMAP 用户名",
+  "settings.nanobot.email.imapPassword.label": "IMAP 密码",
+  "settings.nanobot.email.imapMailbox.label": "IMAP 邮箱文件夹",
+  "settings.nanobot.email.imapUseSsl.title": "IMAP 使用 SSL",
+  "settings.nanobot.email.imapUseSsl.subtitle": "建议开启，保证收件链路安全。",
+  "settings.nanobot.email.smtpHost.label": "SMTP 主机",
+  "settings.nanobot.email.smtpHost.placeholder": "smtp.example.com",
+  "settings.nanobot.email.smtpPort.label": "SMTP 端口",
+  "settings.nanobot.email.smtpUsername.label": "SMTP 用户名",
+  "settings.nanobot.email.smtpPassword.label": "SMTP 密码",
+  "settings.nanobot.email.smtpUseTls.title": "SMTP 使用 TLS",
+  "settings.nanobot.email.smtpUseTls.subtitle":
+    "启用 STARTTLS 发送邮件。",
+  "settings.nanobot.email.smtpUseSsl.title": "SMTP 使用 SSL",
+  "settings.nanobot.email.smtpUseSsl.subtitle":
+    "仅在服务商要求 SMTPS 时开启。",
+  "settings.nanobot.email.fromAddress.label": "发件人地址",
+  "settings.nanobot.email.pollIntervalSeconds.label": "轮询间隔（秒）",
+  "settings.nanobot.email.allowFrom.label": "允许发送者",
+  "settings.nanobot.email.allowFrom.placeholder":
+    "alice@example.com, bob@example.com",
+  "settings.nanobot.email.allowFrom.help":
+    "可使用逗号、分号或换行分隔邮箱地址。",
+  "settings.nanobot.email.autoReply.title": "自动回复",
+  "settings.nanobot.email.autoReply.subtitle":
+    "关闭后仅接收邮件，不自动发送回复。",
+  "settings.nanobot.qq.sectionTitle": "QQ 渠道",
+  "settings.nanobot.qq.enable.title": "启用 QQ 渠道",
+  "settings.nanobot.qq.enable.subtitle": "开启后，Nanobot 可接收并发送 QQ 机器人消息。",
+  "settings.nanobot.qq.appId.label": "App ID",
+  "settings.nanobot.qq.appId.placeholder": "123456789",
+  "settings.nanobot.qq.secret.label": "App Secret",
+  "settings.nanobot.qq.secret.placeholder": "qq-secret",
+  "settings.nanobot.qq.allowFrom.label": "允许发送者",
+  "settings.nanobot.qq.allowFrom.placeholder": "user_a, user_b",
+  "settings.nanobot.qq.allowFrom.help":
     "可使用逗号、分号或换行分隔 sender ID。",
   "settings.nanobot.test.endpoint": "接口：{value}",
   "settings.nanobot.configPath": "配置文件路径：{value}",

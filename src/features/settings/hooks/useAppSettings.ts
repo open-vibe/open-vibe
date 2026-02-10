@@ -56,6 +56,28 @@ const defaultSettings: AppSettings = {
   nanobotDingTalkClientId: "",
   nanobotDingTalkClientSecret: "",
   nanobotDingTalkAllowFrom: "",
+  nanobotEmailEnabled: false,
+  nanobotEmailConsentGranted: false,
+  nanobotEmailImapHost: "",
+  nanobotEmailImapPort: 993,
+  nanobotEmailImapUsername: "",
+  nanobotEmailImapPassword: "",
+  nanobotEmailImapMailbox: "INBOX",
+  nanobotEmailImapUseSsl: true,
+  nanobotEmailSmtpHost: "",
+  nanobotEmailSmtpPort: 587,
+  nanobotEmailSmtpUsername: "",
+  nanobotEmailSmtpPassword: "",
+  nanobotEmailSmtpUseTls: true,
+  nanobotEmailSmtpUseSsl: false,
+  nanobotEmailFromAddress: "",
+  nanobotEmailAutoReplyEnabled: true,
+  nanobotEmailPollIntervalSeconds: 30,
+  nanobotEmailAllowFrom: "",
+  nanobotQqEnabled: false,
+  nanobotQqAppId: "",
+  nanobotQqSecret: "",
+  nanobotQqAllowFrom: "",
   defaultAccessMode: "current",
   composerModelShortcut: "cmd+shift+m",
   composerAccessShortcut: "cmd+shift+a",
@@ -174,6 +196,41 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     nanobotDingTalkClientSecret:
       settings.nanobotDingTalkClientSecret?.trim() ?? "",
     nanobotDingTalkAllowFrom: settings.nanobotDingTalkAllowFrom ?? "",
+    nanobotEmailEnabled: Boolean(settings.nanobotEmailEnabled),
+    nanobotEmailConsentGranted: Boolean(settings.nanobotEmailConsentGranted),
+    nanobotEmailImapHost: settings.nanobotEmailImapHost?.trim() ?? "",
+    nanobotEmailImapPort:
+      typeof settings.nanobotEmailImapPort === "number" &&
+      Number.isFinite(settings.nanobotEmailImapPort)
+        ? Math.min(65535, Math.max(1, Math.round(settings.nanobotEmailImapPort)))
+        : 993,
+    nanobotEmailImapUsername: settings.nanobotEmailImapUsername?.trim() ?? "",
+    nanobotEmailImapPassword: settings.nanobotEmailImapPassword?.trim() ?? "",
+    nanobotEmailImapMailbox:
+      settings.nanobotEmailImapMailbox?.trim() || "INBOX",
+    nanobotEmailImapUseSsl: Boolean(settings.nanobotEmailImapUseSsl),
+    nanobotEmailSmtpHost: settings.nanobotEmailSmtpHost?.trim() ?? "",
+    nanobotEmailSmtpPort:
+      typeof settings.nanobotEmailSmtpPort === "number" &&
+      Number.isFinite(settings.nanobotEmailSmtpPort)
+        ? Math.min(65535, Math.max(1, Math.round(settings.nanobotEmailSmtpPort)))
+        : 587,
+    nanobotEmailSmtpUsername: settings.nanobotEmailSmtpUsername?.trim() ?? "",
+    nanobotEmailSmtpPassword: settings.nanobotEmailSmtpPassword?.trim() ?? "",
+    nanobotEmailSmtpUseTls: Boolean(settings.nanobotEmailSmtpUseTls),
+    nanobotEmailSmtpUseSsl: Boolean(settings.nanobotEmailSmtpUseSsl),
+    nanobotEmailFromAddress: settings.nanobotEmailFromAddress?.trim() ?? "",
+    nanobotEmailAutoReplyEnabled: Boolean(settings.nanobotEmailAutoReplyEnabled),
+    nanobotEmailPollIntervalSeconds:
+      typeof settings.nanobotEmailPollIntervalSeconds === "number" &&
+      Number.isFinite(settings.nanobotEmailPollIntervalSeconds)
+        ? Math.max(5, Math.round(settings.nanobotEmailPollIntervalSeconds))
+        : 30,
+    nanobotEmailAllowFrom: settings.nanobotEmailAllowFrom ?? "",
+    nanobotQqEnabled: Boolean(settings.nanobotQqEnabled),
+    nanobotQqAppId: settings.nanobotQqAppId?.trim() ?? "",
+    nanobotQqSecret: settings.nanobotQqSecret?.trim() ?? "",
+    nanobotQqAllowFrom: settings.nanobotQqAllowFrom ?? "",
     uiScale: clampUiScale(settings.uiScale),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
     themeColor: allowedThemeColors.has(settings.themeColor)

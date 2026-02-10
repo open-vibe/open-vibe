@@ -94,6 +94,8 @@ type SidebarProps = {
     enabled: boolean;
     mode: "bridge" | "agent";
     dingtalkEnabled: boolean;
+    emailEnabled: boolean;
+    qqEnabled: boolean;
     running: boolean;
     configured: boolean;
     connected: boolean;
@@ -460,7 +462,7 @@ export function Sidebar({
             {workspaceDropText}
           </div>
         </div>
-        <SidebarContent className="overflow-hidden px-2 pb-3">
+        <SidebarContent className="overflow-hidden px-2 pb-1">
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <SidebarGroup className="shrink-0 px-0">
               <SidebarMenu>
@@ -664,7 +666,7 @@ export function Sidebar({
                 </div>
               )}
             </div>
-            <div className="shrink-0 space-y-2">
+            <div className="shrink-0 space-y-1">
               <SidebarGroup className="px-0">
                 <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   {t("sidebar.usage")}
@@ -684,7 +686,7 @@ export function Sidebar({
                 <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   {t("sidebar.nanobot.title")}
                 </SidebarGroupLabel>
-                <SidebarGroupContent className="px-2 pb-2">
+                <SidebarGroupContent className="px-2 pb-0">
                   <NanobotStatusCard
                     enabled={nanobotStatus.enabled}
                     running={nanobotStatus.running}
@@ -706,9 +708,19 @@ export function Sidebar({
                           : t("sidebar.nanobot.mode.agent"),
                     })}
                     channelLabel={t("sidebar.nanobot.channel", {
-                      value: nanobotStatus.dingtalkEnabled
-                        ? t("sidebar.nanobot.channel.enabled")
-                        : t("sidebar.nanobot.channel.disabled"),
+                      value: [
+                        nanobotStatus.dingtalkEnabled
+                          ? t("sidebar.nanobot.channel.dingtalk")
+                          : null,
+                        nanobotStatus.emailEnabled
+                          ? t("sidebar.nanobot.channel.email")
+                          : null,
+                        nanobotStatus.qqEnabled
+                          ? t("sidebar.nanobot.channel.qq")
+                          : null,
+                      ]
+                        .filter((item): item is string => Boolean(item))
+                        .join(" + ") || t("sidebar.nanobot.channel.disabled"),
                     })}
                     runtimeLabel={t("sidebar.nanobot.runtime", {
                       value:
@@ -731,7 +743,7 @@ export function Sidebar({
                   <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                     {t("sidebar.yunyi.title")}
                   </SidebarGroupLabel>
-                  <SidebarGroupContent className="px-2 pb-2">
+                  <SidebarGroupContent className="px-2 pb-0">
                     <YunyiQuotaCard token={experimentalYunyiToken} />
                   </SidebarGroupContent>
                 </SidebarGroup>

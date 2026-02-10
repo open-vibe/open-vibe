@@ -12,6 +12,71 @@
   border-top: none;
 }
 
+.debug-panel.full {
+  grid-column: auto;
+  grid-row: auto;
+  height: 100%;
+  min-height: 0;
+  border-top: none;
+}
+
+.debug-panel.full .debug-list {
+  flex: 1;
+  min-height: 0;
+}
+
+.log-tab-page {
+  grid-column: 1 / -1;
+  grid-row: 3 / -1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-messages);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.log-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-topbar);
+}
+
+.log-tab-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.log-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-tab-actions .ghost {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.log-tab-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .debug-panel-resizer {
   height: 6px;
   cursor: row-resize;

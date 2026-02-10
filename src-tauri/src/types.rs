@@ -336,6 +336,116 @@ pub(crate) struct AppSettings {
         rename = "nanobotDingTalkAllowFrom"
     )]
     pub(crate) nanobot_dingtalk_allow_from: String,
+    #[serde(
+        default = "default_nanobot_email_enabled",
+        rename = "nanobotEmailEnabled"
+    )]
+    pub(crate) nanobot_email_enabled: bool,
+    #[serde(
+        default = "default_nanobot_email_consent_granted",
+        rename = "nanobotEmailConsentGranted"
+    )]
+    pub(crate) nanobot_email_consent_granted: bool,
+    #[serde(
+        default = "default_nanobot_email_imap_host",
+        rename = "nanobotEmailImapHost"
+    )]
+    pub(crate) nanobot_email_imap_host: String,
+    #[serde(
+        default = "default_nanobot_email_imap_port",
+        rename = "nanobotEmailImapPort"
+    )]
+    pub(crate) nanobot_email_imap_port: u16,
+    #[serde(
+        default = "default_nanobot_email_imap_username",
+        rename = "nanobotEmailImapUsername"
+    )]
+    pub(crate) nanobot_email_imap_username: String,
+    #[serde(
+        default = "default_nanobot_email_imap_password",
+        rename = "nanobotEmailImapPassword"
+    )]
+    pub(crate) nanobot_email_imap_password: String,
+    #[serde(
+        default = "default_nanobot_email_imap_mailbox",
+        rename = "nanobotEmailImapMailbox"
+    )]
+    pub(crate) nanobot_email_imap_mailbox: String,
+    #[serde(
+        default = "default_nanobot_email_imap_use_ssl",
+        rename = "nanobotEmailImapUseSsl"
+    )]
+    pub(crate) nanobot_email_imap_use_ssl: bool,
+    #[serde(
+        default = "default_nanobot_email_smtp_host",
+        rename = "nanobotEmailSmtpHost"
+    )]
+    pub(crate) nanobot_email_smtp_host: String,
+    #[serde(
+        default = "default_nanobot_email_smtp_port",
+        rename = "nanobotEmailSmtpPort"
+    )]
+    pub(crate) nanobot_email_smtp_port: u16,
+    #[serde(
+        default = "default_nanobot_email_smtp_username",
+        rename = "nanobotEmailSmtpUsername"
+    )]
+    pub(crate) nanobot_email_smtp_username: String,
+    #[serde(
+        default = "default_nanobot_email_smtp_password",
+        rename = "nanobotEmailSmtpPassword"
+    )]
+    pub(crate) nanobot_email_smtp_password: String,
+    #[serde(
+        default = "default_nanobot_email_smtp_use_tls",
+        rename = "nanobotEmailSmtpUseTls"
+    )]
+    pub(crate) nanobot_email_smtp_use_tls: bool,
+    #[serde(
+        default = "default_nanobot_email_smtp_use_ssl",
+        rename = "nanobotEmailSmtpUseSsl"
+    )]
+    pub(crate) nanobot_email_smtp_use_ssl: bool,
+    #[serde(
+        default = "default_nanobot_email_from_address",
+        rename = "nanobotEmailFromAddress"
+    )]
+    pub(crate) nanobot_email_from_address: String,
+    #[serde(
+        default = "default_nanobot_email_auto_reply_enabled",
+        rename = "nanobotEmailAutoReplyEnabled"
+    )]
+    pub(crate) nanobot_email_auto_reply_enabled: bool,
+    #[serde(
+        default = "default_nanobot_email_poll_interval_seconds",
+        rename = "nanobotEmailPollIntervalSeconds"
+    )]
+    pub(crate) nanobot_email_poll_interval_seconds: u64,
+    #[serde(
+        default = "default_nanobot_email_allow_from",
+        rename = "nanobotEmailAllowFrom"
+    )]
+    pub(crate) nanobot_email_allow_from: String,
+    #[serde(
+        default = "default_nanobot_qq_enabled",
+        rename = "nanobotQqEnabled"
+    )]
+    pub(crate) nanobot_qq_enabled: bool,
+    #[serde(
+        default = "default_nanobot_qq_app_id",
+        rename = "nanobotQqAppId"
+    )]
+    pub(crate) nanobot_qq_app_id: String,
+    #[serde(
+        default = "default_nanobot_qq_secret",
+        rename = "nanobotQqSecret"
+    )]
+    pub(crate) nanobot_qq_secret: String,
+    #[serde(
+        default = "default_nanobot_qq_allow_from",
+        rename = "nanobotQqAllowFrom"
+    )]
+    pub(crate) nanobot_qq_allow_from: String,
     #[serde(default = "default_access_mode", rename = "defaultAccessMode")]
     pub(crate) default_access_mode: String,
     #[serde(
@@ -612,6 +722,94 @@ fn default_nanobot_dingtalk_client_secret() -> String {
 }
 
 fn default_nanobot_dingtalk_allow_from() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_enabled() -> bool {
+    false
+}
+
+fn default_nanobot_email_consent_granted() -> bool {
+    false
+}
+
+fn default_nanobot_email_imap_host() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_imap_port() -> u16 {
+    993
+}
+
+fn default_nanobot_email_imap_username() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_imap_password() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_imap_mailbox() -> String {
+    "INBOX".to_string()
+}
+
+fn default_nanobot_email_imap_use_ssl() -> bool {
+    true
+}
+
+fn default_nanobot_email_smtp_host() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_smtp_port() -> u16 {
+    587
+}
+
+fn default_nanobot_email_smtp_username() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_smtp_password() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_smtp_use_tls() -> bool {
+    true
+}
+
+fn default_nanobot_email_smtp_use_ssl() -> bool {
+    false
+}
+
+fn default_nanobot_email_from_address() -> String {
+    String::new()
+}
+
+fn default_nanobot_email_auto_reply_enabled() -> bool {
+    true
+}
+
+fn default_nanobot_email_poll_interval_seconds() -> u64 {
+    30
+}
+
+fn default_nanobot_email_allow_from() -> String {
+    String::new()
+}
+
+fn default_nanobot_qq_enabled() -> bool {
+    false
+}
+
+fn default_nanobot_qq_app_id() -> String {
+    String::new()
+}
+
+fn default_nanobot_qq_secret() -> String {
+    String::new()
+}
+
+fn default_nanobot_qq_allow_from() -> String {
     String::new()
 }
 
@@ -908,6 +1106,28 @@ impl Default for AppSettings {
             nanobot_dingtalk_client_id: default_nanobot_dingtalk_client_id(),
             nanobot_dingtalk_client_secret: default_nanobot_dingtalk_client_secret(),
             nanobot_dingtalk_allow_from: default_nanobot_dingtalk_allow_from(),
+            nanobot_email_enabled: default_nanobot_email_enabled(),
+            nanobot_email_consent_granted: default_nanobot_email_consent_granted(),
+            nanobot_email_imap_host: default_nanobot_email_imap_host(),
+            nanobot_email_imap_port: default_nanobot_email_imap_port(),
+            nanobot_email_imap_username: default_nanobot_email_imap_username(),
+            nanobot_email_imap_password: default_nanobot_email_imap_password(),
+            nanobot_email_imap_mailbox: default_nanobot_email_imap_mailbox(),
+            nanobot_email_imap_use_ssl: default_nanobot_email_imap_use_ssl(),
+            nanobot_email_smtp_host: default_nanobot_email_smtp_host(),
+            nanobot_email_smtp_port: default_nanobot_email_smtp_port(),
+            nanobot_email_smtp_username: default_nanobot_email_smtp_username(),
+            nanobot_email_smtp_password: default_nanobot_email_smtp_password(),
+            nanobot_email_smtp_use_tls: default_nanobot_email_smtp_use_tls(),
+            nanobot_email_smtp_use_ssl: default_nanobot_email_smtp_use_ssl(),
+            nanobot_email_from_address: default_nanobot_email_from_address(),
+            nanobot_email_auto_reply_enabled: default_nanobot_email_auto_reply_enabled(),
+            nanobot_email_poll_interval_seconds: default_nanobot_email_poll_interval_seconds(),
+            nanobot_email_allow_from: default_nanobot_email_allow_from(),
+            nanobot_qq_enabled: default_nanobot_qq_enabled(),
+            nanobot_qq_app_id: default_nanobot_qq_app_id(),
+            nanobot_qq_secret: default_nanobot_qq_secret(),
+            nanobot_qq_allow_from: default_nanobot_qq_allow_from(),
             default_access_mode: "current".to_string(),
             composer_model_shortcut: default_composer_model_shortcut(),
             composer_access_shortcut: default_composer_access_shortcut(),
@@ -996,6 +1216,28 @@ mod tests {
         assert!(settings.nanobot_dingtalk_client_id.is_empty());
         assert!(settings.nanobot_dingtalk_client_secret.is_empty());
         assert!(settings.nanobot_dingtalk_allow_from.is_empty());
+        assert!(!settings.nanobot_email_enabled);
+        assert!(!settings.nanobot_email_consent_granted);
+        assert!(settings.nanobot_email_imap_host.is_empty());
+        assert_eq!(settings.nanobot_email_imap_port, 993);
+        assert!(settings.nanobot_email_imap_username.is_empty());
+        assert!(settings.nanobot_email_imap_password.is_empty());
+        assert_eq!(settings.nanobot_email_imap_mailbox, "INBOX");
+        assert!(settings.nanobot_email_imap_use_ssl);
+        assert!(settings.nanobot_email_smtp_host.is_empty());
+        assert_eq!(settings.nanobot_email_smtp_port, 587);
+        assert!(settings.nanobot_email_smtp_username.is_empty());
+        assert!(settings.nanobot_email_smtp_password.is_empty());
+        assert!(settings.nanobot_email_smtp_use_tls);
+        assert!(!settings.nanobot_email_smtp_use_ssl);
+        assert!(settings.nanobot_email_from_address.is_empty());
+        assert!(settings.nanobot_email_auto_reply_enabled);
+        assert_eq!(settings.nanobot_email_poll_interval_seconds, 30);
+        assert!(settings.nanobot_email_allow_from.is_empty());
+        assert!(!settings.nanobot_qq_enabled);
+        assert!(settings.nanobot_qq_app_id.is_empty());
+        assert!(settings.nanobot_qq_secret.is_empty());
+        assert!(settings.nanobot_qq_allow_from.is_empty());
         assert_eq!(settings.default_access_mode, "current");
         assert_eq!(
             settings.composer_model_shortcut.as_deref(),

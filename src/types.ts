@@ -199,6 +199,28 @@ export type AppSettings = {
   nanobotDingTalkClientId: string;
   nanobotDingTalkClientSecret: string;
   nanobotDingTalkAllowFrom: string;
+  nanobotEmailEnabled: boolean;
+  nanobotEmailConsentGranted: boolean;
+  nanobotEmailImapHost: string;
+  nanobotEmailImapPort: number;
+  nanobotEmailImapUsername: string;
+  nanobotEmailImapPassword: string;
+  nanobotEmailImapMailbox: string;
+  nanobotEmailImapUseSsl: boolean;
+  nanobotEmailSmtpHost: string;
+  nanobotEmailSmtpPort: number;
+  nanobotEmailSmtpUsername: string;
+  nanobotEmailSmtpPassword: string;
+  nanobotEmailSmtpUseTls: boolean;
+  nanobotEmailSmtpUseSsl: boolean;
+  nanobotEmailFromAddress: string;
+  nanobotEmailAutoReplyEnabled: boolean;
+  nanobotEmailPollIntervalSeconds: number;
+  nanobotEmailAllowFrom: string;
+  nanobotQqEnabled: boolean;
+  nanobotQqAppId: string;
+  nanobotQqSecret: string;
+  nanobotQqAllowFrom: string;
   defaultAccessMode: AccessMode;
   composerModelShortcut: string | null;
   composerAccessShortcut: string | null;
@@ -302,6 +324,20 @@ export type NanobotBridgeCommand =
       content: string;
     }
   | {
+      type: "set-session-mode";
+      sessionKey: string;
+      mode: "bridge" | "agent";
+    }
+  | {
+      type: "agent-message";
+      sessionKey: string;
+      channel: string;
+      chatId: string;
+      workspaceId: string;
+      threadId: string;
+      content: string;
+    }
+  | {
       type: "thread-message";
       messageId?: string;
       threadId: string;
@@ -332,6 +368,19 @@ export type NanobotBridgeEvent =
       createdAt: number;
       workspaceId?: string;
       threadId?: string;
+    }
+  | {
+      type: "stderr";
+      message: string;
+    }
+  | {
+      type: "agent-trace";
+      sessionKey: string;
+      workspaceId: string;
+      threadId: string;
+      role: "user" | "assistant";
+      content: string;
+      createdAt: number;
     };
 
 export type ApprovalRequest = {

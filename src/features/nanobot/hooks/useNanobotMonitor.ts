@@ -10,6 +10,8 @@ export type NanobotRuntimeSnapshot = {
   enabled: boolean;
   mode: NanobotMode;
   dingtalkEnabled: boolean;
+  emailEnabled: boolean;
+  qqEnabled: boolean;
   running: boolean;
   configured: boolean;
   connected: boolean;
@@ -21,6 +23,8 @@ type UseNanobotMonitorOptions = {
   enabled: boolean;
   mode: NanobotMode;
   dingtalkEnabled: boolean;
+  emailEnabled: boolean;
+  qqEnabled: boolean;
 };
 
 function stringifyError(error: unknown) {
@@ -34,6 +38,8 @@ export function useNanobotMonitor({
   enabled,
   mode,
   dingtalkEnabled,
+  emailEnabled,
+  qqEnabled,
 }: UseNanobotMonitorOptions) {
   const [running, setRunning] = useState(false);
   const [configured, setConfigured] = useState(false);
@@ -100,7 +106,7 @@ export function useNanobotMonitor({
     return () => {
       window.clearInterval(timer);
     };
-  }, [enabled, mode, dingtalkEnabled, refreshStatus]);
+  }, [enabled, mode, dingtalkEnabled, emailEnabled, qqEnabled, refreshStatus]);
 
   const handleNanobotEvent = useCallback(
     (event: NanobotBridgeEvent) => {
@@ -127,6 +133,18 @@ export function useNanobotMonitor({
         setConnected(true);
         setReason(null);
         appendLog("event", "nanobot/remote-message", event, timestamp);
+        return;
+      }
+
+      if (event.type === "agent-trace") {
+        setConnected(true);
+        setReason(null);
+        appendLog("event", `nanobot/agent-trace/${event.role}`, event, timestamp);
+        return;
+      }
+
+      if (event.type === "stderr") {
+        appendLog("stderr", "nanobot/stderr", event.message, timestamp);
       }
     },
     [appendLog],
@@ -163,13 +181,26 @@ export function useNanobotMonitor({
       enabled,
       mode,
       dingtalkEnabled,
+      emailEnabled,
+      qqEnabled,
       running,
       configured,
       connected: enabled ? connected : false,
       reason,
       lastEventAt,
     }),
-    [configured, connected, dingtalkEnabled, enabled, lastEventAt, mode, reason, running],
+    [
+      configured,
+      connected,
+      dingtalkEnabled,
+      emailEnabled,
+      qqEnabled,
+      enabled,
+      lastEventAt,
+      mode,
+      reason,
+      running,
+    ],
   );
 
   return {

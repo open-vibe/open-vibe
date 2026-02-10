@@ -638,6 +638,44 @@ export function SettingsView({
   const [nanobotAllowFromDraft, setNanobotAllowFromDraft] = useState(
     appSettings.nanobotDingTalkAllowFrom,
   );
+  const [nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft] = useState(
+    appSettings.nanobotEmailImapHost,
+  );
+  const [nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft] = useState(
+    String(appSettings.nanobotEmailImapPort),
+  );
+  const [nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft] =
+    useState(appSettings.nanobotEmailImapUsername);
+  const [nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft] =
+    useState(appSettings.nanobotEmailImapPassword);
+  const [nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft] =
+    useState(appSettings.nanobotEmailImapMailbox);
+  const [nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft] = useState(
+    appSettings.nanobotEmailSmtpHost,
+  );
+  const [nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft] = useState(
+    String(appSettings.nanobotEmailSmtpPort),
+  );
+  const [nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft] =
+    useState(appSettings.nanobotEmailSmtpUsername);
+  const [nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft] =
+    useState(appSettings.nanobotEmailSmtpPassword);
+  const [nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft] =
+    useState(appSettings.nanobotEmailFromAddress);
+  const [nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft] = useState(
+    appSettings.nanobotEmailAllowFrom,
+  );
+  const [nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft] =
+    useState(String(appSettings.nanobotEmailPollIntervalSeconds));
+  const [nanobotQqAppIdDraft, setNanobotQqAppIdDraft] = useState(
+    appSettings.nanobotQqAppId,
+  );
+  const [nanobotQqSecretDraft, setNanobotQqSecretDraft] = useState(
+    appSettings.nanobotQqSecret,
+  );
+  const [nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft] = useState(
+    appSettings.nanobotQqAllowFrom,
+  );
   const [nanobotConfigPath, setNanobotConfigPath] = useState<string | null>(null);
   const [nanobotConfigPathError, setNanobotConfigPathError] = useState<string | null>(
     null,
@@ -864,6 +902,68 @@ export function SettingsView({
   }, [appSettings.nanobotDingTalkAllowFrom]);
 
   useEffect(() => {
+    setNanobotEmailImapHostDraft(appSettings.nanobotEmailImapHost);
+  }, [appSettings.nanobotEmailImapHost]);
+
+  useEffect(() => {
+    setNanobotEmailImapPortDraft(String(appSettings.nanobotEmailImapPort));
+  }, [appSettings.nanobotEmailImapPort]);
+
+  useEffect(() => {
+    setNanobotEmailImapUsernameDraft(appSettings.nanobotEmailImapUsername);
+  }, [appSettings.nanobotEmailImapUsername]);
+
+  useEffect(() => {
+    setNanobotEmailImapPasswordDraft(appSettings.nanobotEmailImapPassword);
+  }, [appSettings.nanobotEmailImapPassword]);
+
+  useEffect(() => {
+    setNanobotEmailImapMailboxDraft(appSettings.nanobotEmailImapMailbox);
+  }, [appSettings.nanobotEmailImapMailbox]);
+
+  useEffect(() => {
+    setNanobotEmailSmtpHostDraft(appSettings.nanobotEmailSmtpHost);
+  }, [appSettings.nanobotEmailSmtpHost]);
+
+  useEffect(() => {
+    setNanobotEmailSmtpPortDraft(String(appSettings.nanobotEmailSmtpPort));
+  }, [appSettings.nanobotEmailSmtpPort]);
+
+  useEffect(() => {
+    setNanobotEmailSmtpUsernameDraft(appSettings.nanobotEmailSmtpUsername);
+  }, [appSettings.nanobotEmailSmtpUsername]);
+
+  useEffect(() => {
+    setNanobotEmailSmtpPasswordDraft(appSettings.nanobotEmailSmtpPassword);
+  }, [appSettings.nanobotEmailSmtpPassword]);
+
+  useEffect(() => {
+    setNanobotEmailFromAddressDraft(appSettings.nanobotEmailFromAddress);
+  }, [appSettings.nanobotEmailFromAddress]);
+
+  useEffect(() => {
+    setNanobotEmailAllowFromDraft(appSettings.nanobotEmailAllowFrom);
+  }, [appSettings.nanobotEmailAllowFrom]);
+
+  useEffect(() => {
+    setNanobotEmailPollIntervalDraft(
+      String(appSettings.nanobotEmailPollIntervalSeconds),
+    );
+  }, [appSettings.nanobotEmailPollIntervalSeconds]);
+
+  useEffect(() => {
+    setNanobotQqAppIdDraft(appSettings.nanobotQqAppId);
+  }, [appSettings.nanobotQqAppId]);
+
+  useEffect(() => {
+    setNanobotQqSecretDraft(appSettings.nanobotQqSecret);
+  }, [appSettings.nanobotQqSecret]);
+
+  useEffect(() => {
+    setNanobotQqAllowFromDraft(appSettings.nanobotQqAllowFrom);
+  }, [appSettings.nanobotQqAllowFrom]);
+
+  useEffect(() => {
     let active = true;
     void (async () => {
       try {
@@ -1011,10 +1111,51 @@ export function SettingsView({
   const nextNanobotClientId = nanobotClientIdDraft.trim();
   const nextNanobotClientSecret = nanobotClientSecretDraft.trim();
   const nextNanobotAllowFrom = nanobotAllowFromDraft.trim();
+  const nextNanobotEmailImapHost = nanobotEmailImapHostDraft.trim();
+  const nextNanobotEmailImapPort = Math.min(
+    65535,
+    Math.max(1, Number.parseInt(nanobotEmailImapPortDraft.trim(), 10) || 993),
+  );
+  const nextNanobotEmailImapUsername = nanobotEmailImapUsernameDraft.trim();
+  const nextNanobotEmailImapPassword = nanobotEmailImapPasswordDraft.trim();
+  const nextNanobotEmailImapMailbox =
+    nanobotEmailImapMailboxDraft.trim() || "INBOX";
+  const nextNanobotEmailSmtpHost = nanobotEmailSmtpHostDraft.trim();
+  const nextNanobotEmailSmtpPort = Math.min(
+    65535,
+    Math.max(1, Number.parseInt(nanobotEmailSmtpPortDraft.trim(), 10) || 587),
+  );
+  const nextNanobotEmailSmtpUsername = nanobotEmailSmtpUsernameDraft.trim();
+  const nextNanobotEmailSmtpPassword = nanobotEmailSmtpPasswordDraft.trim();
+  const nextNanobotEmailFromAddress = nanobotEmailFromAddressDraft.trim();
+  const nextNanobotEmailAllowFrom = nanobotEmailAllowFromDraft.trim();
+  const nextNanobotEmailPollIntervalSeconds = Math.max(
+    5,
+    Number.parseInt(nanobotEmailPollIntervalDraft.trim(), 10) || 30,
+  );
+  const nextNanobotQqAppId = nanobotQqAppIdDraft.trim();
+  const nextNanobotQqSecret = nanobotQqSecretDraft.trim();
+  const nextNanobotQqAllowFrom = nanobotQqAllowFromDraft.trim();
   const nanobotDirty =
     nextNanobotClientId !== appSettings.nanobotDingTalkClientId ||
     nextNanobotClientSecret !== appSettings.nanobotDingTalkClientSecret ||
-    nextNanobotAllowFrom !== appSettings.nanobotDingTalkAllowFrom;
+    nextNanobotAllowFrom !== appSettings.nanobotDingTalkAllowFrom ||
+    nextNanobotEmailImapHost !== appSettings.nanobotEmailImapHost ||
+    nextNanobotEmailImapPort !== appSettings.nanobotEmailImapPort ||
+    nextNanobotEmailImapUsername !== appSettings.nanobotEmailImapUsername ||
+    nextNanobotEmailImapPassword !== appSettings.nanobotEmailImapPassword ||
+    nextNanobotEmailImapMailbox !== appSettings.nanobotEmailImapMailbox ||
+    nextNanobotEmailSmtpHost !== appSettings.nanobotEmailSmtpHost ||
+    nextNanobotEmailSmtpPort !== appSettings.nanobotEmailSmtpPort ||
+    nextNanobotEmailSmtpUsername !== appSettings.nanobotEmailSmtpUsername ||
+    nextNanobotEmailSmtpPassword !== appSettings.nanobotEmailSmtpPassword ||
+    nextNanobotEmailFromAddress !== appSettings.nanobotEmailFromAddress ||
+    nextNanobotEmailAllowFrom !== appSettings.nanobotEmailAllowFrom ||
+    nextNanobotQqAppId !== appSettings.nanobotQqAppId ||
+    nextNanobotQqSecret !== appSettings.nanobotQqSecret ||
+    nextNanobotQqAllowFrom !== appSettings.nanobotQqAllowFrom ||
+    nextNanobotEmailPollIntervalSeconds !==
+      appSettings.nanobotEmailPollIntervalSeconds;
 
   const trimmedScale = scaleDraft.trim();
   const parsedPercent = trimmedScale
@@ -1045,6 +1186,21 @@ export function SettingsView({
         nanobotDingTalkClientId: nextNanobotClientId,
         nanobotDingTalkClientSecret: nextNanobotClientSecret,
         nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
+        nanobotEmailImapHost: nextNanobotEmailImapHost,
+        nanobotEmailImapPort: nextNanobotEmailImapPort,
+        nanobotEmailImapUsername: nextNanobotEmailImapUsername,
+        nanobotEmailImapPassword: nextNanobotEmailImapPassword,
+        nanobotEmailImapMailbox: nextNanobotEmailImapMailbox,
+        nanobotEmailSmtpHost: nextNanobotEmailSmtpHost,
+        nanobotEmailSmtpPort: nextNanobotEmailSmtpPort,
+        nanobotEmailSmtpUsername: nextNanobotEmailSmtpUsername,
+        nanobotEmailSmtpPassword: nextNanobotEmailSmtpPassword,
+        nanobotEmailFromAddress: nextNanobotEmailFromAddress,
+        nanobotEmailAllowFrom: nextNanobotEmailAllowFrom,
+        nanobotEmailPollIntervalSeconds: nextNanobotEmailPollIntervalSeconds,
+        nanobotQqAppId: nextNanobotQqAppId,
+        nanobotQqSecret: nextNanobotQqSecret,
+        nanobotQqAllowFrom: nextNanobotQqAllowFrom,
       });
     } finally {
       setIsSavingSettings(false);
@@ -4073,86 +4229,604 @@ export function SettingsView({
                               nanobotDingTalkClientId: nextNanobotClientId,
                               nanobotDingTalkClientSecret: nextNanobotClientSecret,
                               nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
+                              nanobotEmailImapHost: nextNanobotEmailImapHost,
+                              nanobotEmailImapPort: nextNanobotEmailImapPort,
+                              nanobotEmailImapUsername: nextNanobotEmailImapUsername,
+                              nanobotEmailImapPassword: nextNanobotEmailImapPassword,
+                              nanobotEmailImapMailbox: nextNanobotEmailImapMailbox,
+                              nanobotEmailSmtpHost: nextNanobotEmailSmtpHost,
+                              nanobotEmailSmtpPort: nextNanobotEmailSmtpPort,
+                              nanobotEmailSmtpUsername: nextNanobotEmailSmtpUsername,
+                              nanobotEmailSmtpPassword: nextNanobotEmailSmtpPassword,
+                              nanobotEmailFromAddress: nextNanobotEmailFromAddress,
+                              nanobotEmailAllowFrom: nextNanobotEmailAllowFrom,
+                              nanobotEmailPollIntervalSeconds:
+                                nextNanobotEmailPollIntervalSeconds,
+                              nanobotQqAppId: nextNanobotQqAppId,
+                              nanobotQqSecret: nextNanobotQqSecret,
+                              nanobotQqAllowFrom: nextNanobotQqAllowFrom,
                             });
                           }}
                         />
                       </div>
-                      {appSettings.nanobotMode !== "bridge" ? (
-                        <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
-                          {t("settings.nanobot.agent.todo")}
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.dingtalk.sectionTitle")}
                         </div>
-                      ) : null}
-                      <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
-                        <div>
-                          <div className="text-sm font-medium">
-                            {t("settings.nanobot.dingtalk.enable.title")}
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.dingtalk.enable.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.dingtalk.enable.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotDingTalkEnabled}
+                              onCheckedChange={(checked) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotDingTalkEnabled: checked,
+                                  nanobotDingTalkClientId: nextNanobotClientId,
+                                  nanobotDingTalkClientSecret:
+                                    nextNanobotClientSecret,
+                                  nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
+                                  nanobotEmailImapHost: nextNanobotEmailImapHost,
+                                  nanobotEmailImapPort: nextNanobotEmailImapPort,
+                                  nanobotEmailImapUsername:
+                                    nextNanobotEmailImapUsername,
+                                  nanobotEmailImapPassword:
+                                    nextNanobotEmailImapPassword,
+                                  nanobotEmailImapMailbox:
+                                    nextNanobotEmailImapMailbox,
+                                  nanobotEmailSmtpHost: nextNanobotEmailSmtpHost,
+                                  nanobotEmailSmtpPort: nextNanobotEmailSmtpPort,
+                                  nanobotEmailSmtpUsername:
+                                    nextNanobotEmailSmtpUsername,
+                                  nanobotEmailSmtpPassword:
+                                    nextNanobotEmailSmtpPassword,
+                                  nanobotEmailFromAddress:
+                                    nextNanobotEmailFromAddress,
+                                  nanobotEmailAllowFrom:
+                                    nextNanobotEmailAllowFrom,
+                                  nanobotEmailPollIntervalSeconds:
+                                    nextNanobotEmailPollIntervalSeconds,
+                                  nanobotQqAppId: nextNanobotQqAppId,
+                                  nanobotQqSecret: nextNanobotQqSecret,
+                                  nanobotQqAllowFrom: nextNanobotQqAllowFrom,
+                                });
+                              }}
+                            />
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("settings.nanobot.dingtalk.enable.subtitle")}
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-dingtalk-client-id">
+                                {t("settings.nanobot.dingtalk.clientId.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-dingtalk-client-id"
+                                value={nanobotClientIdDraft}
+                                placeholder={t(
+                                  "settings.nanobot.dingtalk.clientId.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setNanobotClientIdDraft(event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-dingtalk-client-secret">
+                                {t(
+                                  "settings.nanobot.dingtalk.clientSecret.label",
+                                )}
+                              </Label>
+                              <Input
+                                id="nanobot-dingtalk-client-secret"
+                                type="password"
+                                value={nanobotClientSecretDraft}
+                                placeholder={t(
+                                  "settings.nanobot.dingtalk.clientSecret.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setNanobotClientSecretDraft(event.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nanobot-dingtalk-allow-from">
+                              {t("settings.nanobot.dingtalk.allowFrom.label")}
+                            </Label>
+                            <Input
+                              id="nanobot-dingtalk-allow-from"
+                              value={nanobotAllowFromDraft}
+                              placeholder={t(
+                                "settings.nanobot.dingtalk.allowFrom.placeholder",
+                              )}
+                              onChange={(event) =>
+                                setNanobotAllowFromDraft(event.target.value)
+                              }
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.nanobot.dingtalk.allowFrom.help")}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleTestNanobotDingTalk}
+                              disabled={nanobotTestState.status === "running"}
+                            >
+                              {nanobotTestState.status === "running"
+                                ? t("settings.action.running")
+                                : t("settings.action.testConnection")}
+                            </Button>
+                          </div>
+                          {nanobotTestState.result ? (
+                            <div
+                              className={cn(
+                                "rounded-md border border-border/60 p-3 text-sm",
+                                nanobotTestState.result.ok
+                                  ? "border-emerald-500/40 bg-emerald-50/40"
+                                  : "border-destructive/40 bg-destructive/10",
+                              )}
+                            >
+                              <div>{nanobotTestState.result.message}</div>
+                              {nanobotTestState.result.endpoint ? (
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {t("settings.nanobot.test.endpoint", {
+                                    value: nanobotTestState.result.endpoint,
+                                  })}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.email.sectionTitle")}
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.email.enable.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.email.enable.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotEmailEnabled}
+                              onCheckedChange={(checked) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotEmailEnabled: checked,
+                                  nanobotDingTalkClientId: nextNanobotClientId,
+                                  nanobotDingTalkClientSecret:
+                                    nextNanobotClientSecret,
+                                  nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
+                                  nanobotEmailImapHost: nextNanobotEmailImapHost,
+                                  nanobotEmailImapPort: nextNanobotEmailImapPort,
+                                  nanobotEmailImapUsername:
+                                    nextNanobotEmailImapUsername,
+                                  nanobotEmailImapPassword:
+                                    nextNanobotEmailImapPassword,
+                                  nanobotEmailImapMailbox:
+                                    nextNanobotEmailImapMailbox,
+                                  nanobotEmailSmtpHost: nextNanobotEmailSmtpHost,
+                                  nanobotEmailSmtpPort: nextNanobotEmailSmtpPort,
+                                  nanobotEmailSmtpUsername:
+                                    nextNanobotEmailSmtpUsername,
+                                  nanobotEmailSmtpPassword:
+                                    nextNanobotEmailSmtpPassword,
+                                  nanobotEmailFromAddress:
+                                    nextNanobotEmailFromAddress,
+                                  nanobotEmailAllowFrom:
+                                    nextNanobotEmailAllowFrom,
+                                  nanobotEmailPollIntervalSeconds:
+                                    nextNanobotEmailPollIntervalSeconds,
+                                  nanobotQqAppId: nextNanobotQqAppId,
+                                  nanobotQqSecret: nextNanobotQqSecret,
+                                  nanobotQqAllowFrom: nextNanobotQqAllowFrom,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.email.consent.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.email.consent.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotEmailConsentGranted}
+                              onCheckedChange={(checked) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotEmailConsentGranted: checked,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-imap-host">
+                                {t("settings.nanobot.email.imapHost.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-imap-host"
+                                value={nanobotEmailImapHostDraft}
+                                placeholder={t(
+                                  "settings.nanobot.email.imapHost.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setNanobotEmailImapHostDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-imap-port">
+                                {t("settings.nanobot.email.imapPort.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-imap-port"
+                                type="number"
+                                min={1}
+                                max={65535}
+                                value={nanobotEmailImapPortDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailImapPortDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-imap-username">
+                                {t("settings.nanobot.email.imapUsername.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-imap-username"
+                                value={nanobotEmailImapUsernameDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailImapUsernameDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-imap-password">
+                                {t("settings.nanobot.email.imapPassword.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-imap-password"
+                                type="password"
+                                value={nanobotEmailImapPasswordDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailImapPasswordDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-imap-mailbox">
+                                {t("settings.nanobot.email.imapMailbox.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-imap-mailbox"
+                                value={nanobotEmailImapMailboxDraft}
+                                placeholder="INBOX"
+                                onChange={(event) =>
+                                  setNanobotEmailImapMailboxDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {t("settings.nanobot.email.imapUseSsl.title")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t(
+                                    "settings.nanobot.email.imapUseSsl.subtitle",
+                                  )}
+                                </div>
+                              </div>
+                              <Switch
+                                checked={appSettings.nanobotEmailImapUseSsl}
+                                onCheckedChange={(checked) => {
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    nanobotEmailImapUseSsl: checked,
+                                  });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-smtp-host">
+                                {t("settings.nanobot.email.smtpHost.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-smtp-host"
+                                value={nanobotEmailSmtpHostDraft}
+                                placeholder={t(
+                                  "settings.nanobot.email.smtpHost.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setNanobotEmailSmtpHostDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-smtp-port">
+                                {t("settings.nanobot.email.smtpPort.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-smtp-port"
+                                type="number"
+                                min={1}
+                                max={65535}
+                                value={nanobotEmailSmtpPortDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailSmtpPortDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-smtp-username">
+                                {t("settings.nanobot.email.smtpUsername.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-smtp-username"
+                                value={nanobotEmailSmtpUsernameDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailSmtpUsernameDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-smtp-password">
+                                {t("settings.nanobot.email.smtpPassword.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-smtp-password"
+                                type="password"
+                                value={nanobotEmailSmtpPasswordDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailSmtpPasswordDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-from-address">
+                                {t("settings.nanobot.email.fromAddress.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-email-from-address"
+                                value={nanobotEmailFromAddressDraft}
+                                placeholder="you@example.com"
+                                onChange={(event) =>
+                                  setNanobotEmailFromAddressDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-email-poll-interval">
+                                {t(
+                                  "settings.nanobot.email.pollIntervalSeconds.label",
+                                )}
+                              </Label>
+                              <Input
+                                id="nanobot-email-poll-interval"
+                                type="number"
+                                min={5}
+                                step={1}
+                                value={nanobotEmailPollIntervalDraft}
+                                onChange={(event) =>
+                                  setNanobotEmailPollIntervalDraft(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nanobot-email-allow-from">
+                              {t("settings.nanobot.email.allowFrom.label")}
+                            </Label>
+                            <Input
+                              id="nanobot-email-allow-from"
+                              value={nanobotEmailAllowFromDraft}
+                              placeholder={t(
+                                "settings.nanobot.email.allowFrom.placeholder",
+                              )}
+                              onChange={(event) =>
+                                setNanobotEmailAllowFromDraft(
+                                  event.target.value,
+                                )
+                              }
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.nanobot.email.allowFrom.help")}
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {t("settings.nanobot.email.smtpUseTls.title")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t(
+                                    "settings.nanobot.email.smtpUseTls.subtitle",
+                                  )}
+                                </div>
+                              </div>
+                              <Switch
+                                checked={appSettings.nanobotEmailSmtpUseTls}
+                                onCheckedChange={(checked) => {
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    nanobotEmailSmtpUseTls: checked,
+                                  });
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {t("settings.nanobot.email.smtpUseSsl.title")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t(
+                                    "settings.nanobot.email.smtpUseSsl.subtitle",
+                                  )}
+                                </div>
+                              </div>
+                              <Switch
+                                checked={appSettings.nanobotEmailSmtpUseSsl}
+                                onCheckedChange={(checked) => {
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    nanobotEmailSmtpUseSsl: checked,
+                                  });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.email.autoReply.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.email.autoReply.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotEmailAutoReplyEnabled}
+                              onCheckedChange={(checked) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotEmailAutoReplyEnabled: checked,
+                                });
+                              }}
+                            />
                           </div>
                         </div>
-                        <Switch
-                          checked={appSettings.nanobotDingTalkEnabled}
-                          onCheckedChange={(checked) => {
-                            void onUpdateAppSettings({
-                              ...appSettings,
-                              nanobotDingTalkEnabled: checked,
-                              nanobotDingTalkClientId: nextNanobotClientId,
-                              nanobotDingTalkClientSecret: nextNanobotClientSecret,
-                              nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
-                            });
-                          }}
-                        />
                       </div>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="nanobot-dingtalk-client-id">
-                            {t("settings.nanobot.dingtalk.clientId.label")}
-                          </Label>
-                          <Input
-                            id="nanobot-dingtalk-client-id"
-                            value={nanobotClientIdDraft}
-                            placeholder={t(
-                              "settings.nanobot.dingtalk.clientId.placeholder",
-                            )}
-                            onChange={(event) =>
-                              setNanobotClientIdDraft(event.target.value)
-                            }
-                          />
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.qq.sectionTitle")}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="nanobot-dingtalk-client-secret">
-                            {t("settings.nanobot.dingtalk.clientSecret.label")}
-                          </Label>
-                          <Input
-                            id="nanobot-dingtalk-client-secret"
-                            type="password"
-                            value={nanobotClientSecretDraft}
-                            placeholder={t(
-                              "settings.nanobot.dingtalk.clientSecret.placeholder",
-                            )}
-                            onChange={(event) =>
-                              setNanobotClientSecretDraft(event.target.value)
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="nanobot-dingtalk-allow-from">
-                          {t("settings.nanobot.dingtalk.allowFrom.label")}
-                        </Label>
-                        <Input
-                          id="nanobot-dingtalk-allow-from"
-                          value={nanobotAllowFromDraft}
-                          placeholder={t(
-                            "settings.nanobot.dingtalk.allowFrom.placeholder",
-                          )}
-                          onChange={(event) =>
-                            setNanobotAllowFromDraft(event.target.value)
-                          }
-                        />
-                        <div className="text-xs text-muted-foreground">
-                          {t("settings.nanobot.dingtalk.allowFrom.help")}
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.qq.enable.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.qq.enable.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotQqEnabled}
+                              onCheckedChange={(checked) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotQqEnabled: checked,
+                                  nanobotQqAppId: nextNanobotQqAppId,
+                                  nanobotQqSecret: nextNanobotQqSecret,
+                                  nanobotQqAllowFrom: nextNanobotQqAllowFrom,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-qq-app-id">
+                                {t("settings.nanobot.qq.appId.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-qq-app-id"
+                                value={nanobotQqAppIdDraft}
+                                placeholder={t(
+                                  "settings.nanobot.qq.appId.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setNanobotQqAppIdDraft(event.target.value)
+                                }
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-qq-secret">
+                                {t("settings.nanobot.qq.secret.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-qq-secret"
+                                type="password"
+                                value={nanobotQqSecretDraft}
+                                placeholder={t(
+                                  "settings.nanobot.qq.secret.placeholder",
+                                )}
+                                onChange={(event) =>
+                                  setNanobotQqSecretDraft(event.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nanobot-qq-allow-from">
+                              {t("settings.nanobot.qq.allowFrom.label")}
+                            </Label>
+                            <Input
+                              id="nanobot-qq-allow-from"
+                              value={nanobotQqAllowFromDraft}
+                              placeholder={t(
+                                "settings.nanobot.qq.allowFrom.placeholder",
+                              )}
+                              onChange={(event) =>
+                                setNanobotQqAllowFromDraft(event.target.value)
+                              }
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.nanobot.qq.allowFrom.help")}
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -4167,36 +4841,7 @@ export function SettingsView({
                               : t("settings.action.save")}
                           </Button>
                         ) : null}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleTestNanobotDingTalk}
-                          disabled={nanobotTestState.status === "running"}
-                        >
-                          {nanobotTestState.status === "running"
-                            ? t("settings.action.running")
-                            : t("settings.action.testConnection")}
-                        </Button>
                       </div>
-                      {nanobotTestState.result ? (
-                        <div
-                          className={cn(
-                            "rounded-md border border-border/60 p-3 text-sm",
-                            nanobotTestState.result.ok
-                              ? "border-emerald-500/40 bg-emerald-50/40"
-                              : "border-destructive/40 bg-destructive/10",
-                          )}
-                        >
-                          <div>{nanobotTestState.result.message}</div>
-                          {nanobotTestState.result.endpoint ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {t("settings.nanobot.test.endpoint", {
-                                value: nanobotTestState.result.endpoint,
-                              })}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
                       <div className="text-xs text-muted-foreground">
                         {nanobotConfigPath
                           ? t("settings.nanobot.configPath", {

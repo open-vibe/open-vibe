@@ -14,6 +14,7 @@ import type { ThreadTab } from "../hooks/useThreadTabs";
 import { ThreadTabView } from "./ThreadTabView";
 import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
 import type { ThreadTopbarOverrides } from "../types/threadTabs";
+import { LogTabPage } from "../../debug/components/LogTabPage";
 
 type ThreadActivityStatus = {
   isProcessing: boolean;
@@ -87,6 +88,16 @@ type ThreadTabsContentProps = {
   onError: (error: unknown) => void;
   onComposerOverridesChange?: (overrides: ComposerOverrides | null) => void;
   onTopbarOverridesChange?: (overrides: ThreadTopbarOverrides | null) => void;
+  debugEntries: DebugEntry[];
+  nanobotLogEntries: DebugEntry[];
+  debugLogTitle: string;
+  nanobotLogTitle: string;
+  debugLogEmptyText: string;
+  nanobotLogEmptyText: string;
+  onClearDebug: () => void;
+  onCopyDebug: () => void;
+  onClearNanobotLog: () => void;
+  onCopyNanobotLog: () => void;
 };
 
 export function ThreadTabsContent({
@@ -131,6 +142,16 @@ export function ThreadTabsContent({
   onError,
   onComposerOverridesChange,
   onTopbarOverridesChange,
+  debugEntries,
+  nanobotLogEntries,
+  debugLogTitle,
+  nanobotLogTitle,
+  debugLogEmptyText,
+  nanobotLogEmptyText,
+  onClearDebug,
+  onCopyDebug,
+  onClearNanobotLog,
+  onCopyNanobotLog,
 }: ThreadTabsContentProps) {
   const activeThreadTab = useMemo(
     () => (activeTabId ? tabs.find((tab) => tab.id === activeTabId) ?? null : null),
@@ -155,23 +176,57 @@ export function ThreadTabsContent({
     }
   }, [activeThreadTab, onTopbarOverridesChange]);
 
-    if (!tabs.length) {
-      return null;
-    }
+  if (!tabs.length) {
+    return null;
+  }
 
-    return (
-      <>
-        {tabs.map((tab) => {
-          const workspace = workspacesById.get(tab.workspaceId);
-          if (!workspace) {
-            return null;
-          }
+  return (
+    <>
+      {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           const shouldRender = isActive || tab.loaded;
           if (!shouldRender) {
             return null;
           }
+          if (tab.kind === "debug-log") {
+            return (
+              <div
+                key={tab.id}
+                className={cn("thread-tab-view", !isActive && "is-hidden")}
+                data-tab-id={tab.id}
+              >
+                <LogTabPage
+                  title={debugLogTitle}
+                  emptyText={debugLogEmptyText}
+                  entries={debugEntries}
+                  onClear={onClearDebug}
+                  onCopy={onCopyDebug}
+                />
+              </div>
+            );
+          }
+          if (tab.kind === "nanobot-log") {
+            return (
+              <div
+                key={tab.id}
+                className={cn("thread-tab-view", !isActive && "is-hidden")}
+                data-tab-id={tab.id}
+              >
+                <LogTabPage
+                  title={nanobotLogTitle}
+                  emptyText={nanobotLogEmptyText}
+                  entries={nanobotLogEntries}
+                  onClear={onClearNanobotLog}
+                  onCopy={onCopyNanobotLog}
+                />
+              </div>
+            );
+          }
           if (tab.kind === "workspace") {
+            const workspace = workspacesById.get(tab.workspaceId);
+            if (!workspace) {
+              return null;
+            }
             return (
               <div
                 key={tab.id}
@@ -185,6 +240,10 @@ export function ThreadTabsContent({
             );
           }
           if (tab.kind !== "thread") {
+            return null;
+          }
+          const workspace = workspacesById.get(tab.workspaceId);
+          if (!workspace) {
             return null;
           }
           const parentWorkspace = workspace.parentId

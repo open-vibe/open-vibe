@@ -21,12 +21,20 @@ export type ThreadTab = {
   | {
       kind: "home";
     }
+  | {
+      kind: "debug-log";
+    }
+  | {
+      kind: "nanobot-log";
+    }
 );
 
 type UseThreadTabsOptions = {
   workspaces: WorkspaceInfo[];
   threadsByWorkspace: Record<string, ThreadSummary[]>;
   homeTabTitle: string;
+  debugLogTabTitle: string;
+  nanobotLogTabTitle: string;
 };
 
 const parseStoredTabs = (raw: string | null): ThreadTab[] => {
@@ -58,10 +66,19 @@ const parseStoredTabs = (raw: string | null): ThreadTab[] => {
         const kind =
           tab.kind === "workspace"
             ? "workspace"
-            : tab.kind === "home" || tab.id === HOME_TAB_ID
-              ? "home"
-              : "thread";
-        if (kind !== "home" && !tab.workspaceId) {
+            : tab.kind === "debug-log" || tab.id === DEBUG_LOG_TAB_ID
+              ? "debug-log"
+              : tab.kind === "nanobot-log" || tab.id === NANOBOT_LOG_TAB_ID
+                ? "nanobot-log"
+                : tab.kind === "home" || tab.id === HOME_TAB_ID
+                  ? "home"
+                  : "thread";
+        if (
+          kind !== "home" &&
+          kind !== "debug-log" &&
+          kind !== "nanobot-log" &&
+          !tab.workspaceId
+        ) {
           return null;
         }
         if (kind === "thread" && !tab.threadId) {
@@ -72,6 +89,8 @@ const parseStoredTabs = (raw: string | null): ThreadTab[] => {
           workspaceId:
             kind === "home"
               ? HOME_TAB_WORKSPACE_ID
+              : kind === "debug-log" || kind === "nanobot-log"
+                ? SYSTEM_TAB_WORKSPACE_ID
               : String(tab.workspaceId),
           title: String(tab.title),
           lastActiveAt:
@@ -105,6 +124,9 @@ const loadStoredActiveTab = () => {
 const makeTabId = (workspaceId: string, threadId: string) =>
   `${workspaceId}:${threadId}`;
 const makeWorkspaceTabId = (workspaceId: string) => `${workspaceId}:workspace-home`;
+const SYSTEM_TAB_WORKSPACE_ID = "__system__";
+const DEBUG_LOG_TAB_ID = `${SYSTEM_TAB_WORKSPACE_ID}:debug-log`;
+const NANOBOT_LOG_TAB_ID = `${SYSTEM_TAB_WORKSPACE_ID}:nanobot-log`;
 const HOME_TAB_WORKSPACE_ID = "__home__";
 const HOME_TAB_ID = `${HOME_TAB_WORKSPACE_ID}:home`;
 
@@ -112,6 +134,8 @@ export function useThreadTabs({
   workspaces,
   threadsByWorkspace,
   homeTabTitle,
+  debugLogTabTitle,
+  nanobotLogTabTitle,
 }: UseThreadTabsOptions) {
   const [tabs, setTabs] = useState<ThreadTab[]>(() => loadStoredTabs());
   const [activeTabId, setActiveTabId] = useState<string | null>(() =>
@@ -140,21 +164,38 @@ export function useThreadTabs({
   useEffect(() => {
     setTabs((prev) =>
       prev
-        .filter((tab) => tab.kind === "home" || workspaceIds.has(tab.workspaceId))
+        .filter(
+          (tab) =>
+            tab.kind === "home" ||
+            tab.kind === "debug-log" ||
+            tab.kind === "nanobot-log" ||
+            workspaceIds.has(tab.workspaceId),
+        )
         .map((tab) => {
           const nextTitle =
             tab.kind === "thread"
               ? threadNameLookup.get(makeTabId(tab.workspaceId, tab.threadId))
               : tab.kind === "workspace"
                 ? workspaceNameLookup.get(tab.workspaceId)
-                : homeTabTitle;
+                : tab.kind === "debug-log"
+                  ? debugLogTabTitle
+                  : tab.kind === "nanobot-log"
+                    ? nanobotLogTabTitle
+                    : homeTabTitle;
           if (nextTitle && nextTitle !== tab.title) {
             return { ...tab, title: nextTitle };
           }
           return tab;
         }),
     );
-  }, [homeTabTitle, threadNameLookup, workspaceIds, workspaceNameLookup]);
+  }, [
+    debugLogTabTitle,
+    homeTabTitle,
+    nanobotLogTabTitle,
+    threadNameLookup,
+    workspaceIds,
+    workspaceNameLookup,
+  ]);
 
   useEffect(() => {
     if (!tabs.length) {
@@ -267,6 +308,56 @@ export function useThreadTabs({
     setActiveTabId(HOME_TAB_ID);
   }, []);
 
+  const openDebugLogTab = useCallback((title: string) => {
+    setTabs((prev) => {
+      const existing = prev.find((tab) => tab.id === DEBUG_LOG_TAB_ID);
+      if (existing) {
+        return prev.map((tab) =>
+          tab.id === DEBUG_LOG_TAB_ID
+            ? { ...tab, title, lastActiveAt: Date.now(), loaded: true }
+            : tab,
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: DEBUG_LOG_TAB_ID,
+          kind: "debug-log",
+          workspaceId: SYSTEM_TAB_WORKSPACE_ID,
+          title,
+          lastActiveAt: Date.now(),
+          loaded: true,
+        },
+      ];
+    });
+    setActiveTabId(DEBUG_LOG_TAB_ID);
+  }, []);
+
+  const openNanobotLogTab = useCallback((title: string) => {
+    setTabs((prev) => {
+      const existing = prev.find((tab) => tab.id === NANOBOT_LOG_TAB_ID);
+      if (existing) {
+        return prev.map((tab) =>
+          tab.id === NANOBOT_LOG_TAB_ID
+            ? { ...tab, title, lastActiveAt: Date.now(), loaded: true }
+            : tab,
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: NANOBOT_LOG_TAB_ID,
+          kind: "nanobot-log",
+          workspaceId: SYSTEM_TAB_WORKSPACE_ID,
+          title,
+          lastActiveAt: Date.now(),
+          loaded: true,
+        },
+      ];
+    });
+    setActiveTabId(NANOBOT_LOG_TAB_ID);
+  }, []);
+
   const closeTab = useCallback((tabId: string) => {
     setTabs((prev) => {
       const idx = prev.findIndex((tab) => tab.id === tabId);
@@ -325,6 +416,8 @@ export function useThreadTabs({
     openTab,
     openWorkspaceTab,
     openHomeTab,
+    openDebugLogTab,
+    openNanobotLogTab,
     closeTab,
     markTabLoaded,
     reorderTabs,

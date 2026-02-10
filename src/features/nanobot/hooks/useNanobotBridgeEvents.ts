@@ -21,7 +21,8 @@ type NanobotBridgeTranslationKey =
   | "nanobot.bridge.reply.relaySessionsHeader"
   | "nanobot.bridge.reply.relaySessionsHint"
   | "nanobot.bridge.reply.invalidRelayIndex"
-  | "nanobot.bridge.reply.relayBound";
+  | "nanobot.bridge.reply.relayBound"
+  | "nanobot.bridge.reply.unexpectedError";
 
 type NanobotBridgeTranslator = (
   key: NanobotBridgeTranslationKey,
@@ -30,10 +31,12 @@ type NanobotBridgeTranslator = (
 
 type UseNanobotBridgeEventsOptions = {
   enabled: boolean;
+  defaultMode: SessionMode;
   workspaces: WorkspaceInfo[];
   activeWorkspaceId: string | null;
   openThreadTabs: ThreadTab[];
   t: NanobotBridgeTranslator;
+  connectWorkspace: (workspace: WorkspaceInfo) => Promise<void>;
   startThreadForWorkspace: (workspaceId: string) => Promise<string | null>;
   sendUserMessageToThread: (
     workspace: WorkspaceInfo,
@@ -94,10 +97,12 @@ function parseRelayCommand(raw: string): number | null | undefined {
 
 export function useNanobotBridgeEvents({
   enabled,
+  defaultMode,
   workspaces,
   activeWorkspaceId,
   openThreadTabs,
   t,
+  connectWorkspace,
   startThreadForWorkspace,
   sendUserMessageToThread,
 }: UseNanobotBridgeEventsOptions) {
@@ -107,6 +112,20 @@ export function useNanobotBridgeEvents({
   );
   const sessionModeRef = useRef<Map<string, SessionMode>>(new Map());
   const relayOptionsRef = useRef<Map<string, RelayCandidate[]>>(new Map());
+  const getSessionMode = useCallback(
+    (sessionKey: string) => sessionModeRef.current.get(sessionKey) ?? defaultMode,
+    [defaultMode],
+  );
+  const syncSessionMode = useCallback(
+    async (sessionKey: string, mode: SessionMode) => {
+      await sendNanobotBridgeCommand({
+        type: "set-session-mode",
+        sessionKey,
+        mode,
+      });
+    },
+    [],
+  );
   const buildMenuText = useCallback(
     (currentMode: SessionMode) => {
       const modeLabel =
@@ -120,7 +139,7 @@ export function useNanobotBridgeEvents({
         `- ${t("nanobot.bridge.menu.action.relayMode")}: /mode bridge`,
         `- ${t("nanobot.bridge.menu.action.agentMode")}: /mode agent`,
         `- ${t("nanobot.bridge.menu.action.listRelay")}: /relay`,
-        `- ${t("nanobot.bridge.menu.action.pickRelay")}: /relay <number>`,
+        `- ${t("nanobot.bridge.menu.action.pickRelay")}: /relay 1`,
       ].join("\n");
     },
     [t],
@@ -201,11 +220,14 @@ export function useNanobotBridgeEvents({
       const resolver = (async () => {
         const workspace = resolveDefaultWorkspace();
         if (!workspace) {
-          return null;
+          throw new Error("No available workspace for Nanobot route.");
+        }
+        if (!workspace.connected) {
+          await connectWorkspace(workspace);
         }
         const threadId = await startThreadForWorkspace(workspace.id);
         if (!threadId) {
-          return null;
+          throw new Error("Failed to create thread for Nanobot route.");
         }
         const route: SessionRoute = {
           sessionKey: event.sessionKey,
@@ -222,24 +244,29 @@ export function useNanobotBridgeEvents({
           workspaceId: route.workspaceId,
           threadId: route.threadId,
         });
+        await syncSessionMode(route.sessionKey, getSessionMode(route.sessionKey));
         routesRef.current.set(route.sessionKey, route);
         return route;
-      })()
-        .catch(() => null)
-        .finally(() => {
+      })().finally(() => {
           creatingRouteRef.current.delete(event.sessionKey);
         });
 
       creatingRouteRef.current.set(event.sessionKey, resolver);
       return resolver;
     },
-    [resolveDefaultWorkspace, startThreadForWorkspace],
+    [
+      connectWorkspace,
+      getSessionMode,
+      resolveDefaultWorkspace,
+      startThreadForWorkspace,
+      syncSessionMode,
+    ],
   );
 
   const tryHandleControlCommand = useCallback(
     async (event: Extract<NanobotBridgeEvent, { type: "remote-message" }>, raw: string) => {
       if (isMenuCommand(raw)) {
-        const mode = sessionModeRef.current.get(event.sessionKey) ?? "bridge";
+        const mode = getSessionMode(event.sessionKey);
         await sendBridgeReply(event, buildMenuText(mode));
         return true;
       }
@@ -247,6 +274,11 @@ export function useNanobotBridgeEvents({
       const mode = parseModeCommand(raw);
       if (mode) {
         sessionModeRef.current.set(event.sessionKey, mode);
+        await syncSessionMode(event.sessionKey, mode);
+        if (mode === "agent") {
+          // Pre-bind a workspace/thread route so the next inbound message can be handled directly.
+          await ensureRoute(event);
+        }
         await sendBridgeReply(
           event,
           mode === "agent"
@@ -306,13 +338,22 @@ export function useNanobotBridgeEvents({
       });
       routesRef.current.set(route.sessionKey, route);
       sessionModeRef.current.set(route.sessionKey, "bridge");
+      await syncSessionMode(route.sessionKey, "bridge");
       await sendBridgeReply(
         event,
         t("nanobot.bridge.reply.relayBound", { value: selected.title }),
       );
       return true;
     },
-    [buildMenuText, getRelayCandidates, sendBridgeReply, t],
+    [
+      buildMenuText,
+      ensureRoute,
+      getRelayCandidates,
+      getSessionMode,
+      sendBridgeReply,
+      syncSessionMode,
+      t,
+    ],
   );
 
   const handleEvent = useCallback(
@@ -329,12 +370,6 @@ export function useNanobotBridgeEvents({
           return;
         }
 
-        const mode = sessionModeRef.current.get(event.sessionKey) ?? "bridge";
-        if (mode === "agent") {
-          await sendBridgeReply(event, t("nanobot.bridge.reply.agentMode"));
-          return;
-        }
-
         const route = await ensureRoute(event);
         if (!route) {
           return;
@@ -345,15 +380,35 @@ export function useNanobotBridgeEvents({
         if (!workspace) {
           return;
         }
+        const mode = getSessionMode(event.sessionKey);
+        if (mode === "agent") {
+          await sendNanobotBridgeCommand({
+            type: "agent-message",
+            sessionKey: route.sessionKey,
+            channel: route.channel,
+            chatId: route.chatId,
+            workspaceId: route.workspaceId,
+            threadId: route.threadId,
+            content,
+          });
+          return;
+        }
         await sendUserMessageToThread(workspace, route.threadId, content, [], {
           skipPromptExpansion: true,
           skipHappyBridgeEcho: true,
         });
-      })();
+      })().catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        void sendBridgeReply(
+          event,
+          t("nanobot.bridge.reply.unexpectedError", { value: message }),
+        );
+      });
     },
     [
       enabled,
       ensureRoute,
+      getSessionMode,
       sendBridgeReply,
       sendUserMessageToThread,
       t,

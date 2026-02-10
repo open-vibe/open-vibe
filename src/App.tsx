@@ -247,7 +247,6 @@ function MainApp() {
     collapseRightPanel,
     expandRightPanel,
     terminalOpen,
-    handleDebugClick,
     handleToggleTerminal,
     openTerminal,
     closeTerminal: closeTerminalPanel,
@@ -258,18 +257,6 @@ function MainApp() {
     toggleDebugPanelShortcut: appSettings.toggleDebugPanelShortcut,
     toggleTerminalShortcut: appSettings.toggleTerminalShortcut,
   });
-  const handleOpenDebugLog = useCallback(() => {
-    setLogPanelMode("debug");
-    handleDebugClick();
-  }, [handleDebugClick]);
-  const handleOpenNanobotLog = useCallback(() => {
-    setLogPanelMode("nanobot");
-    if (isCompact) {
-      setActiveTab("log");
-      return;
-    }
-    setDebugOpen(true);
-  }, [isCompact, setDebugOpen]);
   const sidebarToggleProps = {
     isCompact,
     sidebarCollapsed,
@@ -344,6 +331,10 @@ function MainApp() {
     logPanelMode === "nanobot" ? t("log.nanobot.title") : t("log.debug.title");
   const logPanelEmptyText =
     logPanelMode === "nanobot" ? t("log.nanobot.empty") : t("log.debug.empty");
+  const debugLogTitle = t("log.debug.title");
+  const nanobotLogTitle = t("log.nanobot.title");
+  const debugLogEmptyText = t("log.debug.empty");
+  const nanobotLogEmptyText = t("log.nanobot.empty");
 
   useEffect(() => {
     setAccessMode((prev) =>
@@ -669,8 +660,7 @@ function MainApp() {
     appSettings.happyEnabled &&
     Boolean(appSettings.happyToken?.trim()) &&
     Boolean(appSettings.happySecret?.trim());
-  const nanobotBridgeEnabled =
-    appSettings.nanobotEnabled && appSettings.nanobotMode === "bridge";
+  const nanobotEnabled = appSettings.nanobotEnabled;
   const {
     snapshot: nanobotStatusSnapshot,
     logEntries: nanobotLogEntries,
@@ -680,6 +670,8 @@ function MainApp() {
     enabled: appSettings.nanobotEnabled,
     mode: appSettings.nanobotMode,
     dingtalkEnabled: appSettings.nanobotDingTalkEnabled,
+    emailEnabled: appSettings.nanobotEmailEnabled,
+    qqEnabled: appSettings.nanobotQqEnabled,
   });
   const getWorkspacePath = useCallback(
     (workspaceId: string) =>
@@ -741,7 +733,7 @@ function MainApp() {
     customPrompts: prompts,
     onMessageActivity: queueGitStatusRefresh,
     happyEnabled,
-    nanobotBridgeEnabled,
+    nanobotBridgeEnabled: nanobotEnabled,
     getWorkspacePath,
   });
   const activeThreadIdRef = useRef<string | null>(activeThreadId ?? null);
@@ -757,6 +749,8 @@ function MainApp() {
     openTab: openThreadTab,
     openWorkspaceTab,
     openHomeTab,
+    openDebugLogTab,
+    openNanobotLogTab,
     closeTab: closeThreadTab,
     markTabLoaded,
     reorderTabs: reorderThreadTabs,
@@ -764,6 +758,8 @@ function MainApp() {
     workspaces,
     threadsByWorkspace,
     homeTabTitle: t("sidebar.home"),
+    debugLogTabTitle: debugLogTitle,
+    nanobotLogTabTitle: nanobotLogTitle,
   });
   const openThreadIds = useMemo(
     () =>
@@ -777,6 +773,38 @@ function MainApp() {
       ),
     [threadTabs],
   );
+  const handleOpenDebugLog = useCallback(() => {
+    setLogPanelMode("debug");
+    if (isCompact) {
+      setActiveTab("log");
+      return;
+    }
+    setDebugOpen(false);
+    setHomeView(false);
+    openDebugLogTab(debugLogTitle);
+  }, [
+    debugLogTitle,
+    isCompact,
+    openDebugLogTab,
+    setActiveTab,
+    setDebugOpen,
+  ]);
+  const handleOpenNanobotLog = useCallback(() => {
+    setLogPanelMode("nanobot");
+    if (isCompact) {
+      setActiveTab("log");
+      return;
+    }
+    setDebugOpen(false);
+    setHomeView(false);
+    openNanobotLogTab(nanobotLogTitle);
+  }, [
+    isCompact,
+    nanobotLogTitle,
+    openNanobotLogTab,
+    setActiveTab,
+    setDebugOpen,
+  ]);
   useHappyBridgeEvents({
     enabled: happyEnabled,
     workspaces,
@@ -784,11 +812,13 @@ function MainApp() {
     sendUserMessageToThread,
   });
   useNanobotBridgeEvents({
-    enabled: nanobotBridgeEnabled,
+    enabled: nanobotEnabled,
+    defaultMode: appSettings.nanobotMode,
     workspaces,
     activeWorkspaceId,
     openThreadTabs: threadTabs,
     t,
+    connectWorkspace,
     startThreadForWorkspace,
     sendUserMessageToThread,
   });
@@ -842,6 +872,18 @@ function MainApp() {
       }
       if (activeThreadId !== null || activeWorkspaceId !== activeThreadTab.workspaceId) {
         setActiveThreadId(null, activeThreadTab.workspaceId);
+      }
+      if (!activeThreadTab.loaded) {
+        markTabLoaded(activeThreadTab.id);
+      }
+      return;
+    }
+    if (
+      activeThreadTab.kind === "debug-log" ||
+      activeThreadTab.kind === "nanobot-log"
+    ) {
+      if (activeThreadId !== null && activeWorkspaceId) {
+        setActiveThreadId(null, activeWorkspaceId);
       }
       if (!activeThreadTab.loaded) {
         markTabLoaded(activeThreadTab.id);
@@ -933,33 +975,44 @@ function MainApp() {
         return;
       }
       const remainingTabs = threadTabs.filter((tab) => tab.id !== tabId);
-        if (remainingTabs.length === 0) {
-          if (closingTab.kind !== "home") {
-            setActiveThreadId(null, closingTab.workspaceId);
-          } else {
-            setActiveThreadId(null);
-          }
-          setHomeView(true);
-          selectHomeRef.current();
-          return;
+      if (remainingTabs.length === 0) {
+        if (
+          closingTab.kind === "thread" ||
+          closingTab.kind === "workspace"
+        ) {
+          setActiveThreadId(null, closingTab.workspaceId);
+        } else if (activeWorkspaceId) {
+          setActiveThreadId(null, activeWorkspaceId);
         }
-        const nextTab =
-          remainingTabs[closingIndex - 1] ?? remainingTabs[closingIndex] ?? null;
-        if (nextTab) {
-          if (nextTab.kind === "home") {
-            setHomeView(true);
-            selectHomeRef.current();
-            return;
-          }
-          setHomeView(false);
-        if (nextTab.kind === "thread") {
-          setActiveThreadId(nextTab.threadId, nextTab.workspaceId);
-        } else {
-          setActiveThreadId(null, nextTab.workspaceId);
-        }
+        setHomeView(true);
+        selectHomeRef.current();
+        return;
+      }
+      const nextTab =
+        remainingTabs[closingIndex - 1] ?? remainingTabs[closingIndex] ?? null;
+      if (!nextTab) {
+        return;
+      }
+      if (nextTab.kind === "home") {
+        setHomeView(true);
+        selectHomeRef.current();
+        return;
+      }
+      setHomeView(false);
+      if (nextTab.kind === "thread") {
+        setActiveThreadId(nextTab.threadId, nextTab.workspaceId);
+        return;
+      }
+      if (nextTab.kind === "workspace") {
+        setActiveThreadId(null, nextTab.workspaceId);
+        return;
+      }
+      if (activeWorkspaceId) {
+        setActiveThreadId(null, activeWorkspaceId);
       }
     },
     [
+      activeWorkspaceId,
       activeThreadTabId,
       closeThreadTab,
       setActiveThreadId,
@@ -1950,9 +2003,14 @@ function MainApp() {
     );
   };
 
+  const logTabActive =
+    activeThreadTab?.kind === "debug-log" ||
+    activeThreadTab?.kind === "nanobot-log";
   const showComposer = (!isCompact
     ? centerMode === "chat" || centerMode === "diff"
-    : (isTablet ? tabletTab : activeTab) === "codex") && !showWorkspaceHome;
+    : (isTablet ? tabletTab : activeTab) === "codex") &&
+    !showWorkspaceHome &&
+    !logTabActive;
   const showGitDetail = Boolean(selectedDiffPath) && isPhone;
   const isThreadOpen = Boolean(activeThreadId && showComposer);
 
@@ -2515,18 +2573,21 @@ function MainApp() {
 
   const mainMessagesNode = showWorkspaceHome ? workspaceHomeNode : messagesNode;
 
-  const desktopTopbarLeftNodeWithToggle = !isCompact ? (
-    <div className="topbar-leading">
-      <SidebarTrigger className="-ml-1" data-tauri-drag-region="false" />
-      <Separator
-        orientation="vertical"
-        className="mr-2 data-[orientation=vertical]:h-4"
-      />
-      {desktopTopbarLeftNode}
-    </div>
-  ) : (
-    desktopTopbarLeftNode
-  );
+  const desktopTopbarLeftNodeWithToggle =
+    logTabActive
+      ? null
+      : !isCompact ? (
+          <div className="topbar-leading">
+            <SidebarTrigger className="-ml-1" data-tauri-drag-region="false" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            {desktopTopbarLeftNode}
+          </div>
+        ) : (
+          desktopTopbarLeftNode
+        );
 
   const showThreadTabs = !isCompact && threadTabs.length > 0;
   useEffect(() => {
@@ -2597,6 +2658,16 @@ function MainApp() {
       onError={alertError}
       onComposerOverridesChange={handleComposerOverridesChange}
       onTopbarOverridesChange={handleTopbarOverridesChange}
+      debugEntries={debugEntries}
+      nanobotLogEntries={nanobotLogEntries}
+      debugLogTitle={debugLogTitle}
+      nanobotLogTitle={nanobotLogTitle}
+      debugLogEmptyText={debugLogEmptyText}
+      nanobotLogEmptyText={nanobotLogEmptyText}
+      onClearDebug={clearDebugEntries}
+      onCopyDebug={handleCopyDebug}
+      onClearNanobotLog={clearNanobotLogEntries}
+      onCopyNanobotLog={copyNanobotLogEntries}
     />
   ) : null;
 
@@ -2660,7 +2731,7 @@ function MainApp() {
           tabletTab={tabletTab}
           centerMode={centerMode}
           hasActivePlan={hasActivePlan}
-          activeWorkspace={Boolean(activeWorkspace)}
+          activeWorkspace={Boolean(activeWorkspace) || logTabActive}
           sidebarNode={sidebarNode}
           messagesNode={mainMessagesNode}
           composerNode={composerNode}
