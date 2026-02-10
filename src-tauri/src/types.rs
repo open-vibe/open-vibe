@@ -327,6 +327,13 @@ pub(crate) struct AppSettings {
     )]
     pub(crate) nanobot_session_memory_enabled: bool,
     #[serde(
+        default = "default_nanobot_agent_model",
+        rename = "nanobotAgentModel"
+    )]
+    pub(crate) nanobot_agent_model: String,
+    #[serde(default, rename = "nanobotAgentReasoningEffort")]
+    pub(crate) nanobot_agent_reasoning_effort: Option<String>,
+    #[serde(
         default = "default_nanobot_dingtalk_enabled",
         rename = "nanobotDingTalkEnabled"
     )]
@@ -539,6 +546,8 @@ pub(crate) struct AppSettings {
     pub(crate) cycle_workspace_prev_shortcut: Option<String>,
     #[serde(default, rename = "lastComposerModelId")]
     pub(crate) last_composer_model_id: Option<String>,
+    #[serde(default, rename = "lastComposerAccessMode")]
+    pub(crate) last_composer_access_mode: Option<String>,
     #[serde(default, rename = "lastComposerReasoningEffort")]
     pub(crate) last_composer_reasoning_effort: Option<String>,
     #[serde(default = "default_ui_scale", rename = "uiScale")]
@@ -719,6 +728,10 @@ fn default_nanobot_enabled() -> bool {
 
 fn default_nanobot_session_memory_enabled() -> bool {
     true
+}
+
+fn default_nanobot_agent_model() -> String {
+    String::new()
 }
 
 fn default_nanobot_mode() -> String {
@@ -1123,6 +1136,8 @@ impl Default for AppSettings {
             nanobot_mode: default_nanobot_mode(),
             nanobot_enabled: default_nanobot_enabled(),
             nanobot_session_memory_enabled: default_nanobot_session_memory_enabled(),
+            nanobot_agent_model: default_nanobot_agent_model(),
+            nanobot_agent_reasoning_effort: None,
             nanobot_dingtalk_enabled: default_nanobot_dingtalk_enabled(),
             nanobot_dingtalk_client_id: default_nanobot_dingtalk_client_id(),
             nanobot_dingtalk_client_secret: default_nanobot_dingtalk_client_secret(),
@@ -1168,6 +1183,7 @@ impl Default for AppSettings {
             cycle_workspace_next_shortcut: default_cycle_workspace_next_shortcut(),
             cycle_workspace_prev_shortcut: default_cycle_workspace_prev_shortcut(),
             last_composer_model_id: None,
+            last_composer_access_mode: None,
             last_composer_reasoning_effort: None,
             ui_scale: 1.0,
             compact_sidebar: default_compact_sidebar(),
@@ -1235,6 +1251,8 @@ mod tests {
         assert_eq!(settings.nanobot_mode, "bridge");
         assert!(!settings.nanobot_enabled);
         assert!(settings.nanobot_session_memory_enabled);
+        assert_eq!(settings.nanobot_agent_model, "");
+        assert!(settings.nanobot_agent_reasoning_effort.is_none());
         assert!(!settings.nanobot_dingtalk_enabled);
         assert!(settings.nanobot_dingtalk_client_id.is_empty());
         assert!(settings.nanobot_dingtalk_client_secret.is_empty());
@@ -1314,6 +1332,7 @@ mod tests {
             Some("cmd+shift+up")
         );
         assert!(settings.last_composer_model_id.is_none());
+        assert!(settings.last_composer_access_mode.is_none());
         assert!(settings.last_composer_reasoning_effort.is_none());
         assert!((settings.ui_scale - 1.0).abs() < f64::EPSILON);
         assert_eq!(settings.theme, "system");

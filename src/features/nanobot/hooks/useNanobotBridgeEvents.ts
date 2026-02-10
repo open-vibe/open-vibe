@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import type {
   AccessMode,
+  AppSettings,
   NanobotBridgeEvent,
+  ThreadSummary,
   WorkspaceInfo,
 } from "../../../types";
 import { getNanobotConfigPath, sendNanobotBridgeCommand } from "../../../services/tauri";
@@ -9,27 +11,8 @@ import { subscribeNanobotBridgeEvents } from "../../../services/events";
 import { useTauriEvent } from "../../app/hooks/useTauriEvent";
 import type { ThreadTab } from "../../app/hooks/useThreadTabs";
 
-type NanobotBridgeTranslationKey =
-  | "nanobot.bridge.menu.title"
-  | "nanobot.bridge.menu.currentMode"
-  | "nanobot.bridge.menu.mode.bridge"
-  | "nanobot.bridge.menu.mode.agent"
-  | "nanobot.bridge.menu.action.relayMode"
-  | "nanobot.bridge.menu.action.agentMode"
-  | "nanobot.bridge.menu.action.listRelay"
-  | "nanobot.bridge.menu.action.pickRelay"
-  | "nanobot.bridge.reply.agentMode"
-  | "nanobot.bridge.reply.modeSwitched.agent"
-  | "nanobot.bridge.reply.modeSwitched.bridge"
-  | "nanobot.bridge.reply.noRelaySessions"
-  | "nanobot.bridge.reply.relaySessionsHeader"
-  | "nanobot.bridge.reply.relaySessionsHint"
-  | "nanobot.bridge.reply.invalidRelayIndex"
-  | "nanobot.bridge.reply.relayBound"
-  | "nanobot.bridge.reply.unexpectedError";
-
 type NanobotBridgeTranslator = (
-  key: NanobotBridgeTranslationKey,
+  key: string,
   params?: Record<string, string | number>,
 ) => string;
 
@@ -40,9 +23,15 @@ type UseNanobotBridgeEventsOptions = {
   workspaces: WorkspaceInfo[];
   nanobotWorkspaceId: string | null;
   openThreadTabs: ThreadTab[];
+  threadsByWorkspace: Record<string, ThreadSummary[]>;
+  appSettings: AppSettings;
   t: NanobotBridgeTranslator;
   addWorkspaceFromPath: (path: string) => Promise<WorkspaceInfo | null>;
   connectWorkspace: (workspace: WorkspaceInfo) => Promise<void>;
+  openWorkspaceTab: (workspaceId: string) => void;
+  openThreadTab: (workspaceId: string, threadId: string) => void;
+  closeThreadTab: (workspaceId: string, threadId: string) => boolean;
+  updateSettings: (patch: Partial<AppSettings>) => Promise<boolean>;
   startThreadForWorkspace: (workspaceId: string) => Promise<string | null>;
   sendUserMessageToThread: (
     workspace: WorkspaceInfo,
@@ -85,6 +74,28 @@ type PersistedSessionState = {
   routes: Record<string, PersistedRoute>;
 };
 
+type ThreadTargetResolution = {
+  thread: ThreadSummary | null;
+  ambiguous: ThreadSummary[];
+};
+
+type OpenVibeSettingKey =
+  | "compactSidebar"
+  | "refreshThreadsOnFocus"
+  | "nanobotSessionMemoryEnabled"
+  | "nanobotMode";
+
+type OpenVibeControlAction =
+  | { type: "help" }
+  | { type: "workspace-list" }
+  | { type: "workspace-open"; workspace: string }
+  | { type: "thread-list"; workspace?: string }
+  | { type: "thread-open"; workspace?: string; thread: string }
+  | { type: "thread-focus"; workspace?: string; thread: string }
+  | { type: "thread-close"; workspace?: string; thread: string }
+  | { type: "settings-get"; key?: OpenVibeSettingKey }
+  | { type: "settings-set"; key: OpenVibeSettingKey; value: string };
+
 const NANOBOT_SESSION_STATE_STORAGE_KEY = "openvibe.nanobot.sessionState.v1";
 
 function isMenuCommand(raw: string) {
@@ -117,6 +128,222 @@ function parseRelayCommand(raw: string): number | null | undefined {
     return Number(zhMatch[1]);
   }
   return undefined;
+}
+
+function splitWords(raw: string) {
+  return raw
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function parseBooleanValue(raw: string): boolean | null {
+  const lower = raw.trim().toLowerCase();
+  if (
+    lower === "1" ||
+    lower === "true" ||
+    lower === "on" ||
+    lower === "yes" ||
+    lower === "enable" ||
+    lower === "enabled" ||
+    raw.trim() === "开" ||
+    raw.trim() === "开启" ||
+    raw.trim() === "打开" ||
+    raw.trim() === "启用"
+  ) {
+    return true;
+  }
+  if (
+    lower === "0" ||
+    lower === "false" ||
+    lower === "off" ||
+    lower === "no" ||
+    lower === "disable" ||
+    lower === "disabled" ||
+    raw.trim() === "关" ||
+    raw.trim() === "关闭" ||
+    raw.trim() === "停用" ||
+    raw.trim() === "禁用"
+  ) {
+    return false;
+  }
+  if (/(开启|打开|启用|\bon\b|\benable\b|\benabled\b|\btrue\b)/i.test(raw)) {
+    return true;
+  }
+  if (/(关闭|禁用|停用|\boff\b|\bdisable\b|\bdisabled\b|\bfalse\b)/i.test(raw)) {
+    return false;
+  }
+  return null;
+}
+
+function resolveSettingKey(raw: string): OpenVibeSettingKey | null {
+  const value = raw.trim().toLowerCase();
+  if (!value) {
+    return null;
+  }
+  if (value === "compactsidebar" || value === "compact" || value === "紧凑侧边栏") {
+    return "compactSidebar";
+  }
+  if (
+    value === "refreshthreadsonfocus" ||
+    value === "focusrefresh" ||
+    value === "focus刷新" ||
+    value === "窗口聚焦刷新"
+  ) {
+    return "refreshThreadsOnFocus";
+  }
+  if (
+    value === "nanobotsessionmemoryenabled" ||
+    value === "sessionmemory" ||
+    value === "会话记忆"
+  ) {
+    return "nanobotSessionMemoryEnabled";
+  }
+  if (value === "nanobotmode" || value === "mode" || value === "模式") {
+    return "nanobotMode";
+  }
+  return null;
+}
+
+function parseOpenVibeAction(raw: string): OpenVibeControlAction | null {
+  const trimmed = raw.trim();
+  const ovMatch = trimmed.match(/^\/ov(?:\s+(.+))?$/i);
+  if (ovMatch) {
+    const body = (ovMatch[1] ?? "").trim();
+    if (!body || body.toLowerCase() === "help") {
+      return { type: "help" };
+    }
+    const parts = splitWords(body);
+    const [subject, command, ...rest] = parts;
+    const subjectLower = subject?.toLowerCase();
+    const commandLower = command?.toLowerCase();
+
+    if (
+      subjectLower === "workspace" &&
+      (commandLower === "list" || commandLower === "ls")
+    ) {
+      return { type: "workspace-list" };
+    }
+    if (subjectLower === "workspace" && commandLower === "open" && rest[0]) {
+      return { type: "workspace-open", workspace: rest.join(" ") };
+    }
+    if (subjectLower === "thread" && (commandLower === "list" || commandLower === "ls")) {
+      return { type: "thread-list", workspace: rest.join(" ").trim() || undefined };
+    }
+    if (
+      subjectLower === "thread" &&
+      (commandLower === "open" || commandLower === "focus" || commandLower === "close") &&
+      rest[0]
+    ) {
+      const first = rest[0];
+      const hasWorkspaceToken =
+        rest.length >= 2 &&
+        (/^\d+$/.test(first) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(first));
+      const threadValue = hasWorkspaceToken ? rest.slice(1).join(" ") : rest.join(" ");
+      if (commandLower === "open") {
+        return {
+          type: "thread-open",
+          workspace: hasWorkspaceToken ? first : undefined,
+          thread: threadValue,
+        };
+      }
+      if (commandLower === "focus") {
+        return {
+          type: "thread-focus",
+          workspace: hasWorkspaceToken ? first : undefined,
+          thread: threadValue,
+        };
+      }
+      return {
+        type: "thread-close",
+        workspace: hasWorkspaceToken ? first : undefined,
+        thread: threadValue,
+      };
+    }
+    if (subjectLower === "settings" && commandLower === "get") {
+      return { type: "settings-get", key: resolveSettingKey(rest.join(" ")) ?? undefined };
+    }
+    if (subjectLower === "settings" && commandLower === "set" && rest.length >= 2) {
+      const key = resolveSettingKey(rest[0]);
+      if (!key) {
+        return null;
+      }
+      return {
+        type: "settings-set",
+        key,
+        value: rest.slice(1).join(" "),
+      };
+    }
+    return null;
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (
+    /(openvibe|ov|工作区|workspace)/i.test(trimmed) &&
+    /(list|show|查看|列出|有哪些)/i.test(trimmed) &&
+    /(workspace|工作区)/i.test(trimmed)
+  ) {
+    return { type: "workspace-list" };
+  }
+
+  if (
+    /(openvibe|ov|线程|对话|thread)/i.test(trimmed) &&
+    /(list|show|查看|列出|有哪些)/i.test(trimmed) &&
+    /(thread|线程|对话)/i.test(trimmed)
+  ) {
+    return { type: "thread-list" };
+  }
+
+  const openIndexMatch = trimmed.match(
+    /(打开|切换到|聚焦|open|focus)\s*第?\s*(\d+)\s*(个)?\s*(线程|对话|thread)?/i,
+  );
+  if (openIndexMatch) {
+    return { type: "thread-focus", thread: openIndexMatch[2] };
+  }
+
+  const closeIndexMatch = trimmed.match(
+    /(关闭|关掉|close)\s*第?\s*(\d+)\s*(个)?\s*(线程|对话|tab|标签)?/i,
+  );
+  if (closeIndexMatch) {
+    return { type: "thread-close", thread: closeIndexMatch[2] };
+  }
+
+  if (
+    /(紧凑|compact).*(侧边栏|sidebar)/i.test(trimmed) &&
+    /(开启|打开|启用|关闭|禁用|on|off|enable|disable)/i.test(trimmed)
+  ) {
+    const bool = parseBooleanValue(trimmed);
+    if (bool !== null) {
+      return {
+        type: "settings-set",
+        key: "compactSidebar",
+        value: bool ? "on" : "off",
+      };
+    }
+  }
+
+  if (
+    /(focus|聚焦|窗口激活).*(刷新|refresh)/i.test(trimmed) &&
+    /(开启|打开|启用|关闭|禁用|on|off|enable|disable)/i.test(trimmed)
+  ) {
+    const bool = parseBooleanValue(trimmed);
+    if (bool !== null) {
+      return {
+        type: "settings-set",
+        key: "refreshThreadsOnFocus",
+        value: bool ? "on" : "off",
+      };
+    }
+  }
+
+  if (/(设置|settings).*(查看|显示|show|get)/i.test(trimmed)) {
+    return { type: "settings-get" };
+  }
+
+  if (lower === "ov帮助" || lower === "openvibe help") {
+    return { type: "help" };
+  }
+  return null;
 }
 
 function readPersistedSessionState(): PersistedSessionState {
@@ -162,9 +389,15 @@ export function useNanobotBridgeEvents({
   workspaces,
   nanobotWorkspaceId,
   openThreadTabs,
+  threadsByWorkspace,
+  appSettings,
   t,
   addWorkspaceFromPath,
   connectWorkspace,
+  openWorkspaceTab,
+  openThreadTab,
+  closeThreadTab,
+  updateSettings,
   startThreadForWorkspace,
   sendUserMessageToThread,
 }: UseNanobotBridgeEventsOptions) {
@@ -177,6 +410,8 @@ export function useNanobotBridgeEvents({
   const relayOptionsRef = useRef<Map<string, RelayCandidate[]>>(new Map());
   const nanobotWorkspacePathRef = useRef<string | null>(null);
   const ensuringWorkspaceRef = useRef<Promise<WorkspaceInfo | null> | null>(null);
+  const warmThreadIdRef = useRef<string | null>(null);
+  const warmThreadTaskRef = useRef<Promise<void> | null>(null);
   const stateLoadedRef = useRef(false);
   const persistSessionState = useCallback(() => {
     if (!sessionMemoryEnabled || typeof window === "undefined") {
@@ -306,6 +541,8 @@ export function useNanobotBridgeEvents({
 
   useEffect(() => {
     if (!enabled) {
+      warmThreadIdRef.current = null;
+      warmThreadTaskRef.current = null;
       return;
     }
     void loadNanobotWorkspacePath();
@@ -341,6 +578,37 @@ export function useNanobotBridgeEvents({
     return createPromise;
   }, [addWorkspaceFromPath, loadNanobotWorkspacePath, resolveNanobotWorkspace]);
 
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    if (warmThreadTaskRef.current) {
+      return;
+    }
+    const task = (async () => {
+      const workspace = await ensureNanobotWorkspace();
+      if (!workspace) {
+        return;
+      }
+      const hasRoute = Array.from(routesRef.current.values()).some(
+        (route) => route.workspaceId === workspace.id,
+      );
+      if (hasRoute || warmThreadIdRef.current) {
+        return;
+      }
+      if (!workspace.connected) {
+        await connectWorkspace(workspace);
+      }
+      const threadId = await startThreadForWorkspace(workspace.id);
+      if (threadId) {
+        warmThreadIdRef.current = threadId;
+      }
+    })().finally(() => {
+      warmThreadTaskRef.current = null;
+    });
+    warmThreadTaskRef.current = task;
+  }, [enabled, ensureNanobotWorkspace, connectWorkspace, startThreadForWorkspace]);
+
   const sendBridgeReply = useCallback(
     async (
       event: Extract<NanobotBridgeEvent, { type: "remote-message" }>,
@@ -372,6 +640,425 @@ export function useNanobotBridgeEvents({
       });
   }, [openThreadTabs, workspaces]);
 
+  const resolveWorkspaceTarget = useCallback(
+    (target: string | undefined, fallbackWorkspaceId: string | null) => {
+      const normalized = target?.trim();
+      if (!normalized) {
+        if (fallbackWorkspaceId) {
+          return workspaces.find((workspace) => workspace.id === fallbackWorkspaceId) ?? null;
+        }
+        return resolveNanobotWorkspace();
+      }
+      if (/^\d+$/.test(normalized)) {
+        const index = Number(normalized) - 1;
+        return workspaces[index] ?? null;
+      }
+      const lower = normalized.toLowerCase();
+      return (
+        workspaces.find((workspace) => workspace.id === normalized) ??
+        workspaces.find((workspace) => workspace.name.toLowerCase() === lower) ??
+        workspaces.find((workspace) => workspace.name.toLowerCase().includes(lower)) ??
+        null
+      );
+    },
+    [resolveNanobotWorkspace, workspaces],
+  );
+
+  const resolveThreadTarget = useCallback(
+    (workspaceId: string, target: string): ThreadTargetResolution => {
+      const threads = threadsByWorkspace[workspaceId] ?? [];
+      const normalized = target.trim();
+      if (!normalized) {
+        return { thread: null, ambiguous: [] };
+      }
+      if (/^\d+$/.test(normalized)) {
+        const index = Number(normalized) - 1;
+        return { thread: threads[index] ?? null, ambiguous: [] };
+      }
+      const lower = normalized.toLowerCase();
+      const exactId = threads.find((thread) => thread.id === normalized);
+      if (exactId) {
+        return { thread: exactId, ambiguous: [] };
+      }
+      const exactName = threads.find((thread) => thread.name.toLowerCase() === lower);
+      if (exactName) {
+        return { thread: exactName, ambiguous: [] };
+      }
+      const idPrefixMatches = threads.filter((thread) =>
+        thread.id.toLowerCase().startsWith(lower),
+      );
+      if (idPrefixMatches.length === 1) {
+        return { thread: idPrefixMatches[0], ambiguous: [] };
+      }
+      if (idPrefixMatches.length > 1) {
+        return { thread: null, ambiguous: idPrefixMatches.slice(0, 10) };
+      }
+      const nameContainsMatches = threads.filter((thread) =>
+        thread.name.toLowerCase().includes(lower),
+      );
+      if (nameContainsMatches.length === 1) {
+        return { thread: nameContainsMatches[0], ambiguous: [] };
+      }
+      if (nameContainsMatches.length > 1) {
+        return { thread: null, ambiguous: nameContainsMatches.slice(0, 10) };
+      }
+      return { thread: null, ambiguous: [] };
+    },
+    [threadsByWorkspace],
+  );
+
+  const resolveThreadTargetAcrossWorkspaces = useCallback(
+    (target: string) => {
+      const matches: { workspace: WorkspaceInfo; thread: ThreadSummary }[] = [];
+      for (const workspace of workspaces) {
+        const resolved = resolveThreadTarget(workspace.id, target);
+        if (resolved.thread) {
+          matches.push({ workspace, thread: resolved.thread });
+        }
+      }
+      if (matches.length === 1) {
+        return { match: matches[0], ambiguous: [] as typeof matches };
+      }
+      if (matches.length > 1) {
+        return { match: null, ambiguous: matches.slice(0, 10) };
+      }
+      return { match: null, ambiguous: [] as typeof matches };
+    },
+    [resolveThreadTarget, workspaces],
+  );
+
+  const bindSessionRoute = useCallback(
+    async (route: SessionRoute) => {
+      await sendNanobotBridgeCommand({
+        type: "bind-session",
+        sessionKey: route.sessionKey,
+        channel: route.channel,
+        chatId: route.chatId,
+        workspaceId: route.workspaceId,
+        threadId: route.threadId,
+      });
+      routesRef.current.set(route.sessionKey, route);
+      boundSessionKeysRef.current.add(route.sessionKey);
+      persistSessionState();
+      await syncSessionMode(route.sessionKey, getSessionMode(route.sessionKey));
+    },
+    [getSessionMode, persistSessionState, syncSessionMode],
+  );
+
+  const formatSettingValue = useCallback(
+    (key: OpenVibeSettingKey) => {
+      switch (key) {
+        case "compactSidebar":
+          return String(appSettings.compactSidebar);
+        case "refreshThreadsOnFocus":
+          return String(appSettings.refreshThreadsOnFocus);
+        case "nanobotSessionMemoryEnabled":
+          return String(appSettings.nanobotSessionMemoryEnabled);
+        case "nanobotMode":
+          return appSettings.nanobotMode;
+        default:
+          return "";
+      }
+    },
+    [appSettings],
+  );
+
+  const buildOpenVibeHelp = useCallback(
+    () =>
+      [
+        t("nanobot.bridge.ov.help.title"),
+        `- /ov workspace list`,
+        `- /ov workspace open 1`,
+        `- /ov thread list`,
+        `- /ov thread focus 2`,
+        `- /ov thread open new`,
+        `- /ov thread close 2`,
+        `- /ov settings get`,
+        `- /ov settings set compactSidebar on`,
+      ].join("\n"),
+    [t],
+  );
+
+  const handleOpenVibeControl = useCallback(
+    async (event: Extract<NanobotBridgeEvent, { type: "remote-message" }>, raw: string) => {
+      const action = parseOpenVibeAction(raw);
+      if (!action) {
+        return false;
+      }
+      if (action.type === "help") {
+        await sendBridgeReply(event, buildOpenVibeHelp());
+        return true;
+      }
+
+      const existingRoute = routesRef.current.get(event.sessionKey) ?? null;
+      const fallbackWorkspaceId = existingRoute?.workspaceId ?? event.workspaceId ?? null;
+
+      if (action.type === "workspace-list") {
+        if (!workspaces.length) {
+          await sendBridgeReply(event, t("nanobot.bridge.ov.reply.noWorkspaces"));
+          return true;
+        }
+        const lines = workspaces.map(
+          (workspace, index) =>
+            `${index + 1}. ${workspace.name} (${workspace.connected ? "connected" : "disconnected"})`,
+        );
+        await sendBridgeReply(
+          event,
+          `${t("nanobot.bridge.ov.reply.workspaceListHeader")}\n${lines.join("\n")}`,
+        );
+        return true;
+      }
+
+      if (action.type === "workspace-open") {
+        const workspace = resolveWorkspaceTarget(action.workspace, fallbackWorkspaceId);
+        if (!workspace) {
+          await sendBridgeReply(event, t("nanobot.bridge.ov.reply.workspaceNotFound"));
+          return true;
+        }
+        openWorkspaceTab(workspace.id);
+        await sendBridgeReply(
+          event,
+          t("nanobot.bridge.ov.reply.workspaceOpened", { value: workspace.name }),
+        );
+        return true;
+      }
+
+      if (action.type === "thread-list") {
+        const workspace = resolveWorkspaceTarget(action.workspace, fallbackWorkspaceId);
+        if (!workspace) {
+          await sendBridgeReply(event, t("nanobot.bridge.ov.reply.workspaceNotFound"));
+          return true;
+        }
+        const threads = threadsByWorkspace[workspace.id] ?? [];
+        if (!threads.length) {
+          await sendBridgeReply(
+            event,
+            t("nanobot.bridge.ov.reply.noThreads", { value: workspace.name }),
+          );
+          return true;
+        }
+        const lines = threads.map(
+          (thread, index) => `${index + 1}. ${thread.name} (${thread.id.slice(0, 8)})`,
+        );
+        await sendBridgeReply(
+          event,
+          `${t("nanobot.bridge.ov.reply.threadListHeader", { value: workspace.name })}\n${lines.join("\n")}`,
+        );
+        return true;
+      }
+
+      if (
+        action.type === "thread-open" ||
+        action.type === "thread-focus" ||
+        action.type === "thread-close"
+      ) {
+        const hasExplicitWorkspace = Boolean(action.workspace?.trim());
+        const workspace = resolveWorkspaceTarget(action.workspace, fallbackWorkspaceId);
+        if (!workspace) {
+          await sendBridgeReply(event, t("nanobot.bridge.ov.reply.workspaceNotFound"));
+          return true;
+        }
+
+        if (
+          (action.type === "thread-open" || action.type === "thread-focus") &&
+          action.thread.trim().toLowerCase() === "new"
+        ) {
+          const threadId = await startThreadForWorkspace(workspace.id);
+          if (!threadId) {
+            await sendBridgeReply(event, t("nanobot.bridge.ov.reply.threadNotFound"));
+            return true;
+          }
+          openThreadTab(workspace.id, threadId);
+          await bindSessionRoute({
+            sessionKey: event.sessionKey,
+            channel: event.channel,
+            chatId: event.chatId,
+            workspaceId: workspace.id,
+            threadId,
+          });
+          await sendBridgeReply(
+            event,
+            t("nanobot.bridge.ov.reply.threadOpened", { value: threadId.slice(0, 8) }),
+          );
+          return true;
+        }
+
+        let resolvedWorkspace = workspace;
+        let threadResolution = resolveThreadTarget(resolvedWorkspace.id, action.thread);
+        if (!hasExplicitWorkspace) {
+          const globalResolved = resolveThreadTargetAcrossWorkspaces(action.thread);
+          if (globalResolved.match) {
+            resolvedWorkspace = globalResolved.match.workspace;
+            threadResolution = {
+              thread: globalResolved.match.thread,
+              ambiguous: [],
+            };
+          } else if (globalResolved.ambiguous.length > 1) {
+            const lines = globalResolved.ambiguous.map(
+              (item, index) =>
+                `${index + 1}. ${item.workspace.name} / ${item.thread.name} (${item.thread.id.slice(0, 8)})`,
+            );
+            await sendBridgeReply(
+              event,
+              `${t("nanobot.bridge.ov.reply.threadAmbiguousHeader")}\n${lines.join("\n")}\n${t("nanobot.bridge.ov.reply.threadAmbiguousHint")}`,
+            );
+            return true;
+          }
+        } else if (!threadResolution.thread) {
+          const globalResolved = resolveThreadTargetAcrossWorkspaces(action.thread);
+          if (globalResolved.match) {
+            resolvedWorkspace = globalResolved.match.workspace;
+            threadResolution = {
+              thread: globalResolved.match.thread,
+              ambiguous: [],
+            };
+          } else if (globalResolved.ambiguous.length > 1) {
+            const lines = globalResolved.ambiguous.map(
+              (item, index) =>
+                `${index + 1}. ${item.workspace.name} / ${item.thread.name} (${item.thread.id.slice(0, 8)})`,
+            );
+            await sendBridgeReply(
+              event,
+              `${t("nanobot.bridge.ov.reply.threadAmbiguousHeader")}\n${lines.join("\n")}\n${t("nanobot.bridge.ov.reply.threadAmbiguousHint")}`,
+            );
+            return true;
+          }
+        }
+        const thread = threadResolution.thread;
+        if (!thread && threadResolution.ambiguous.length > 0) {
+          const lines = threadResolution.ambiguous.map(
+            (item, index) => `${index + 1}. ${item.name} (${item.id.slice(0, 8)})`,
+          );
+          await sendBridgeReply(
+            event,
+            `${t("nanobot.bridge.ov.reply.threadAmbiguousHeader")}\n${lines.join("\n")}\n${t("nanobot.bridge.ov.reply.threadAmbiguousHint")}`,
+          );
+          return true;
+        }
+        if (!thread) {
+          await sendBridgeReply(event, t("nanobot.bridge.ov.reply.threadNotFound"));
+          return true;
+        }
+
+        if (action.type === "thread-close") {
+          const closed = closeThreadTab(resolvedWorkspace.id, thread.id);
+          await sendBridgeReply(
+            event,
+            closed
+              ? t("nanobot.bridge.ov.reply.threadClosed", { value: thread.name })
+              : t("nanobot.bridge.ov.reply.threadCloseNotOpen", {
+                  value: thread.name,
+                }),
+          );
+          return true;
+        }
+
+        openThreadTab(resolvedWorkspace.id, thread.id);
+        await bindSessionRoute({
+          sessionKey: event.sessionKey,
+          channel: event.channel,
+          chatId: event.chatId,
+          workspaceId: resolvedWorkspace.id,
+          threadId: thread.id,
+        });
+        await sendBridgeReply(
+          event,
+          t("nanobot.bridge.ov.reply.threadOpened", { value: thread.name }),
+        );
+        return true;
+      }
+
+      if (action.type === "settings-get") {
+        if (action.key) {
+          await sendBridgeReply(
+            event,
+            t("nanobot.bridge.ov.reply.settingsValue", {
+              key: action.key,
+              value: formatSettingValue(action.key),
+            }),
+          );
+          return true;
+        }
+        const keys: OpenVibeSettingKey[] = [
+          "compactSidebar",
+          "refreshThreadsOnFocus",
+          "nanobotSessionMemoryEnabled",
+          "nanobotMode",
+        ];
+        const lines = keys.map(
+          (key) =>
+            `- ${t("nanobot.bridge.ov.setting.label." + key)}: ${formatSettingValue(key)}`,
+        );
+        await sendBridgeReply(
+          event,
+          `${t("nanobot.bridge.ov.reply.settingsListHeader")}\n${lines.join("\n")}`,
+        );
+        return true;
+      }
+
+      if (action.type === "settings-set") {
+        if (action.key === "nanobotMode") {
+          const modeValue = action.value.trim().toLowerCase();
+          if (modeValue !== "bridge" && modeValue !== "agent") {
+            await sendBridgeReply(event, t("nanobot.bridge.ov.reply.settingsValueInvalid"));
+            return true;
+          }
+          const changed = await updateSettings({ nanobotMode: modeValue });
+          if (changed) {
+            await syncSessionMode(event.sessionKey, modeValue);
+          }
+          await sendBridgeReply(
+            event,
+            t("nanobot.bridge.ov.reply.settingsUpdated", {
+              key: t("nanobot.bridge.ov.setting.label.nanobotMode"),
+              value: modeValue,
+            }),
+          );
+          return true;
+        }
+        const parsed = parseBooleanValue(action.value);
+        if (parsed === null) {
+          await sendBridgeReply(event, t("nanobot.bridge.ov.reply.settingsValueInvalid"));
+          return true;
+        }
+        const patch =
+          action.key === "compactSidebar"
+            ? { compactSidebar: parsed }
+            : action.key === "refreshThreadsOnFocus"
+              ? { refreshThreadsOnFocus: parsed }
+              : { nanobotSessionMemoryEnabled: parsed };
+        await updateSettings(patch);
+        await sendBridgeReply(
+          event,
+          t("nanobot.bridge.ov.reply.settingsUpdated", {
+            key: t("nanobot.bridge.ov.setting.label." + action.key),
+            value: String(parsed),
+          }),
+        );
+        return true;
+      }
+      return false;
+    },
+    [
+      bindSessionRoute,
+      buildOpenVibeHelp,
+      closeThreadTab,
+      formatSettingValue,
+      openThreadTab,
+      openWorkspaceTab,
+      resolveThreadTarget,
+      resolveThreadTargetAcrossWorkspaces,
+      resolveWorkspaceTarget,
+      sendBridgeReply,
+      startThreadForWorkspace,
+      syncSessionMode,
+      t,
+      threadsByWorkspace,
+      updateSettings,
+      workspaces,
+    ],
+  );
+
   const ensureRoute = useCallback(
     async (
       event: Extract<NanobotBridgeEvent, { type: "remote-message" }>,
@@ -381,6 +1068,25 @@ export function useNanobotBridgeEvents({
         throw new Error("Nanobot workspace is unavailable.");
       }
       const preferredWorkspaceId = preferredWorkspace.id;
+      const reuseRouteForChat = () =>
+        Array.from(routesRef.current.values()).find(
+          (route) =>
+            route.channel === event.channel &&
+            route.chatId === event.chatId &&
+            route.workspaceId === preferredWorkspaceId,
+        ) ?? null;
+      const inheritSessionMode = (fromSessionKey: string, toSessionKey: string) => {
+        if (fromSessionKey === toSessionKey) {
+          return;
+        }
+        if (sessionModeRef.current.has(toSessionKey)) {
+          return;
+        }
+        const inheritedMode = sessionModeRef.current.get(fromSessionKey);
+        if (inheritedMode) {
+          sessionModeRef.current.set(toSessionKey, inheritedMode);
+        }
+      };
       const mappedWorkspaceId = event.workspaceId?.trim();
       const mappedThreadId = event.threadId?.trim();
       if (
@@ -404,7 +1110,7 @@ export function useNanobotBridgeEvents({
 
       const existing = routesRef.current.get(event.sessionKey);
       if (existing) {
-        if (preferredWorkspaceId && existing.workspaceId !== preferredWorkspaceId) {
+        if (existing.workspaceId !== preferredWorkspaceId) {
           routesRef.current.delete(event.sessionKey);
           boundSessionKeysRef.current.delete(event.sessionKey);
           persistSessionState();
@@ -428,6 +1134,36 @@ export function useNanobotBridgeEvents({
         }
       }
 
+      const reusable = reuseRouteForChat();
+      if (reusable) {
+        inheritSessionMode(reusable.sessionKey, event.sessionKey);
+        const reusedRoute: SessionRoute = {
+          sessionKey: event.sessionKey,
+          channel: event.channel,
+          chatId: event.chatId,
+          workspaceId: reusable.workspaceId,
+          threadId: reusable.threadId,
+        };
+        if (!boundSessionKeysRef.current.has(event.sessionKey)) {
+          await sendNanobotBridgeCommand({
+            type: "bind-session",
+            sessionKey: reusedRoute.sessionKey,
+            channel: reusedRoute.channel,
+            chatId: reusedRoute.chatId,
+            workspaceId: reusedRoute.workspaceId,
+            threadId: reusedRoute.threadId,
+          });
+          await syncSessionMode(
+            reusedRoute.sessionKey,
+            getSessionMode(reusedRoute.sessionKey),
+          );
+          boundSessionKeysRef.current.add(event.sessionKey);
+        }
+        routesRef.current.set(event.sessionKey, reusedRoute);
+        persistSessionState();
+        return reusedRoute;
+      }
+
       const pending = creatingRouteRef.current.get(event.sessionKey);
       if (pending) {
         return pending;
@@ -438,7 +1174,11 @@ export function useNanobotBridgeEvents({
         if (!workspace.connected) {
           await connectWorkspace(workspace);
         }
-        const threadId = await startThreadForWorkspace(workspace.id);
+        const threadId =
+          warmThreadIdRef.current ?? (await startThreadForWorkspace(workspace.id));
+        if (warmThreadIdRef.current === threadId) {
+          warmThreadIdRef.current = null;
+        }
         if (!threadId) {
           throw new Error("Failed to create thread for Nanobot route.");
         }
@@ -481,6 +1221,10 @@ export function useNanobotBridgeEvents({
 
   const tryHandleControlCommand = useCallback(
     async (event: Extract<NanobotBridgeEvent, { type: "remote-message" }>, raw: string) => {
+      if (await handleOpenVibeControl(event, raw)) {
+        return true;
+      }
+
       if (isMenuCommand(raw)) {
         const mode = getSessionMode(event.sessionKey);
         await sendBridgeReply(event, buildMenuText(mode));
@@ -569,6 +1313,7 @@ export function useNanobotBridgeEvents({
       ensureRoute,
       getRelayCandidates,
       getSessionMode,
+      handleOpenVibeControl,
       sendBridgeReply,
       syncSessionMode,
       t,

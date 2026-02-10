@@ -38,6 +38,7 @@ const allowedThemeColors = new Set([
 const allowedLanguages = new Set(["system", "en", "zh-CN"]);
 const allowedComposerSendBehaviors = new Set(["enter", "ctrl-enter", "smart"]);
 const allowedNanobotModes = new Set(["bridge", "agent"]);
+const allowedAccessModes = new Set(["read-only", "current", "full-access"]);
 const DEFAULT_HAPPY_SERVER_URL = "https://api.cluster-fluster.com";
 
 const defaultSettings: AppSettings = {
@@ -53,6 +54,8 @@ const defaultSettings: AppSettings = {
   nanobotMode: "bridge",
   nanobotEnabled: false,
   nanobotSessionMemoryEnabled: true,
+  nanobotAgentModel: "",
+  nanobotAgentReasoningEffort: null,
   nanobotDingTalkEnabled: false,
   nanobotDingTalkClientId: "",
   nanobotDingTalkClientSecret: "",
@@ -98,6 +101,7 @@ const defaultSettings: AppSettings = {
   cycleWorkspaceNextShortcut: "cmd+shift+down",
   cycleWorkspacePrevShortcut: "cmd+shift+up",
   lastComposerModelId: null,
+  lastComposerAccessMode: null,
   lastComposerReasoningEffort: null,
   uiScale: UI_SCALE_DEFAULT,
   compactSidebar: false,
@@ -194,6 +198,11 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       : "bridge",
     nanobotEnabled: Boolean(settings.nanobotEnabled),
     nanobotSessionMemoryEnabled: Boolean(settings.nanobotSessionMemoryEnabled),
+    nanobotAgentModel: settings.nanobotAgentModel?.trim() ?? "",
+    nanobotAgentReasoningEffort: (() => {
+      const effort = settings.nanobotAgentReasoningEffort?.trim();
+      return effort && effort.length > 0 ? effort : null;
+    })(),
     nanobotDingTalkEnabled: Boolean(settings.nanobotDingTalkEnabled),
     nanobotDingTalkClientId: settings.nanobotDingTalkClientId?.trim() ?? "",
     nanobotDingTalkClientSecret:
@@ -234,6 +243,14 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     nanobotQqAppId: settings.nanobotQqAppId?.trim() ?? "",
     nanobotQqSecret: settings.nanobotQqSecret?.trim() ?? "",
     nanobotQqAllowFrom: settings.nanobotQqAllowFrom ?? "",
+    defaultAccessMode: allowedAccessModes.has(settings.defaultAccessMode)
+      ? settings.defaultAccessMode
+      : "current",
+    lastComposerAccessMode:
+      settings.lastComposerAccessMode &&
+      allowedAccessModes.has(settings.lastComposerAccessMode)
+        ? settings.lastComposerAccessMode
+        : null,
     uiScale: clampUiScale(settings.uiScale),
     compactSidebar: Boolean(settings.compactSidebar),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",

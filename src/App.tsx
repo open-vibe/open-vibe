@@ -626,6 +626,7 @@ function MainApp() {
   usePersistComposerSettings({
     appSettingsLoading,
     selectedModelId,
+    accessMode,
     selectedEffort,
     setAppSettings,
     queueSaveSettings,
@@ -874,6 +875,47 @@ function MainApp() {
     setActiveTab,
     setDebugOpen,
   ]);
+  const openThreadTabFromNanobot = useCallback(
+    (workspaceId: string, threadId: string) => {
+      setHomeView(false);
+      const fallbackName = `Agent ${threadId.slice(0, 4)}`;
+      const threadName =
+        threadsByWorkspace[workspaceId]?.find((thread) => thread.id === threadId)
+          ?.name ?? fallbackName;
+      openThreadTab(workspaceId, threadId, threadName);
+    },
+    [openThreadTab, setHomeView, threadsByWorkspace],
+  );
+  const openWorkspaceTabFromNanobot = useCallback(
+    (workspaceId: string) => {
+      setHomeView(false);
+      const title = workspacesById.get(workspaceId)?.name ?? "Workspace";
+      openWorkspaceTab(workspaceId, title);
+    },
+    [openWorkspaceTab, setHomeView, workspacesById],
+  );
+  const closeThreadTabFromNanobot = useCallback(
+    (workspaceId: string, threadId: string) => {
+      const tabId = `${workspaceId}:${threadId}`;
+      const exists = threadTabs.some(
+        (tab) => tab.kind === "thread" && tab.id === tabId,
+      );
+      if (!exists) {
+        return false;
+      }
+      closeThreadTab(tabId);
+      return true;
+    },
+    [closeThreadTab, threadTabs],
+  );
+  const updateSettingsFromNanobot = useCallback(
+    async (patch: Partial<typeof appSettings>) => {
+      const nextSettings = { ...appSettings, ...patch };
+      await queueSaveSettings(nextSettings);
+      return true;
+    },
+    [appSettings, queueSaveSettings],
+  );
   useHappyBridgeEvents({
     enabled: happyEnabled,
     workspaces,
@@ -887,9 +929,15 @@ function MainApp() {
     workspaces,
     nanobotWorkspaceId,
     openThreadTabs: threadTabs,
+    threadsByWorkspace,
+    appSettings,
     t,
     addWorkspaceFromPath,
     connectWorkspace,
+    openWorkspaceTab: openWorkspaceTabFromNanobot,
+    openThreadTab: openThreadTabFromNanobot,
+    closeThreadTab: closeThreadTabFromNanobot,
+    updateSettings: updateSettingsFromNanobot,
     startThreadForWorkspace,
     sendUserMessageToThread,
   });
@@ -3003,6 +3051,7 @@ function MainApp() {
             reduceTransparency,
             onToggleTransparency: setReduceTransparency,
             appSettings,
+            models,
             openAppIconById,
             onUpdateAppSettings: async (next) => {
               await queueSaveSettings(next);
@@ -3011,6 +3060,9 @@ function MainApp() {
             onGetNanobotConfigPath: getNanobotConfigPath,
             onTestNanobotDingTalk: testNanobotDingTalk,
             onClearNanobotThreads: handleClearNanobotThreads,
+            nanobotWorkspace: nanobotWorkspaceId
+              ? (workspacesById.get(nanobotWorkspaceId) ?? null)
+              : null,
             onUpdateWorkspaceCodexBin: async (id, codexBin) => {
               await updateWorkspaceCodexBin(id, codexBin);
             },

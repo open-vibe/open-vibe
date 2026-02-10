@@ -7,7 +7,90 @@ import { TabsContent } from "@/components/ui/tabs";
 import { SettingsSection } from "../SettingsSection";
 
 export function NanobotTabSection(props: any) {
-  const {t, appSettings, onUpdateAppSettings, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, cn} = props;
+  const {
+    t,
+    appSettings,
+    onUpdateAppSettings,
+    models,
+    nextNanobotClientId,
+    nextNanobotClientSecret,
+    nextNanobotAgentModel,
+    nextNanobotAgentReasoningEffort,
+    nextNanobotAllowFrom,
+    nextNanobotEmailImapHost,
+    nextNanobotEmailImapPort,
+    nextNanobotEmailImapUsername,
+    nextNanobotEmailImapPassword,
+    nextNanobotEmailImapMailbox,
+    nextNanobotEmailSmtpHost,
+    nextNanobotEmailSmtpPort,
+    nextNanobotEmailSmtpUsername,
+    nextNanobotEmailSmtpPassword,
+    nextNanobotEmailFromAddress,
+    nextNanobotEmailAllowFrom,
+    nextNanobotEmailPollIntervalSeconds,
+    nextNanobotQqAppId,
+    nextNanobotQqSecret,
+    nextNanobotQqAllowFrom,
+    nanobotClientIdDraft,
+    setNanobotClientIdDraft,
+    nanobotClientSecretDraft,
+    setNanobotClientSecretDraft,
+    nanobotAgentModelDraft,
+    nanobotAgentModelSelectValue,
+    handleSelectNanobotAgentModel,
+    nanobotAgentReasoningEffortDraft,
+    nanobotAgentReasoningOptions,
+    handleSelectNanobotAgentReasoningEffort,
+    nanobotAllowFromDraft,
+    setNanobotAllowFromDraft,
+    handleTestNanobotDingTalk,
+    nanobotTestState,
+    nanobotWorkspace,
+    nanobotCodexBinDraft,
+    setNanobotCodexBinDraft,
+    handleCommitNanobotCodexBin,
+    nanobotCodexBinSaving,
+    nanobotCodexBinSavedAt,
+    nanobotEmailImapHostDraft,
+    setNanobotEmailImapHostDraft,
+    nanobotEmailImapPortDraft,
+    setNanobotEmailImapPortDraft,
+    nanobotEmailImapUsernameDraft,
+    setNanobotEmailImapUsernameDraft,
+    nanobotEmailImapPasswordDraft,
+    setNanobotEmailImapPasswordDraft,
+    nanobotEmailImapMailboxDraft,
+    setNanobotEmailImapMailboxDraft,
+    nanobotEmailSmtpHostDraft,
+    setNanobotEmailSmtpHostDraft,
+    nanobotEmailSmtpPortDraft,
+    setNanobotEmailSmtpPortDraft,
+    nanobotEmailSmtpUsernameDraft,
+    setNanobotEmailSmtpUsernameDraft,
+    nanobotEmailSmtpPasswordDraft,
+    setNanobotEmailSmtpPasswordDraft,
+    nanobotEmailFromAddressDraft,
+    setNanobotEmailFromAddressDraft,
+    nanobotEmailPollIntervalDraft,
+    setNanobotEmailPollIntervalDraft,
+    nanobotEmailAllowFromDraft,
+    setNanobotEmailAllowFromDraft,
+    nanobotQqAppIdDraft,
+    setNanobotQqAppIdDraft,
+    nanobotQqSecretDraft,
+    setNanobotQqSecretDraft,
+    nanobotQqAllowFromDraft,
+    setNanobotQqAllowFromDraft,
+    nanobotDirty,
+    handleSaveNanobotSettings,
+    isSavingSettings,
+    handleClearNanobotThreads,
+    nanobotCleanupState,
+    nanobotConfigPath,
+    nanobotConfigPathError,
+    cn,
+  } = props;
 
   return (
 <TabsContent value="nanobot" className="mt-0">
@@ -89,6 +172,9 @@ export function NanobotTabSection(props: any) {
                               nanobotEnabled: checked,
                               nanobotDingTalkClientId: nextNanobotClientId,
                               nanobotDingTalkClientSecret: nextNanobotClientSecret,
+                              nanobotAgentModel: nextNanobotAgentModel,
+                              nanobotAgentReasoningEffort:
+                                nextNanobotAgentReasoningEffort,
                               nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
                               nanobotEmailImapHost: nextNanobotEmailImapHost,
                               nanobotEmailImapPort: nextNanobotEmailImapPort,
@@ -131,6 +217,166 @@ export function NanobotTabSection(props: any) {
                       </div>
                       <div className="rounded-md border border-border/60 p-3">
                         <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.providerWorkspace.title")}
+                        </div>
+                        {nanobotWorkspace ? (
+                          <div className="space-y-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {nanobotWorkspace.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {nanobotWorkspace.path}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-workspace-codex-bin">
+                                {t("settings.codex.workspaceOverrides.binLabel")}
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  id="nanobot-workspace-codex-bin"
+                                  value={nanobotCodexBinDraft}
+                                  placeholder={t(
+                                    "settings.codex.workspaceOverrides.binPlaceholder",
+                                  )}
+                                  onChange={(event: any) =>
+                                    setNanobotCodexBinDraft(event.target.value)
+                                  }
+                                  onBlur={() => {
+                                    void handleCommitNanobotCodexBin();
+                                  }}
+                                  onKeyDown={(event: any) => {
+                                    if (event.key === "Enter") {
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    setNanobotCodexBinDraft("");
+                                    await handleCommitNanobotCodexBin("");
+                                  }}
+                                  disabled={nanobotCodexBinSaving}
+                                >
+                                  {t("settings.action.clear")}
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <span>
+                                  {t("settings.codex.workspaceOverrides.savedValue", {
+                                    value:
+                                      nanobotWorkspace.codex_bin ??
+                                      t("settings.value.none"),
+                                  })}
+                                </span>
+                                <span>
+                                  {t("settings.codex.workspaceOverrides.effectiveBin", {
+                                    value:
+                                      nanobotWorkspace.codex_bin ??
+                                      appSettings.codexBin ??
+                                      "codex",
+                                  })}
+                                </span>
+                                {nanobotCodexBinSaving ? (
+                                  <span>{t("settings.action.saving")}</span>
+                                ) : nanobotCodexBinSavedAt > 0 ? (
+                                  <span>{t("settings.codex.workspaceOverrides.saved")}</span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">
+                            {t("settings.nanobot.providerWorkspace.empty")}
+                          </div>
+                        )}
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.agentOverrides.sectionTitle")}
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="nanobot-agent-model">
+                              {t("settings.nanobot.agentOverrides.model.label")}
+                            </Label>
+                            <Select
+                              value={nanobotAgentModelSelectValue}
+                              onValueChange={handleSelectNanobotAgentModel}
+                            >
+                              <SelectTrigger id="nanobot-agent-model">
+                                <SelectValue
+                                  placeholder={t(
+                                    "settings.nanobot.agentOverrides.model.placeholder",
+                                  )}
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__nanobot-model-default__">
+                                  {t(
+                                    "settings.nanobot.agentOverrides.model.option.default",
+                                  )}
+                                </SelectItem>
+                                {nanobotAgentModelSelectValue ===
+                                "__nanobot-model-custom__" ? (
+                                  <SelectItem value="__nanobot-model-custom__">
+                                    {nanobotAgentModelDraft}
+                                  </SelectItem>
+                                ) : null}
+                                {models.map((model: any) => (
+                                  <SelectItem key={model.id} value={model.id}>
+                                    {model.displayName || model.model}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.nanobot.agentOverrides.model.help")}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nanobot-agent-effort">
+                              {t(
+                                "settings.nanobot.agentOverrides.reasoning.label",
+                              )}
+                            </Label>
+                            <Select
+                              value={
+                                nanobotAgentReasoningEffortDraft ||
+                                "__nanobot-effort-default__"
+                              }
+                              onValueChange={handleSelectNanobotAgentReasoningEffort}
+                            >
+                              <SelectTrigger id="nanobot-agent-effort">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__nanobot-effort-default__">
+                                  {t(
+                                    "settings.nanobot.agentOverrides.reasoning.option.default",
+                                  )}
+                                </SelectItem>
+                                {nanobotAgentReasoningOptions.map((effort: string) => (
+                                  <SelectItem key={effort} value={effort}>
+                                    {effort}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="text-xs text-muted-foreground">
+                              {t(
+                                "settings.nanobot.agentOverrides.reasoning.help",
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
                           {t("settings.nanobot.dingtalk.sectionTitle")}
                         </div>
                         <div className="space-y-3">
@@ -152,6 +398,9 @@ export function NanobotTabSection(props: any) {
                                   nanobotDingTalkClientId: nextNanobotClientId,
                                   nanobotDingTalkClientSecret:
                                     nextNanobotClientSecret,
+                                  nanobotAgentModel: nextNanobotAgentModel,
+                                  nanobotAgentReasoningEffort:
+                                    nextNanobotAgentReasoningEffort,
                                   nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
                                   nanobotEmailImapHost: nextNanobotEmailImapHost,
                                   nanobotEmailImapPort: nextNanobotEmailImapPort,
@@ -289,6 +538,9 @@ export function NanobotTabSection(props: any) {
                                   nanobotDingTalkClientId: nextNanobotClientId,
                                   nanobotDingTalkClientSecret:
                                     nextNanobotClientSecret,
+                                  nanobotAgentModel: nextNanobotAgentModel,
+                                  nanobotAgentReasoningEffort:
+                                    nextNanobotAgentReasoningEffort,
                                   nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
                                   nanobotEmailImapHost: nextNanobotEmailImapHost,
                                   nanobotEmailImapPort: nextNanobotEmailImapPort,

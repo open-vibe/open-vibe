@@ -173,6 +173,34 @@ const en = {
   "nanobot.bridge.reply.relayBound": "Relay bound: {value}",
   "nanobot.bridge.reply.unexpectedError":
     "Bridge handling failed: {value}",
+  "nanobot.bridge.ov.help.title":
+    "OpenVibe control (supports /ov commands and natural language):",
+  "nanobot.bridge.ov.reply.noWorkspaces": "No workspace found.",
+  "nanobot.bridge.ov.reply.workspaceListHeader": "Workspaces:",
+  "nanobot.bridge.ov.reply.workspaceNotFound": "Workspace not found.",
+  "nanobot.bridge.ov.reply.workspaceOpened": "Workspace opened: {value}",
+  "nanobot.bridge.ov.reply.threadListHeader": "Threads in {value}:",
+  "nanobot.bridge.ov.reply.noThreads": "No threads in {value}.",
+  "nanobot.bridge.ov.reply.threadNotFound": "Thread not found.",
+  "nanobot.bridge.ov.reply.threadAmbiguousHeader":
+    "Multiple threads matched. Please use a longer id or name:",
+  "nanobot.bridge.ov.reply.threadAmbiguousHint":
+    "Tip: run /ov thread list <workspace> and use the index.",
+  "nanobot.bridge.ov.reply.threadOpened": "Thread opened: {value}",
+  "nanobot.bridge.ov.reply.threadClosed": "Thread tab closed: {value}",
+  "nanobot.bridge.ov.reply.threadCloseNotOpen":
+    "Thread tab is not open: {value}",
+  "nanobot.bridge.ov.reply.settingsListHeader": "Settings (allowlist):",
+  "nanobot.bridge.ov.reply.settingsValue": "{key}: {value}",
+  "nanobot.bridge.ov.reply.settingsUpdated": "Updated {key} = {value}",
+  "nanobot.bridge.ov.reply.settingsValueInvalid":
+    "Invalid setting value. Use on/off, true/false, bridge/agent.",
+  "nanobot.bridge.ov.setting.label.compactSidebar": "compactSidebar",
+  "nanobot.bridge.ov.setting.label.refreshThreadsOnFocus":
+    "refreshThreadsOnFocus",
+  "nanobot.bridge.ov.setting.label.nanobotSessionMemoryEnabled":
+    "nanobotSessionMemoryEnabled",
+  "nanobot.bridge.ov.setting.label.nanobotMode": "nanobotMode",
   "settings.composer.codeFences.title": "Code fences",
   "settings.composer.codeFences.expandSpace.title": "Expand fences on Space",
   "settings.composer.codeFences.expandSpace.subtitle":
@@ -453,6 +481,32 @@ const en = {
   "settings.nanobot.sessionMemory.title": "Remember session state",
   "settings.nanobot.sessionMemory.subtitle":
     "Restore per-channel mode and bound thread after app restart.",
+  "settings.nanobot.providerWorkspace.title":
+    "Nanobot provider workspace override",
+  "settings.nanobot.providerWorkspace.empty":
+    "Nanobot workspace is not ready yet. Enable Nanobot first.",
+  "settings.nanobot.agentOverrides.sectionTitle": "Agent overrides",
+  "settings.nanobot.agentOverrides.model.label": "Model override",
+  "settings.nanobot.agentOverrides.model.placeholder":
+    "Leave empty to follow the current OpenVibe model",
+  "settings.nanobot.agentOverrides.model.help":
+    "Default model for Nanobot agent-mode provider calls.",
+  "settings.nanobot.agentOverrides.model.option.default":
+    "Follow current composer model",
+  "settings.nanobot.agentOverrides.access.label": "Access mode override",
+  "settings.nanobot.agentOverrides.access.help":
+    "Controls sandbox + approval policy for Nanobot provider turns.",
+  "settings.nanobot.agentOverrides.reasoning.label":
+    "Reasoning effort override",
+  "settings.nanobot.agentOverrides.reasoning.placeholder":
+    "Leave empty to use model default (example: low/medium/high)",
+  "settings.nanobot.agentOverrides.reasoning.help":
+    "Default effort for Nanobot agent-mode provider turns.",
+  "settings.nanobot.agentOverrides.reasoning.option.default":
+    "Follow current composer setting",
+  "settings.nanobot.agentOverrides.reasoning.option.low": "Low",
+  "settings.nanobot.agentOverrides.reasoning.option.medium": "Medium",
+  "settings.nanobot.agentOverrides.reasoning.option.high": "High",
   "settings.nanobot.dingtalk.sectionTitle": "DingTalk channel",
   "settings.nanobot.dingtalk.enable.title": "Enable DingTalk channel",
   "settings.nanobot.dingtalk.enable.subtitle":
@@ -929,6 +983,30 @@ const zhCN: Record<TranslationKey, string> = {
   "nanobot.bridge.reply.invalidRelayIndex": "接力编号无效：{value}",
   "nanobot.bridge.reply.relayBound": "已绑定接力：{value}",
   "nanobot.bridge.reply.unexpectedError": "桥接处理失败：{value}",
+  "nanobot.bridge.ov.help.title": "OpenVibe 控制（支持 /ov 指令和自然语言）：",
+  "nanobot.bridge.ov.reply.noWorkspaces": "当前没有可用工作区。",
+  "nanobot.bridge.ov.reply.workspaceListHeader": "工作区列表：",
+  "nanobot.bridge.ov.reply.workspaceNotFound": "未找到对应工作区。",
+  "nanobot.bridge.ov.reply.workspaceOpened": "已打开工作区：{value}",
+  "nanobot.bridge.ov.reply.threadListHeader": "{value} 的对话列表：",
+  "nanobot.bridge.ov.reply.noThreads": "{value} 下暂无对话。",
+  "nanobot.bridge.ov.reply.threadNotFound": "未找到对应对话。",
+  "nanobot.bridge.ov.reply.threadAmbiguousHeader":
+    "匹配到多个对话，请提供更长的 id 或更精确名称：",
+  "nanobot.bridge.ov.reply.threadAmbiguousHint":
+    "建议先执行 /ov thread list <workspace>，再使用编号。",
+  "nanobot.bridge.ov.reply.threadOpened": "已打开对话：{value}",
+  "nanobot.bridge.ov.reply.threadClosed": "已关闭对话标签：{value}",
+  "nanobot.bridge.ov.reply.threadCloseNotOpen": "该对话未打开：{value}",
+  "nanobot.bridge.ov.reply.settingsListHeader": "设置项（白名单）：",
+  "nanobot.bridge.ov.reply.settingsValue": "{key}: {value}",
+  "nanobot.bridge.ov.reply.settingsUpdated": "已更新 {key} = {value}",
+  "nanobot.bridge.ov.reply.settingsValueInvalid":
+    "设置值无效，可用 on/off、true/false、bridge/agent。",
+  "nanobot.bridge.ov.setting.label.compactSidebar": "紧凑侧边栏",
+  "nanobot.bridge.ov.setting.label.refreshThreadsOnFocus": "聚焦刷新",
+  "nanobot.bridge.ov.setting.label.nanobotSessionMemoryEnabled": "会话状态记忆",
+  "nanobot.bridge.ov.setting.label.nanobotMode": "Nanobot 模式",
   "settings.composer.codeFences.title": "代码围栏",
   "settings.composer.codeFences.expandSpace.title": "空格自动展开围栏",
   "settings.composer.codeFences.expandSpace.subtitle": "输入 ``` 后按空格插入代码围栏。",
@@ -1193,6 +1271,28 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.sessionMemory.title": "记忆会话状态",
   "settings.nanobot.sessionMemory.subtitle":
     "重启应用后恢复每个渠道的模式与绑定会话。",
+  "settings.nanobot.providerWorkspace.title": "Nanobot Provider 工作区覆盖",
+  "settings.nanobot.providerWorkspace.empty":
+    "Nanobot 工作区尚未就绪，请先启用 Nanobot。",
+  "settings.nanobot.agentOverrides.sectionTitle": "Agent 覆盖设置",
+  "settings.nanobot.agentOverrides.model.label": "模型覆盖",
+  "settings.nanobot.agentOverrides.model.placeholder":
+    "留空则跟随当前 OpenVibe 模型",
+  "settings.nanobot.agentOverrides.model.help":
+    "Nanobot agent 模式下默认使用该模型。",
+  "settings.nanobot.agentOverrides.model.option.default": "跟随当前输入框模型",
+  "settings.nanobot.agentOverrides.access.label": "权限模式覆盖",
+  "settings.nanobot.agentOverrides.access.help":
+    "控制 Nanobot provider 回合的沙箱与审批策略。",
+  "settings.nanobot.agentOverrides.reasoning.label": "推理力度覆盖",
+  "settings.nanobot.agentOverrides.reasoning.placeholder":
+    "留空使用模型默认（如 low/medium/high）",
+  "settings.nanobot.agentOverrides.reasoning.help":
+    "作为 Nanobot agent 模式的默认推理力度。",
+  "settings.nanobot.agentOverrides.reasoning.option.default": "跟随当前输入框设置",
+  "settings.nanobot.agentOverrides.reasoning.option.low": "低",
+  "settings.nanobot.agentOverrides.reasoning.option.medium": "中",
+  "settings.nanobot.agentOverrides.reasoning.option.high": "高",
   "settings.nanobot.dingtalk.sectionTitle": "钉钉渠道",
   "settings.nanobot.dingtalk.enable.title": "启用钉钉渠道",
   "settings.nanobot.dingtalk.enable.subtitle":

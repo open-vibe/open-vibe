@@ -32,6 +32,8 @@ const baseSettings: AppSettings = {
   nanobotMode: "bridge",
   nanobotEnabled: false,
   nanobotSessionMemoryEnabled: true,
+  nanobotAgentModel: "",
+  nanobotAgentReasoningEffort: null,
   nanobotDingTalkEnabled: false,
   nanobotDingTalkClientId: "",
   nanobotDingTalkClientSecret: "",
@@ -77,6 +79,7 @@ const baseSettings: AppSettings = {
   cycleWorkspaceNextShortcut: null,
   cycleWorkspacePrevShortcut: null,
   lastComposerModelId: null,
+  lastComposerAccessMode: null,
   lastComposerReasoningEffort: null,
   uiScale: 1,
   compactSidebar: false,
@@ -161,6 +164,7 @@ const renderDisplaySection = async (
     reduceTransparency: options.reduceTransparency ?? false,
     onToggleTransparency,
     appSettings: { ...baseSettings, ...options.appSettings },
+    models: [],
     openAppIconById: {},
     onUpdateAppSettings,
     workspaceGroups: [],
@@ -392,6 +396,7 @@ describe("SettingsView Codex overrides", () => {
           reduceTransparency={false}
           onToggleTransparency={vi.fn()}
           appSettings={baseSettings}
+          models={[]}
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
@@ -447,6 +452,7 @@ describe("SettingsView Shortcuts", () => {
           reduceTransparency={false}
           onToggleTransparency={vi.fn()}
           appSettings={baseSettings}
+          models={[]}
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
@@ -497,6 +503,7 @@ describe("SettingsView Shortcuts", () => {
           reduceTransparency={false}
           onToggleTransparency={vi.fn()}
           appSettings={baseSettings}
+          models={[]}
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
@@ -552,6 +559,7 @@ describe("SettingsView Experimental", () => {
             experimentalYunyiEnabled: true,
             experimentalYunyiToken: "",
           }}
+          models={[]}
           openAppIconById={{}}
           onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
           onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}

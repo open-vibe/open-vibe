@@ -8,7 +8,10 @@ use nanobot::agent::AgentLoop;
 use nanobot::bus::{MessageBus, OutboundMessage};
 use nanobot::channels::manager::ChannelManager;
 use nanobot::config::{Config, load_config};
+use nanobot::cron::CronService;
 use nanobot::providers::base::{LLMProvider, LLMResponse, ToolCallRequest};
+use nanobot::session::SessionManager;
+use nanobot::utils::get_data_path;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -504,7 +507,17 @@ async fn run_daemon() -> Result<(), String> {
     }
 
     let bus = Arc::new(MessageBus::new(256));
-    let manager = Arc::new(ChannelManager::new(&config, bus.clone(), None));
+    let session_manager = Arc::new(SessionManager::new().map_err(|error| error.to_string())?);
+    let cron_store_path = get_data_path()
+        .map_err(|error| error.to_string())?
+        .join("cron")
+        .join("jobs.json");
+    let cron = Arc::new(CronService::new(cron_store_path));
+    let manager = Arc::new(ChannelManager::new(
+        &config,
+        bus.clone(),
+        Some(session_manager.clone()),
+    ));
     let routes = Arc::new(Mutex::new(RouteState::default()));
     let provider_pending = Arc::new(Mutex::new(ProviderPendingState::default()));
     let provider = Arc::new(OpenVibeProvider::new(
@@ -527,11 +540,91 @@ async fn run_daemon() -> Result<(), String> {
             },
             config.tools.exec.timeout,
             config.tools.restrict_to_workspace,
-            None,
-            None,
+            Some(cron.clone()),
+            Some(session_manager.clone()),
         )
         .map_err(|error| error.to_string())?,
     );
+
+    let bus_for_cron = bus.clone();
+    let agent_for_cron = agent.clone();
+    let routes_for_cron = routes.clone();
+    let out_tx_for_cron = out_tx.clone();
+    cron.set_on_job(Arc::new(move |job| {
+        let bus = bus_for_cron.clone();
+        let agent = agent_for_cron.clone();
+        let routes = routes_for_cron.clone();
+        let out_tx = out_tx_for_cron.clone();
+        Box::pin(async move {
+            let message = job.payload.message.clone();
+            let session_key = if let (Some(channel), Some(chat_id)) =
+                (job.payload.channel.as_deref(), job.payload.to.as_deref())
+            {
+                format!("{channel}:{chat_id}")
+            } else {
+                format!("cron:{}", job.id)
+            };
+            let mapped_route = {
+                let guard = routes.lock().await;
+                guard.by_session_key.get(&session_key).cloned()
+            };
+            let workspace_id = mapped_route.as_ref().map(|route| route.workspace_id.clone());
+            let thread_id = mapped_route.as_ref().map(|route| route.thread_id.clone());
+            emit_event(
+                &out_tx,
+                json!({
+                    "type": "agent-trace",
+                    "sessionKey": session_key.clone(),
+                    "workspaceId": workspace_id,
+                    "threadId": thread_id,
+                    "role": "user",
+                    "content": message.clone(),
+                    "createdAt": unix_time_ms(),
+                }),
+            );
+
+            let response = ACTIVE_SESSION_KEY
+                .scope(session_key.clone(), async {
+                    agent
+                        .process_direct(
+                            &message,
+                            Some(&session_key),
+                            job.payload.channel.as_deref(),
+                            job.payload.to.as_deref(),
+                        )
+                        .await
+                })
+                .await?;
+
+            emit_event(
+                &out_tx,
+                json!({
+                    "type": "agent-trace",
+                    "sessionKey": session_key.clone(),
+                    "workspaceId": mapped_route.as_ref().map(|route| route.workspace_id.clone()),
+                    "threadId": mapped_route.as_ref().map(|route| route.thread_id.clone()),
+                    "role": "assistant",
+                    "content": response.clone(),
+                    "createdAt": unix_time_ms(),
+                }),
+            );
+
+            if job.payload.deliver {
+                if let (Some(channel), Some(to)) = (job.payload.channel.clone(), job.payload.to.clone())
+                {
+                    bus.publish_outbound(OutboundMessage::new(channel, to, response.clone()))
+                        .await?;
+                    let mut guard = routes.lock().await;
+                    guard
+                        .recent_outbound_by_session
+                        .insert(session_key, (response.clone(), unix_time_ms()));
+                }
+            }
+            Ok(Some(response))
+        })
+    }))
+    .await;
+    cron.start().await.map_err(|error| error.to_string())?;
 
     let out_tx_for_inbound = out_tx.clone();
     let bus_for_inbound = bus.clone();
@@ -882,6 +975,7 @@ async fn run_daemon() -> Result<(), String> {
         }
     }
 
+    cron.stop().await;
     manager.stop_all().await;
     inbound_task.abort();
     let _ = inbound_task.await;

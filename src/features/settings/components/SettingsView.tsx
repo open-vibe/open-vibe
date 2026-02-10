@@ -20,6 +20,7 @@ import type {
   AppSettings,
   CodexDoctorResult,
   DictationModelStatus,
+  ModelOption,
   NanobotDingTalkTestResult,
   OpenAppTarget,
   WorkspaceGroup,
@@ -201,6 +202,7 @@ export type SettingsViewProps = {
   reduceTransparency: boolean;
   onToggleTransparency: (value: boolean) => void;
   appSettings: AppSettings;
+  models: ModelOption[];
   openAppIconById: Record<string, string>;
   onUpdateAppSettings: (next: AppSettings) => Promise<void>;
   onRunDoctor: (
@@ -216,6 +218,7 @@ export type SettingsViewProps = {
     cleared: number;
     workspaceName: string;
   }>;
+  nanobotWorkspace?: WorkspaceInfo | null;
   onUpdateWorkspaceCodexBin: (
     id: string,
     codexBin: string | null,
@@ -334,12 +337,14 @@ export function SettingsView({
   reduceTransparency,
   onToggleTransparency,
   appSettings,
+  models,
   openAppIconById,
   onUpdateAppSettings,
   onRunDoctor,
   onGetNanobotConfigPath,
   onTestNanobotDingTalk,
   onClearNanobotThreads,
+  nanobotWorkspace = null,
   onUpdateWorkspaceCodexBin,
   onUpdateWorkspaceSettings,
   scaleShortcutTitle,
@@ -596,6 +601,11 @@ export function SettingsView({
   const [nanobotClientSecretDraft, setNanobotClientSecretDraft] = useState(
     appSettings.nanobotDingTalkClientSecret,
   );
+  const [nanobotAgentModelDraft, setNanobotAgentModelDraft] = useState(
+    appSettings.nanobotAgentModel,
+  );
+  const [nanobotAgentReasoningEffortDraft, setNanobotAgentReasoningEffortDraft] =
+    useState(appSettings.nanobotAgentReasoningEffort ?? "");
   const [nanobotAllowFromDraft, setNanobotAllowFromDraft] = useState(
     appSettings.nanobotDingTalkAllowFrom,
   );
@@ -637,6 +647,11 @@ export function SettingsView({
   const [nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft] = useState(
     appSettings.nanobotQqAllowFrom,
   );
+  const [nanobotCodexBinDraft, setNanobotCodexBinDraft] = useState(
+    nanobotWorkspace?.codex_bin ?? "",
+  );
+  const [nanobotCodexBinSaving, setNanobotCodexBinSaving] = useState(false);
+  const [nanobotCodexBinSavedAt, setNanobotCodexBinSavedAt] = useState(0);
   const [nanobotConfigPath, setNanobotConfigPath] = useState<string | null>(null);
   const [nanobotConfigPathError, setNanobotConfigPathError] = useState<string | null>(
     null,
@@ -868,6 +883,16 @@ export function SettingsView({
   }, [appSettings.nanobotDingTalkClientSecret]);
 
   useEffect(() => {
+    setNanobotAgentModelDraft(appSettings.nanobotAgentModel);
+  }, [appSettings.nanobotAgentModel]);
+
+  useEffect(() => {
+    setNanobotAgentReasoningEffortDraft(
+      appSettings.nanobotAgentReasoningEffort ?? "",
+    );
+  }, [appSettings.nanobotAgentReasoningEffort]);
+
+  useEffect(() => {
     setNanobotAllowFromDraft(appSettings.nanobotDingTalkAllowFrom);
   }, [appSettings.nanobotDingTalkAllowFrom]);
 
@@ -932,6 +957,10 @@ export function SettingsView({
   useEffect(() => {
     setNanobotQqAllowFromDraft(appSettings.nanobotQqAllowFrom);
   }, [appSettings.nanobotQqAllowFrom]);
+
+  useEffect(() => {
+    setNanobotCodexBinDraft(nanobotWorkspace?.codex_bin ?? "");
+  }, [nanobotWorkspace?.codex_bin]);
 
   useEffect(() => {
     let active = true;
@@ -1071,6 +1100,39 @@ export function SettingsView({
     }
   }, [initialSection]);
 
+  const nanobotAgentSelectedModelOption = useMemo(() => {
+    const draft = nanobotAgentModelDraft.trim();
+    if (!draft) {
+      return null;
+    }
+    return (
+      models.find((model) => model.id === draft || model.model === draft) ?? null
+    );
+  }, [models, nanobotAgentModelDraft]);
+  const nanobotAgentModelSelectValue = nanobotAgentModelDraft.trim()
+    ? (nanobotAgentSelectedModelOption?.id ?? "__nanobot-model-custom__")
+    : "__nanobot-model-default__";
+  const nanobotAgentReasoningOptions = useMemo(() => {
+    const values = new Set<string>();
+    if (nanobotAgentSelectedModelOption) {
+      nanobotAgentSelectedModelOption.supportedReasoningEfforts.forEach((effort) => {
+        const value = effort.reasoningEffort.trim();
+        if (value) {
+          values.add(value);
+        }
+      });
+      const defaultEffort = nanobotAgentSelectedModelOption.defaultReasoningEffort?.trim();
+      if (defaultEffort) {
+        values.add(defaultEffort);
+      }
+    }
+    const draftEffort = nanobotAgentReasoningEffortDraft.trim();
+    if (draftEffort) {
+      values.add(draftEffort);
+    }
+    return Array.from(values);
+  }, [nanobotAgentReasoningEffortDraft, nanobotAgentSelectedModelOption]);
+
   const nextCodexBin = normalizeWindowsPath(
     codexPathDraft.trim() ? codexPathDraft.trim() : null,
   );
@@ -1080,6 +1142,9 @@ export function SettingsView({
     nextCodexArgs !== (appSettings.codexArgs ?? null);
   const nextNanobotClientId = nanobotClientIdDraft.trim();
   const nextNanobotClientSecret = nanobotClientSecretDraft.trim();
+  const nextNanobotAgentModel = nanobotAgentModelDraft.trim();
+  const nextNanobotAgentReasoningEffort =
+    nanobotAgentReasoningEffortDraft.trim() || null;
   const nextNanobotAllowFrom = nanobotAllowFromDraft.trim();
   const nextNanobotEmailImapHost = nanobotEmailImapHostDraft.trim();
   const nextNanobotEmailImapPort = Math.min(
@@ -1109,6 +1174,8 @@ export function SettingsView({
   const nanobotDirty =
     nextNanobotClientId !== appSettings.nanobotDingTalkClientId ||
     nextNanobotClientSecret !== appSettings.nanobotDingTalkClientSecret ||
+    nextNanobotAgentModel !== appSettings.nanobotAgentModel ||
+    nextNanobotAgentReasoningEffort !== appSettings.nanobotAgentReasoningEffort ||
     nextNanobotAllowFrom !== appSettings.nanobotDingTalkAllowFrom ||
     nextNanobotEmailImapHost !== appSettings.nanobotEmailImapHost ||
     nextNanobotEmailImapPort !== appSettings.nanobotEmailImapPort ||
@@ -1155,6 +1222,8 @@ export function SettingsView({
         ...appSettings,
         nanobotDingTalkClientId: nextNanobotClientId,
         nanobotDingTalkClientSecret: nextNanobotClientSecret,
+        nanobotAgentModel: nextNanobotAgentModel,
+        nanobotAgentReasoningEffort: nextNanobotAgentReasoningEffort,
         nanobotDingTalkAllowFrom: nextNanobotAllowFrom,
         nanobotEmailImapHost: nextNanobotEmailImapHost,
         nanobotEmailImapPort: nextNanobotEmailImapPort,
@@ -1176,6 +1245,55 @@ export function SettingsView({
       setIsSavingSettings(false);
     }
   };
+
+  const handleCommitNanobotCodexBin = useCallback(async (draftValue?: string) => {
+    if (!nanobotWorkspace) {
+      return;
+    }
+    const nextValue = normalizeWindowsPath(
+      normalizeOverrideValue(draftValue ?? nanobotCodexBinDraft),
+    );
+    const previousValue = nanobotWorkspace.codex_bin ?? null;
+    if (nextValue === previousValue) {
+      return;
+    }
+    setNanobotCodexBinSaving(true);
+    try {
+      await onUpdateWorkspaceCodexBin(nanobotWorkspace.id, nextValue);
+      setNanobotCodexBinSavedAt(Date.now());
+      window.setTimeout(() => {
+        setNanobotCodexBinSavedAt(0);
+      }, 2000);
+    } finally {
+      setNanobotCodexBinSaving(false);
+    }
+  }, [
+    nanobotWorkspace,
+    nanobotCodexBinDraft,
+    normalizeWindowsPath,
+    onUpdateWorkspaceCodexBin,
+  ]);
+  const handleSelectNanobotAgentModel = useCallback(
+    (value: string) => {
+      if (value === "__nanobot-model-default__") {
+        setNanobotAgentModelDraft("");
+        return;
+      }
+      const selected = models.find((model) => model.id === value);
+      if (!selected) {
+        return;
+      }
+      setNanobotAgentModelDraft(selected.model);
+    },
+    [models],
+  );
+  const handleSelectNanobotAgentReasoningEffort = useCallback((value: string) => {
+    if (value === "__nanobot-effort-default__") {
+      setNanobotAgentReasoningEffortDraft("");
+      return;
+    }
+    setNanobotAgentReasoningEffortDraft(value);
+  }, []);
 
   const handleCommitCodexBinOverride = useCallback(
     async (workspace: WorkspaceInfo) => {
@@ -1849,7 +1967,7 @@ export function SettingsView({
                             <DictationTabSection {...{ t, platform, appSettings, onUpdateAppSettings, dictationModelStatus, onCancelDictationDownload, onDownloadDictationModel, dictationModels, selectedDictationModel, dictationProgress, dictationReady, onRemoveDictationModel, DICTATION_AUTO_VALUE, DICTATION_HOLD_OFF_VALUE }} />
                             <ShortcutsTabSection {...{ t, shortcutDrafts, handleShortcutKeyDown, updateShortcut, formatShortcut, getDefaultInterruptShortcut }} />
                             <OpenAppsTabSection {...{ t, openAppDrafts, openAppIconById, handleOpenAppDraftChange, handleCommitOpenApps, handleOpenAppKindChange, fileManagerLabel, openAppSelectedId, handleSelectOpenAppDefault, handleMoveOpenApp, handleDeleteOpenApp, handleAddOpenApp }} />
-                            <NanobotTabSection {...{ t, appSettings, onUpdateAppSettings, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, cn }} />
+                            <NanobotTabSection {...{ t, appSettings, onUpdateAppSettings, models, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAgentModel, nextNanobotAgentReasoningEffort, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAgentModelDraft, nanobotAgentModelSelectValue, handleSelectNanobotAgentModel, nanobotAgentReasoningEffortDraft, nanobotAgentReasoningOptions, handleSelectNanobotAgentReasoningEffort, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotWorkspace, nanobotCodexBinDraft, setNanobotCodexBinDraft, handleCommitNanobotCodexBin, nanobotCodexBinSaving, nanobotCodexBinSavedAt, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, cn }} />
                             <CodexTabSection {...{ t, codexPathDraft, setCodexPathDraft, handleBrowseCodex, codexArgsDraft, setCodexArgsDraft, codexDirty, handleSaveCodexSettings, isSavingSettings, handleRunDoctor, doctorState, projects, codexBinOverrideDrafts, setCodexBinOverrideDrafts, handleCommitCodexBinOverride, codexBinOverrideSaving, codexBinOverrideSavedAt, setCodexBinOverrideSaving, onUpdateWorkspaceCodexBin, setCodexBinOverrideSavedAt, appSettings, handleRunWorkspaceDoctor, codexBinOverrideDoctor, codexHomeOverrideDrafts, setCodexHomeOverrideDrafts, onUpdateWorkspaceSettings, codexArgsOverrideDrafts, setCodexArgsOverrideDrafts, onUpdateAppSettings, remoteHostDraft, setRemoteHostDraft, handleCommitRemoteHost, remoteTokenDraft, setRemoteTokenDraft, handleCommitRemoteToken, globalAgentsMeta, globalAgentsError, globalAgentsContent, globalAgentsLoading, globalAgentsRefreshDisabled, globalAgentsSaveDisabled, globalAgentsSaveLabel, setGlobalAgentsContent, refreshGlobalAgents, saveGlobalAgents, globalConfigMeta, globalConfigError, globalConfigContent, globalConfigLoading, globalConfigRefreshDisabled, globalConfigSaveDisabled, globalConfigSaveLabel, setGlobalConfigContent, refreshGlobalConfig, saveGlobalConfig, normalizeOverrideValue, cn }} />
                             <ExperimentalTabSection {...{ t, hasCodexHomeOverrides, fileManagerLabel, handleOpenConfig, openInFileManagerLabel, openConfigError, appSettings, onUpdateAppSettings, yunyiTokenDraft, setYunyiTokenDraft, handleCommitYunyiToken, happyServerDraft, setHappyServerDraft, handleCommitHappyServer }} />
             </div>

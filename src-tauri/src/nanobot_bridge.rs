@@ -284,23 +284,80 @@ fn normalize_provider_response(raw: &str) -> Value {
     })
 }
 
-async fn resolve_provider_model(app: &AppHandle, requested_model: Option<&str>) -> Option<String> {
-    let preferred = {
+#[derive(Clone, Debug)]
+struct ProviderTurnOverrides {
+    model: Option<String>,
+    effort: Option<String>,
+    access_mode: String,
+}
+
+fn normalize_access_mode(raw: &str) -> String {
+    match raw.trim() {
+        "read-only" => "read-only".to_string(),
+        "current" => "current".to_string(),
+        _ => "full-access".to_string(),
+    }
+}
+
+async fn resolve_provider_turn_overrides(
+    app: &AppHandle,
+    requested_model: Option<&str>,
+) -> ProviderTurnOverrides {
+    let (
+        agent_model_override,
+        agent_effort_override,
+        preferred_model,
+        composer_effort_override,
+        access_mode_override,
+    ) = {
         let state = app.state::<AppState>();
         let settings = state.app_settings.lock().await;
-        settings
-            .last_composer_model_id
-            .as_ref()
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
+        (
+            {
+                let model = settings.nanobot_agent_model.trim();
+                if model.is_empty() {
+                    None
+                } else {
+                    Some(model.to_string())
+                }
+            },
+            settings
+                .nanobot_agent_reasoning_effort
+                .as_ref()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty()),
+            settings
+                .last_composer_model_id
+                .as_ref()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty()),
+            settings
+                .last_composer_reasoning_effort
+                .as_ref()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty()),
+            settings
+                .last_composer_access_mode
+                .as_deref()
+                .or(Some(settings.default_access_mode.as_str()))
+                .map(normalize_access_mode)
+                .unwrap_or_else(|| "full-access".to_string()),
+        )
     };
-    if preferred.is_some() {
-        return preferred;
+    let model = agent_model_override
+        .or(preferred_model)
+        .or_else(|| {
+        requested_model
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned)
+    });
+
+    ProviderTurnOverrides {
+        model,
+        effort: agent_effort_override.or(composer_effort_override),
+        access_mode: access_mode_override,
     }
-    requested_model
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToOwned::to_owned)
 }
 
 async fn send_command_with_guard(
@@ -378,12 +435,19 @@ async fn run_provider_completion(
     workspace_id: &str,
     prompt: String,
     model: Option<String>,
+    effort: Option<String>,
+    access_mode: String,
 ) -> Result<Value, String> {
     let state = app.state::<AppState>();
     if remote_backend::is_remote_mode(&*state).await {
         return Err("Provider bridge is unavailable in remote backend mode.".to_string());
     }
-    let session = crate::codex::ensure_global_session(&state, app).await?;
+    let session = {
+        let sessions = state.sessions.lock().await;
+        sessions.get(workspace_id).cloned()
+    }
+    .or_else(|| state.global_session.get().cloned())
+    .ok_or_else(|| "workspace not connected".to_string())?;
     let provider_cwd = {
         let workspaces = state.workspaces.lock().await;
         workspaces
@@ -426,16 +490,30 @@ async fn run_provider_completion(
             json!([{ "type": "text", "text": prompt }]),
         );
         turn_params.insert("cwd".to_string(), json!(provider_cwd.clone()));
-        // Nanobot agent mode should run with Codex "allow all" behavior by default.
-        turn_params.insert("approvalPolicy".to_string(), json!("never"));
-        turn_params.insert(
-            "sandboxPolicy".to_string(),
-            json!({ "type": "dangerFullAccess" }),
-        );
+        let (approval_policy, sandbox_policy) = match access_mode.as_str() {
+            "read-only" => ("on-request", json!({ "type": "readOnly" })),
+            "current" => (
+                "on-request",
+                json!({
+                    "type": "workspaceWrite",
+                    "writableRoots": [provider_cwd.clone()],
+                    "networkAccess": true
+                }),
+            ),
+            _ => ("never", json!({ "type": "dangerFullAccess" })),
+        };
+        turn_params.insert("approvalPolicy".to_string(), json!(approval_policy));
+        turn_params.insert("sandboxPolicy".to_string(), sandbox_policy);
         if let Some(model) = model.clone() {
             let trimmed = model.trim().to_string();
             if !trimmed.is_empty() {
                 turn_params.insert("model".to_string(), json!(trimmed));
+            }
+        }
+        if let Some(effort) = effort.clone() {
+            let trimmed = effort.trim().to_string();
+            if !trimmed.is_empty() {
+                turn_params.insert("effort".to_string(), json!(trimmed));
             }
         }
 
@@ -565,7 +643,8 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         .get("model")
         .and_then(Value::as_str)
         .map(ToOwned::to_owned);
-    let model = resolve_provider_model(app, requested_model.as_deref()).await;
+    let overrides =
+        resolve_provider_turn_overrides(app, requested_model.as_deref()).await;
     let max_tokens = payload
         .get("maxTokens")
         .and_then(Value::as_u64)
@@ -576,9 +655,17 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         .unwrap_or(0.7) as f32;
 
     let prompt =
-        build_provider_prompt(&messages, &tools, model.as_deref(), max_tokens, temperature);
-    let result =
-        run_provider_completion(app, &session_key, &workspace_id, prompt, model).await;
+        build_provider_prompt(&messages, &tools, overrides.model.as_deref(), max_tokens, temperature);
+    let result = run_provider_completion(
+        app,
+        &session_key,
+        &workspace_id,
+        prompt,
+        overrides.model,
+        overrides.effort,
+        overrides.access_mode,
+    )
+    .await;
     match result {
         Ok(response) => {
             emit_provider_event(

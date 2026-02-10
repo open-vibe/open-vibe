@@ -196,6 +196,8 @@ export type AppSettings = {
   nanobotMode: NanobotMode;
   nanobotEnabled: boolean;
   nanobotSessionMemoryEnabled: boolean;
+  nanobotAgentModel: string;
+  nanobotAgentReasoningEffort: string | null;
   nanobotDingTalkEnabled: boolean;
   nanobotDingTalkClientId: string;
   nanobotDingTalkClientSecret: string;
@@ -241,6 +243,7 @@ export type AppSettings = {
   cycleWorkspaceNextShortcut: string | null;
   cycleWorkspacePrevShortcut: string | null;
   lastComposerModelId: string | null;
+  lastComposerAccessMode: AccessMode | null;
   lastComposerReasoningEffort: string | null;
   uiScale: number;
   compactSidebar: boolean;

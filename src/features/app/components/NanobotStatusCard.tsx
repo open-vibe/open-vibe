@@ -48,9 +48,9 @@ export function NanobotStatusCard({
       )}
       title={statusLabel}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold text-foreground">Nanobot</span>
-        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 relative">
+        {/* <span className="font-semibold text-foreground">Nanobot</span> */}
+        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground absolute right-1 top-1">
           <CircleDot className={`h-3.5 w-3.5 ${dotClassName}`} aria-hidden />
           {statusLabel}
         </span>

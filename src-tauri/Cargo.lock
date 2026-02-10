@@ -3024,9 +3024,9 @@ dependencies = [
 
 [[package]]
 name = "nanobot"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac3ccf3f10b3b31c751eb1527dc71a6f8397401a7bae4fc755b09a2bbeda0959"
+checksum = "c4d9bbf18d980237c45f0247d5e1d67d47abe89d6f236a4ca6c12142eb6092b0"
 dependencies = [
  "anyhow",
  "async-trait",
