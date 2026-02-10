@@ -98,9 +98,11 @@ const parseQuota = (payload: unknown): YunyiQuotaData | null => {
 export function YunyiQuotaCard({
   token,
   className,
+  compact = false,
 }: {
   token: string;
   className?: string;
+  compact?: boolean;
 }) {
   const { t } = useI18n();
   const [data, setData] = useState<YunyiQuotaData | null>(null);
@@ -176,7 +178,7 @@ export function YunyiQuotaCard({
           className,
         )}
       >
-        <CardContent className="p-3 text-xs text-muted-foreground">
+        <CardContent className={cn("text-xs text-muted-foreground", compact ? "p-2" : "p-3")}>
           {t("sidebar.yunyi.missingToken")}
         </CardContent>
       </Card>
@@ -191,7 +193,7 @@ export function YunyiQuotaCard({
           className,
         )}
       >
-        <CardContent className="space-y-3 p-3">
+        <CardContent className={cn("space-y-3", compact ? "p-2" : "p-3")}>
           <div className="flex items-center gap-3">
             <Skeleton className="h-12 w-12 rounded-full" />
             <div className="space-y-2">
@@ -229,7 +231,7 @@ export function YunyiQuotaCard({
         className,
       )}
     >
-      <CardContent className="space-y-2 p-3">
+      <CardContent className={cn(compact ? "space-y-1.5 p-2" : "space-y-2 p-3")}>
         <div className="flex items-center justify-between text-[11px] font-semibold">
           <span className="inline-flex items-center gap-2 text-foreground">
             <span>{t("sidebar.yunyi.dailyQuota")}</span>

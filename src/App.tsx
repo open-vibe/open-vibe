@@ -105,7 +105,9 @@ import { WorkspaceHome } from "./features/workspaces/components/WorkspaceHome";
 import { useWorkspaceHome } from "./features/workspaces/hooks/useWorkspaceHome";
 import { useWorkspaceAgentMd } from "./features/workspaces/hooks/useWorkspaceAgentMd";
 import {
+  archiveThread as archiveThreadService,
   getNanobotConfigPath,
+  listThreads as listThreadsService,
   pickWorkspacePath,
   testNanobotDingTalk,
 } from "./services/tauri";
@@ -226,6 +228,22 @@ function MainApp() {
     () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
     [workspaces],
   );
+  const normalizeWorkspacePath = useCallback(
+    (value: string) => value.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase(),
+    [],
+  );
+  const [nanobotWorkspacePath, setNanobotWorkspacePath] = useState<string | null>(null);
+  const nanobotWorkspaceBootstrapRef = useRef<Promise<void> | null>(null);
+  const nanobotWorkspaceId = useMemo(() => {
+    if (!nanobotWorkspacePath) {
+      return null;
+    }
+    const expected = normalizeWorkspacePath(nanobotWorkspacePath);
+    return (
+      workspaces.find((workspace) => normalizeWorkspacePath(workspace.path) === expected)?.id ??
+      null
+    );
+  }, [nanobotWorkspacePath, normalizeWorkspacePath, workspaces]);
   const {
     sidebarWidth,
     rightPanelWidth,
@@ -661,6 +679,57 @@ function MainApp() {
     Boolean(appSettings.happyToken?.trim()) &&
     Boolean(appSettings.happySecret?.trim());
   const nanobotEnabled = appSettings.nanobotEnabled;
+  useEffect(() => {
+    if (!nanobotEnabled) {
+      return;
+    }
+    void (async () => {
+      try {
+        const configPath = await getNanobotConfigPath();
+        const normalized = configPath.replace(/\\/g, "/");
+        const separator = normalized.lastIndexOf("/");
+        if (separator <= 0) {
+          return;
+        }
+        setNanobotWorkspacePath(normalized.slice(0, separator));
+      } catch {
+        // Ignore lookup failures.
+      }
+    })();
+  }, [nanobotEnabled]);
+  useEffect(() => {
+    if (!nanobotEnabled || !nanobotWorkspacePath || nanobotWorkspaceId) {
+      return;
+    }
+    if (nanobotWorkspaceBootstrapRef.current) {
+      return;
+    }
+    const previousWorkspaceId = activeWorkspaceId;
+    const task = (async () => {
+      try {
+        const created = await addWorkspaceFromPath(nanobotWorkspacePath);
+        if (
+          previousWorkspaceId &&
+          created &&
+          created.id !== previousWorkspaceId
+        ) {
+          setActiveWorkspaceId(previousWorkspaceId);
+        }
+      } catch {
+        // Ignore add failures and fall back to existing workspaces.
+      }
+    })().finally(() => {
+      nanobotWorkspaceBootstrapRef.current = null;
+    });
+    nanobotWorkspaceBootstrapRef.current = task;
+  }, [
+    activeWorkspaceId,
+    addWorkspaceFromPath,
+    nanobotEnabled,
+    nanobotWorkspaceId,
+    nanobotWorkspacePath,
+    setActiveWorkspaceId,
+  ]);
   const {
     snapshot: nanobotStatusSnapshot,
     logEntries: nanobotLogEntries,
@@ -813,11 +882,13 @@ function MainApp() {
   });
   useNanobotBridgeEvents({
     enabled: nanobotEnabled,
+    sessionMemoryEnabled: appSettings.nanobotSessionMemoryEnabled,
     defaultMode: appSettings.nanobotMode,
     workspaces,
-    activeWorkspaceId,
+    nanobotWorkspaceId,
     openThreadTabs: threadTabs,
     t,
+    addWorkspaceFromPath,
     connectWorkspace,
     startThreadForWorkspace,
     sendUserMessageToThread,
@@ -1806,19 +1877,150 @@ function MainApp() {
     onDropPaths: handleDropWorkspacePaths,
   });
 
+  const handleArchiveThread = useCallback(
+    async (workspaceId: string, threadId: string) => {
+      const workspace = workspacesById.get(workspaceId);
+      if (workspace && !workspace.connected) {
+        try {
+          await connectWorkspace(workspace);
+        } catch {
+          return false;
+        }
+      }
+      return removeThread(workspaceId, threadId);
+    },
+    [connectWorkspace, removeThread, workspacesById],
+  );
+
+  const handleClearNanobotThreads = useCallback(async () => {
+    const normalizedNanobotPath = nanobotWorkspacePath
+      ? normalizeWorkspacePath(nanobotWorkspacePath)
+      : null;
+    const isNanobotWorkspace = (workspace: WorkspaceInfo | null) =>
+      Boolean(
+        workspace &&
+          ((workspace.kind ?? "main") === "nanobot" ||
+            (normalizedNanobotPath &&
+              normalizeWorkspacePath(workspace.path) === normalizedNanobotPath)),
+      );
+
+    let workspace =
+      (nanobotWorkspaceId ? workspacesById.get(nanobotWorkspaceId) : null) ??
+      null;
+    if (!isNanobotWorkspace(workspace) && normalizedNanobotPath) {
+      workspace =
+        workspaces.find(
+          (candidate) =>
+            normalizeWorkspacePath(candidate.path) === normalizedNanobotPath,
+        ) ?? null;
+    }
+    if (!isNanobotWorkspace(workspace) && nanobotWorkspacePath) {
+      workspace = await addWorkspaceFromPath(nanobotWorkspacePath);
+    }
+    if (!isNanobotWorkspace(workspace)) {
+      throw new Error("Nanobot workspace is unavailable.");
+    }
+    if (!workspace.connected) {
+      await connectWorkspace(workspace);
+    }
+
+    const threadIds: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const response = await listThreadsService(workspace.id, cursor, 200);
+      const result =
+        (response && typeof response === "object" && "result" in response
+          ? (response as { result?: unknown }).result
+          : response) ?? null;
+      const payload = (result && typeof result === "object"
+        ? result
+        : {}) as Record<string, unknown>;
+      const items = Array.isArray(payload.data) ? payload.data : [];
+      for (const item of items) {
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+        const threadId =
+          typeof (item as { id?: unknown }).id === "string"
+            ? ((item as { id: string }).id)
+            : typeof (item as { thread_id?: unknown }).thread_id === "string"
+              ? ((item as { thread_id: string }).thread_id)
+              : null;
+        if (threadId) {
+          threadIds.push(threadId);
+        }
+      }
+      const nextCursor =
+        typeof payload.nextCursor === "string"
+          ? payload.nextCursor
+          : typeof payload.next_cursor === "string"
+            ? payload.next_cursor
+            : null;
+      cursor = nextCursor && nextCursor.trim() ? nextCursor : null;
+    } while (cursor);
+
+    for (const threadId of threadIds) {
+      await archiveThreadService(workspace.id, threadId);
+    }
+
+    const archivedThreadIds = new Set(threadIds);
+    threadTabs.forEach((tab) => {
+      if (
+        tab.kind === "thread" &&
+        tab.workspaceId === workspace.id &&
+        archivedThreadIds.has(tab.threadId)
+      ) {
+        handleCloseThreadTab(tab.id);
+        clearDraftForThread(tab.threadId);
+        removeImagesForThread(tab.threadId);
+      }
+    });
+
+    resetWorkspaceThreads(workspace.id);
+    await listThreadsForWorkspace(workspace);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("openvibe.nanobot.sessionState.v1");
+    }
+
+    return {
+      cleared: threadIds.length,
+      workspaceName: workspace.name,
+    };
+  }, [
+    addWorkspaceFromPath,
+    clearDraftForThread,
+    connectWorkspace,
+    handleCloseThreadTab,
+    listThreadsForWorkspace,
+    nanobotWorkspaceId,
+    nanobotWorkspacePath,
+    normalizeWorkspacePath,
+    removeImagesForThread,
+    resetWorkspaceThreads,
+    threadTabs,
+    workspaces,
+    workspacesById,
+  ]);
+
   const handleArchiveActiveThread = useCallback(() => {
     if (!activeWorkspaceId || !activeThreadId) {
       return;
     }
-    removeThread(activeWorkspaceId, activeThreadId);
-    clearDraftForThread(activeThreadId);
-    removeImagesForThread(activeThreadId);
+    void (async () => {
+      const removed = await handleArchiveThread(activeWorkspaceId, activeThreadId);
+      if (!removed) {
+        return;
+      }
+      clearDraftForThread(activeThreadId);
+      removeImagesForThread(activeThreadId);
+    })();
   }, [
     activeThreadId,
     activeWorkspaceId,
     clearDraftForThread,
+    handleArchiveThread,
     removeImagesForThread,
-    removeThread,
   ]);
 
   useInterruptShortcut({
@@ -2135,6 +2337,7 @@ function MainApp() {
     nanobotStatus: nanobotStatusSnapshot,
     themePreference: appSettings.theme,
     themeColor: appSettings.themeColor,
+    compactSidebar: appSettings.compactSidebar,
     onToggleTheme: handleToggleTheme,
     onSelectThemeColor: handleSelectThemeColor,
     onAddWorkspace: handleAddWorkspace,
@@ -2190,10 +2393,15 @@ function MainApp() {
       })();
     },
     onDeleteThread: (workspaceId, threadId) => {
-      removeThread(workspaceId, threadId);
-      handleCloseThreadTab(`${workspaceId}:${threadId}`);
-      clearDraftForThread(threadId);
-      removeImagesForThread(threadId);
+      void (async () => {
+        const removed = await handleArchiveThread(workspaceId, threadId);
+        if (!removed) {
+          return;
+        }
+        handleCloseThreadTab(`${workspaceId}:${threadId}`);
+        clearDraftForThread(threadId);
+        removeImagesForThread(threadId);
+      })();
     },
     onSyncThread: (workspaceId, threadId) => {
       void refreshThread(workspaceId, threadId);
@@ -2802,6 +3010,7 @@ function MainApp() {
             onRunDoctor: doctor,
             onGetNanobotConfigPath: getNanobotConfigPath,
             onTestNanobotDingTalk: testNanobotDingTalk,
+            onClearNanobotThreads: handleClearNanobotThreads,
             onUpdateWorkspaceCodexBin: async (id, codexBin) => {
               await updateWorkspaceCodexBin(id, codexBin);
             },

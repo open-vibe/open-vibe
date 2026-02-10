@@ -155,6 +155,9 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
 
   const getWorkspaceGroupId = useCallback(
     (workspace: WorkspaceInfo) => {
+      if ((workspace.kind ?? "main") === "nanobot") {
+        return null;
+      }
       if ((workspace.kind ?? "main") === "worktree" && workspace.parentId) {
         const parent = workspaceById.get(workspace.parentId);
         return parent?.settings.groupId ?? null;
@@ -166,7 +169,10 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
 
   const groupedWorkspaces = useMemo(() => {
     const rootWorkspaces = workspaces.filter(
-      (entry) => (entry.kind ?? "main") !== "worktree" && !entry.parentId,
+      (entry) =>
+        (entry.kind ?? "main") !== "worktree" &&
+        (entry.kind ?? "main") !== "nanobot" &&
+        !entry.parentId,
     );
     const buckets = new Map<string | null, WorkspaceInfo[]>();
     workspaceGroups.forEach((group) => {

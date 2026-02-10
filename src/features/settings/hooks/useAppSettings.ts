@@ -52,6 +52,7 @@ const defaultSettings: AppSettings = {
   happySecret: null,
   nanobotMode: "bridge",
   nanobotEnabled: false,
+  nanobotSessionMemoryEnabled: true,
   nanobotDingTalkEnabled: false,
   nanobotDingTalkClientId: "",
   nanobotDingTalkClientSecret: "",
@@ -99,6 +100,7 @@ const defaultSettings: AppSettings = {
   lastComposerModelId: null,
   lastComposerReasoningEffort: null,
   uiScale: UI_SCALE_DEFAULT,
+  compactSidebar: false,
   theme: "system",
   themeColor: "blue",
   language: "system",
@@ -191,6 +193,7 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       ? settings.nanobotMode
       : "bridge",
     nanobotEnabled: Boolean(settings.nanobotEnabled),
+    nanobotSessionMemoryEnabled: Boolean(settings.nanobotSessionMemoryEnabled),
     nanobotDingTalkEnabled: Boolean(settings.nanobotDingTalkEnabled),
     nanobotDingTalkClientId: settings.nanobotDingTalkClientId?.trim() ?? "",
     nanobotDingTalkClientSecret:
@@ -232,6 +235,7 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     nanobotQqSecret: settings.nanobotQqSecret?.trim() ?? "",
     nanobotQqAllowFrom: settings.nanobotQqAllowFrom ?? "",
     uiScale: clampUiScale(settings.uiScale),
+    compactSidebar: Boolean(settings.compactSidebar),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
     themeColor: allowedThemeColors.has(settings.themeColor)
       ? settings.themeColor

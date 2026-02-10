@@ -1,4 +1,5 @@
 import CircleDot from "lucide-react/dist/esm/icons/circle-dot";
+import { cn } from "@/lib/utils";
 
 type NanobotStatusCardProps = {
   enabled: boolean;
@@ -12,6 +13,7 @@ type NanobotStatusCardProps = {
   runtimeLabel: string;
   reasonLabel: string;
   onOpenLog: () => void;
+  compact?: boolean;
 };
 
 export function NanobotStatusCard({
@@ -26,6 +28,7 @@ export function NanobotStatusCard({
   runtimeLabel,
   reasonLabel,
   onOpenLog,
+  compact = false,
 }: NanobotStatusCardProps) {
   const dotClassName = !enabled
     ? "text-muted-foreground"
@@ -39,7 +42,10 @@ export function NanobotStatusCard({
     <button
       type="button"
       onClick={onOpenLog}
-      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40"
+      className={cn(
+        "w-full rounded-lg border border-border bg-card text-left text-xs transition-colors hover:bg-accent/40",
+        compact ? "px-2 py-1.5" : "px-3 py-2",
+      )}
       title={statusLabel}
     >
       <div className="flex items-center justify-between gap-2">
@@ -49,7 +55,7 @@ export function NanobotStatusCard({
           {statusLabel}
         </span>
       </div>
-      <div className="mt-2 space-y-1 text-muted-foreground">
+      <div className={cn("text-muted-foreground", compact ? "mt-1.5 space-y-0.5" : "mt-2 space-y-1")}>
         <div>{modeLabel}</div>
         <div>{channelLabel}</div>
         <div>{runtimeLabel}</div>

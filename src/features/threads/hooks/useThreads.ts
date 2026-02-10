@@ -29,6 +29,7 @@ import {
   makeCustomNameKey,
   removeCustomName,
   saveCustomName,
+  saveThreadSummariesForWorkspace,
 } from "../utils/threadStorage";
 import { normalizeTokenUsage } from "../utils/threadNormalize";
 
@@ -476,12 +477,20 @@ export function useThreads({
   );
 
   const removeThread = useCallback(
-    (workspaceId: string, threadId: string) => {
+    async (workspaceId: string, threadId: string) => {
+      const archived = await archiveThread(workspaceId, threadId);
+      if (!archived) {
+        return false;
+      }
       unpinThread(workspaceId, threadId);
       dispatch({ type: "removeThread", workspaceId, threadId });
-      void archiveThread(workspaceId, threadId);
+      const nextThreads = (state.threadsByWorkspace[workspaceId] ?? []).filter(
+        (thread) => thread.id !== threadId,
+      );
+      saveThreadSummariesForWorkspace(workspaceId, nextThreads);
+      return true;
     },
-    [archiveThread, unpinThread],
+    [archiveThread, state.threadsByWorkspace, unpinThread],
   );
 
   const renameThread = useCallback(

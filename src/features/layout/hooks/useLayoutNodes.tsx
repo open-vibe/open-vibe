@@ -152,6 +152,7 @@ type LayoutNodesOptions = {
   showDebugButton: boolean;
   themePreference: ThemePreference;
   themeColor: ThemeColor;
+  compactSidebar: boolean;
   onToggleTheme: () => void;
   onSelectThemeColor: (color: ThemeColor) => void;
   onAddWorkspace: () => void;
@@ -418,6 +419,8 @@ type LayoutNodesOptions = {
     enabled: boolean;
     mode: "bridge" | "agent";
     dingtalkEnabled: boolean;
+    emailEnabled: boolean;
+    qqEnabled: boolean;
     running: boolean;
     configured: boolean;
     connected: boolean;
@@ -484,6 +487,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       showDebugButton={options.showDebugButton}
       themePreference={options.themePreference}
       themeColor={options.themeColor}
+      compactSidebar={options.compactSidebar}
       onToggleTheme={options.onToggleTheme}
       onSelectThemeColor={options.onSelectThemeColor}
       onAddWorkspace={options.onAddWorkspace}

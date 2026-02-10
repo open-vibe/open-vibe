@@ -8,7 +8,7 @@ import type {
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, RefObject } from "react";
-import { FolderKanban, FolderOpen, Home, Layers, Plus } from "lucide-react";
+import { Bot, ChevronDown, FolderKanban, FolderOpen, Home, Layers, Plus } from "lucide-react";
 import {
   Sidebar as ShadcnSidebar,
   SidebarContent,
@@ -104,6 +104,7 @@ type SidebarProps = {
   };
   themePreference: ThemePreference;
   themeColor: ThemeColor;
+  compactSidebar: boolean;
   onToggleTheme: () => void;
   onSelectThemeColor: (color: ThemeColor) => void;
   onOpenSettings: () => void;
@@ -159,6 +160,7 @@ export function Sidebar({
   nanobotStatus,
   themePreference,
   themeColor,
+  compactSidebar,
   onToggleTheme,
   onSelectThemeColor,
   onOpenSettings,
@@ -276,13 +278,26 @@ export function Sidebar({
         : t("sidebar.team.workspaceCount.other", { count }),
     [t],
   );
+  const regularWorkspaces = useMemo(
+    () => workspaces.filter((workspace) => (workspace.kind ?? "main") !== "nanobot"),
+    [workspaces],
+  );
+  const nanobotWorkspace = useMemo(
+    () =>
+      workspaces.find(
+        (workspace) =>
+          (workspace.kind ?? "main") === "nanobot" &&
+          (workspace.parentId ?? null) === null,
+      ) ?? null,
+    [workspaces],
+  );
   const teamOptions = useMemo(() => {
     const options = [
       {
         id: ALL_WORKSPACES_ID,
         name: t("sidebar.team.allWorkspaces"),
         logo: Layers,
-        plan: workspaceCountLabel(workspaces.length),
+        plan: workspaceCountLabel(regularWorkspaces.length),
       },
     ];
     groupedWorkspaces.forEach((group) => {
@@ -295,7 +310,7 @@ export function Sidebar({
       });
     });
     return options;
-  }, [groupedWorkspaces, workspaces.length, t, workspaceCountLabel]);
+  }, [groupedWorkspaces, regularWorkspaces.length, t, workspaceCountLabel]);
   const visibleGroups = useMemo(() => {
     if (activeGroupId === ALL_WORKSPACES_ID) {
       return groupedWorkspaces;
@@ -314,7 +329,7 @@ export function Sidebar({
       rows: ThreadRow[];
     }> = [];
 
-    workspaces.forEach((workspace) => {
+    regularWorkspaces.forEach((workspace) => {
       const threads = threadsByWorkspace[workspace.id] ?? [];
       if (!threads.length) {
         return;
@@ -368,7 +383,7 @@ export function Sidebar({
 
   const worktreesByParent = useMemo(() => {
     const worktrees = new Map<string, WorkspaceInfo[]>();
-    workspaces
+    regularWorkspaces
       .filter((entry) => (entry.kind ?? "main") === "worktree" && entry.parentId)
       .forEach((entry) => {
         const parentId = entry.parentId as string;
@@ -380,7 +395,7 @@ export function Sidebar({
       entries.sort((a, b) => a.name.localeCompare(b.name));
     });
     return worktrees;
-  }, [workspaces]);
+  }, [regularWorkspaces]);
 
   const handleToggleExpanded = useCallback((workspaceId: string) => {
     setExpandedWorkspaces((prev) => {
@@ -401,6 +416,29 @@ export function Sidebar({
     },
     [],
   );
+  const nanobotThreads = nanobotWorkspace
+    ? threadsByWorkspace[nanobotWorkspace.id] ?? []
+    : [];
+  const nanobotNextCursor = nanobotWorkspace
+    ? threadListCursorByWorkspace[nanobotWorkspace.id] ?? null
+    : null;
+  const nanobotIsPaging = nanobotWorkspace
+    ? threadListPagingByWorkspace[nanobotWorkspace.id] ?? false
+    : false;
+  const nanobotIsExpanded = nanobotWorkspace
+    ? expandedWorkspaces.has(nanobotWorkspace.id)
+    : false;
+  const nanobotIsCollapsed = nanobotWorkspace
+    ? nanobotWorkspace.settings.sidebarCollapsed
+    : true;
+  const nanobotThreadRows = nanobotWorkspace
+    ? getThreadRows(
+        nanobotThreads,
+        nanobotIsExpanded,
+        nanobotWorkspace.id,
+        getPinTimestamp,
+      )
+    : { unpinnedRows: [], totalRoots: 0 };
 
   useEffect(() => {
     if (!addMenuAnchor) {
@@ -425,7 +463,10 @@ export function Sidebar({
     <ShadcnSidebar
       variant="inset"
       collapsible="icon"
-      className="relative border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border))]"
+      className={cn(
+        "relative border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border))]",
+        compactSidebar && "sidebar-compact",
+      )}
       data-tauri-drag-region="false"
     >
       <div
@@ -436,11 +477,12 @@ export function Sidebar({
         onDragLeave={onWorkspaceDragLeave}
         onDrop={onWorkspaceDrop}
       >
-        <ShadcnSidebarHeader className="px-2 pt-2">
+        <ShadcnSidebarHeader className={cn("px-2 pt-2", compactSidebar && "pt-1 pb-1")}>
           <TeamSwitcher
             teams={teamOptions}
             activeTeamId={activeGroupId}
             onSelectTeam={setActiveGroupId}
+            compact={compactSidebar}
           />
         </ShadcnSidebarHeader>
         <div
@@ -462,8 +504,8 @@ export function Sidebar({
             {workspaceDropText}
           </div>
         </div>
-        <SidebarContent className="overflow-hidden px-2 pb-1">
-          <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <SidebarContent className={cn("sidebar-scroll-area overflow-hidden px-2 pb-1", compactSidebar && "pb-0")}>
+          <div className={cn("flex min-h-0 flex-1 flex-col gap-3", compactSidebar && "gap-1.5")}>
             <SidebarGroup className="shrink-0 px-0">
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -483,27 +525,27 @@ export function Sidebar({
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroup>
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-              {pinnedThreadRows.length > 0 && (
-                <SidebarGroup className="px-0">
-                  <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                    {t("sidebar.pinned")}
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent className="px-1">
-                    <PinnedThreadList
-                      rows={pinnedThreadRows}
-                      openThreadIds={openThreadIds}
-                      activeWorkspaceId={activeWorkspaceId}
-                      activeThreadId={activeThreadId}
-                      threadStatusById={threadStatusById}
-                      getThreadTime={getThreadTime}
-                      isThreadPinned={isThreadPinned}
-                      onSelectThread={onSelectThread}
-                      onShowThreadMenu={showThreadMenu}
-                    />
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              )}
+            {pinnedThreadRows.length > 0 && (
+              <SidebarGroup className="shrink-0 px-0">
+                <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {t("sidebar.pinned")}
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-1">
+                  <PinnedThreadList
+                    rows={pinnedThreadRows}
+                    openThreadIds={openThreadIds}
+                    activeWorkspaceId={activeWorkspaceId}
+                    activeThreadId={activeThreadId}
+                    threadStatusById={threadStatusById}
+                    getThreadTime={getThreadTime}
+                    isThreadPinned={isThreadPinned}
+                    onSelectThread={onSelectThread}
+                    onShowThreadMenu={showThreadMenu}
+                  />
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+            <div className={cn("sidebar-scroll-area min-h-0 flex-1 space-y-3 overflow-y-auto pr-1", compactSidebar && "space-y-1.5")}>
               {visibleGroups.map((group) => {
                 const groupId = group.id;
                 const showGroupHeader = Boolean(groupId) || hasWorkspaceGroups;
@@ -660,13 +702,13 @@ export function Sidebar({
                   </WorkspaceGroup>
                 );
               })}
-              {!groupedWorkspaces.length && (
+              {!groupedWorkspaces.length && !nanobotWorkspace && (
                 <div className="px-2 py-4 text-xs text-muted-foreground">
                   {t("sidebar.empty")}
                 </div>
               )}
             </div>
-            <div className="shrink-0 space-y-1">
+            <div className={cn("shrink-0 space-y-1", compactSidebar && "space-y-0.5")}>
               <SidebarGroup className="px-0">
                 <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   {t("sidebar.usage")}
@@ -679,6 +721,7 @@ export function Sidebar({
                     weeklyResetLabel={weeklyResetLabel}
                     creditsLabel={creditsLabel}
                     showWeekly={showWeekly}
+                    compact={compactSidebar}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -686,7 +729,100 @@ export function Sidebar({
                 <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   {t("sidebar.nanobot.title")}
                 </SidebarGroupLabel>
-                <SidebarGroupContent className="px-2 pb-0">
+                <SidebarGroupContent className="space-y-1 px-2 pb-0">
+                  {nanobotWorkspace && (
+                    <div className="px-0">
+                      <SidebarMenu>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={nanobotWorkspace.id === activeWorkspaceId}
+                            onClick={() => onSelectWorkspace(nanobotWorkspace.id)}
+                            className={cn(
+                              "h-9 rounded-md px-2 text-sm",
+                              "bg-sidebar-accent/10",
+                              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                              "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
+                            )}
+                            data-tauri-drag-region="false"
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectWorkspace(nanobotWorkspace.id);
+                              }
+                            }}
+                          >
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              className="flex min-w-0 flex-1 items-center gap-2"
+                            >
+                              <Bot className="h-4 w-4 text-muted-foreground" aria-hidden />
+                              <span className="min-w-0 flex-1 truncate font-medium">
+                                {t("sidebar.nanobot.workspaceName")}
+                              </span>
+                              <span
+                                className={cn(
+                                  "h-2 w-2 rounded-full",
+                                  nanobotWorkspace.connected
+                                    ? "bg-emerald-500"
+                                    : "bg-muted-foreground/40",
+                                )}
+                                aria-hidden
+                              />
+                              <button
+                                type="button"
+                                className={cn(
+                                  "text-muted-foreground cursor-pointer transition-all",
+                                  !nanobotIsCollapsed && "rotate-180",
+                                )}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onToggleWorkspaceCollapse(
+                                    nanobotWorkspace.id,
+                                    !nanobotIsCollapsed,
+                                  );
+                                }}
+                                data-tauri-drag-region="false"
+                                aria-label={
+                                  nanobotIsCollapsed
+                                    ? t("sidebar.nanobot.expandThreads")
+                                    : t("sidebar.nanobot.collapseThreads")
+                                }
+                                aria-expanded={!nanobotIsCollapsed}
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                              </button>
+                            </div>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </SidebarMenu>
+                      {!nanobotIsCollapsed &&
+                        (nanobotThreads.length > 0 || Boolean(nanobotNextCursor)) && (
+                          <ThreadList
+                            workspaceId={nanobotWorkspace.id}
+                            openThreadIds={openThreadIds}
+                            pinnedRows={[]}
+                            unpinnedRows={nanobotThreadRows.unpinnedRows}
+                            totalThreadRoots={nanobotThreadRows.totalRoots}
+                            isExpanded={nanobotIsExpanded}
+                            nextCursor={nanobotNextCursor}
+                            isPaging={nanobotIsPaging}
+                            showLoadOlder={false}
+                            activeWorkspaceId={activeWorkspaceId}
+                            activeThreadId={activeThreadId}
+                            threadStatusById={threadStatusById}
+                            getThreadTime={getThreadTime}
+                            isThreadPinned={isThreadPinned}
+                            onToggleExpanded={handleToggleExpanded}
+                            onLoadOlderThreads={onLoadOlderThreads}
+                            onSelectThread={onSelectThread}
+                            onRenameThread={onRenameThread}
+                            onShowThreadMenu={showThreadMenu}
+                          />
+                        )}
+                    </div>
+                  )}
                   <NanobotStatusCard
                     enabled={nanobotStatus.enabled}
                     running={nanobotStatus.running}
@@ -735,6 +871,7 @@ export function Sidebar({
                     })}
                     reasonLabel={t("sidebar.nanobot.reason")}
                     onOpenLog={onOpenNanobotLog}
+                    compact={compactSidebar}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -744,14 +881,14 @@ export function Sidebar({
                     {t("sidebar.yunyi.title")}
                   </SidebarGroupLabel>
                   <SidebarGroupContent className="px-2 pb-0">
-                    <YunyiQuotaCard token={experimentalYunyiToken} />
+                    <YunyiQuotaCard token={experimentalYunyiToken} compact={compactSidebar} />
                   </SidebarGroupContent>
                 </SidebarGroup>
               )}
             </div>
           </div>
         </SidebarContent>
-        <ShadcnSidebarFooter className="px-2 pb-3">
+        <ShadcnSidebarFooter className={cn("px-2 pb-3", compactSidebar && "pb-2 pt-1")}>
           <NavUser
             user={{
               name: "OpenVibe",

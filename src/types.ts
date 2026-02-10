@@ -16,7 +16,7 @@ export type WorkspaceGroup = {
   copiesFolder?: string | null;
 };
 
-export type WorkspaceKind = "main" | "worktree";
+export type WorkspaceKind = "main" | "worktree" | "nanobot";
 
 export type WorktreeInfo = {
   branch: string;
@@ -195,6 +195,7 @@ export type AppSettings = {
   happySecret: string | null;
   nanobotMode: NanobotMode;
   nanobotEnabled: boolean;
+  nanobotSessionMemoryEnabled: boolean;
   nanobotDingTalkEnabled: boolean;
   nanobotDingTalkClientId: string;
   nanobotDingTalkClientSecret: string;
@@ -242,6 +243,7 @@ export type AppSettings = {
   lastComposerModelId: string | null;
   lastComposerReasoningEffort: string | null;
   uiScale: number;
+  compactSidebar: boolean;
   theme: ThemePreference;
   themeColor: ThemeColor;
   language: AppLanguage;
@@ -368,6 +370,15 @@ export type NanobotBridgeEvent =
       createdAt: number;
       workspaceId?: string;
       threadId?: string;
+    }
+  | {
+      type: "provider";
+      sessionKey: string;
+      requestId: string;
+      workspaceId: string;
+      phase: "start" | "done" | "error";
+      durationMs?: number;
+      message?: string;
     }
   | {
       type: "stderr";

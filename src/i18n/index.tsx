@@ -56,6 +56,9 @@ const en = {
   "settings.display.theme.dark": "Dark",
   "settings.display.reduceTransparency.title": "Reduce transparency",
   "settings.display.reduceTransparency.subtitle": "Use solid surfaces instead of glass.",
+  "settings.display.compactSidebar.title": "Compact sidebar",
+  "settings.display.compactSidebar.subtitle":
+    "Reduce top and section spacing to show more projects.",
   "settings.display.interfaceScale.title": "Interface scale",
   "settings.display.interfaceScale.label": "Interface scale",
   "settings.display.reset": "Reset",
@@ -338,6 +341,10 @@ const en = {
   "sidebar.nanobot.lastEvent": "Last event: {value}",
   "sidebar.nanobot.lastEvent.none": "No events",
   "sidebar.nanobot.reason": "Reason",
+  "sidebar.nanobot.workspaceSection": "System",
+  "sidebar.nanobot.workspaceName": "Nanobot",
+  "sidebar.nanobot.expandThreads": "Show Nanobot threads",
+  "sidebar.nanobot.collapseThreads": "Hide Nanobot threads",
   "sidebar.yunyi.title": "Yunyi stats",
   "sidebar.yunyi.dailyQuota": "Daily quota",
   "sidebar.yunyi.reset.soon": "Resetting soon",
@@ -443,6 +450,9 @@ const en = {
   "settings.nanobot.enable.title": "Enable Nanobot integration",
   "settings.nanobot.enable.subtitle":
     "Sync settings to ~/.nanobot/config.json when values change.",
+  "settings.nanobot.sessionMemory.title": "Remember session state",
+  "settings.nanobot.sessionMemory.subtitle":
+    "Restore per-channel mode and bound thread after app restart.",
   "settings.nanobot.dingtalk.sectionTitle": "DingTalk channel",
   "settings.nanobot.dingtalk.enable.title": "Enable DingTalk channel",
   "settings.nanobot.dingtalk.enable.subtitle":
@@ -506,6 +516,18 @@ const en = {
   "settings.nanobot.qq.allowFrom.placeholder": "user_a, user_b",
   "settings.nanobot.qq.allowFrom.help":
     "Use sender IDs separated by commas, semicolons, or new lines.",
+  "settings.nanobot.cleanup.title": "Clean Nanobot threads",
+  "settings.nanobot.cleanup.subtitle":
+    "Archive all threads under the Nanobot workspace (~/.nanobot).",
+  "settings.nanobot.cleanup.button": "Clean Nanobot threads",
+  "settings.nanobot.cleanup.confirm":
+    "Archive all Nanobot threads now? This cannot be undone.",
+  "settings.nanobot.cleanup.success":
+    "Archived {count} thread(s) in {workspace}.",
+  "settings.nanobot.cleanup.empty":
+    "No Nanobot threads found in {workspace}.",
+  "settings.nanobot.cleanup.failed":
+    "Failed to clean Nanobot threads: {value}",
   "settings.nanobot.test.endpoint": "Endpoint: {value}",
   "settings.nanobot.configPath": "Config path: {value}",
   "settings.nanobot.configPathError": "Config path unavailable: {value}",
@@ -799,6 +821,8 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.display.theme.dark": "深色",
   "settings.display.reduceTransparency.title": "降低透明度",
   "settings.display.reduceTransparency.subtitle": "使用纯色表面替代玻璃效果。",
+  "settings.display.compactSidebar.title": "紧凑侧边栏",
+  "settings.display.compactSidebar.subtitle": "压缩顶部和分区间距，显示更多项目。",
   "settings.display.interfaceScale.title": "界面缩放",
   "settings.display.interfaceScale.label": "界面缩放",
   "settings.display.reset": "重置",
@@ -1062,6 +1086,10 @@ const zhCN: Record<TranslationKey, string> = {
   "sidebar.nanobot.lastEvent": "最后事件：{value}",
   "sidebar.nanobot.lastEvent.none": "暂无",
   "sidebar.nanobot.reason": "原因",
+  "sidebar.nanobot.workspaceSection": "系统",
+  "sidebar.nanobot.workspaceName": "Nanobot",
+  "sidebar.nanobot.expandThreads": "展开 Nanobot 对话",
+  "sidebar.nanobot.collapseThreads": "收起 Nanobot 对话",
   "sidebar.yunyi.title": "云驿统计",
   "sidebar.yunyi.dailyQuota": "每日额度",
   "sidebar.yunyi.reset.soon": "即将重置",
@@ -1162,6 +1190,9 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.enable.title": "启用 Nanobot 集成",
   "settings.nanobot.enable.subtitle":
     "设置变更后会同步到 ~/.nanobot/config.json。",
+  "settings.nanobot.sessionMemory.title": "记忆会话状态",
+  "settings.nanobot.sessionMemory.subtitle":
+    "重启应用后恢复每个渠道的模式与绑定会话。",
   "settings.nanobot.dingtalk.sectionTitle": "钉钉渠道",
   "settings.nanobot.dingtalk.enable.title": "启用钉钉渠道",
   "settings.nanobot.dingtalk.enable.subtitle":
@@ -1222,6 +1253,18 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.qq.allowFrom.placeholder": "user_a, user_b",
   "settings.nanobot.qq.allowFrom.help":
     "可使用逗号、分号或换行分隔 sender ID。",
+  "settings.nanobot.cleanup.title": "清理 Nanobot 对话",
+  "settings.nanobot.cleanup.subtitle":
+    "归档 Nanobot 工作区（~/.nanobot）下的全部对话。",
+  "settings.nanobot.cleanup.button": "清理 Nanobot 对话",
+  "settings.nanobot.cleanup.confirm":
+    "确认归档 Nanobot 的全部对话？此操作不可撤销。",
+  "settings.nanobot.cleanup.success":
+    "已在 {workspace} 归档 {count} 个对话。",
+  "settings.nanobot.cleanup.empty":
+    "{workspace} 中没有可清理的 Nanobot 对话。",
+  "settings.nanobot.cleanup.failed":
+    "清理 Nanobot 对话失败：{value}",
   "settings.nanobot.test.endpoint": "接口：{value}",
   "settings.nanobot.configPath": "配置文件路径：{value}",
   "settings.nanobot.configPathError": "无法读取配置路径：{value}",

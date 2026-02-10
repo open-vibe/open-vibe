@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use ::nanobot::config::{get_config_path, load_config, save_config, Config};
@@ -256,4 +257,20 @@ pub(crate) async fn nanobot_config_path() -> Result<String, String> {
     path.to_str()
         .map(|value| value.to_string())
         .ok_or_else(|| "Unable to resolve nanobot config path.".to_string())
+}
+
+pub(crate) fn nanobot_workspace_root_path() -> Result<PathBuf, String> {
+    let config_path = match std::panic::catch_unwind(get_config_path) {
+        Ok(value) => value.map_err(|error| error.to_string())?,
+        Err(payload) => {
+            return Err(format!(
+                "nanobot config path panic: {}",
+                panic_to_string(payload)
+            ))
+        }
+    };
+    config_path
+        .parent()
+        .map(|value| value.to_path_buf())
+        .ok_or_else(|| "Unable to resolve nanobot workspace root.".to_string())
 }

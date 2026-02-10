@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 type SidebarFooterProps = {
   sessionPercent: number | null;
   weeklyPercent: number | null;
@@ -5,6 +7,7 @@ type SidebarFooterProps = {
   weeklyResetLabel: string | null;
   creditsLabel: string | null;
   showWeekly: boolean;
+  compact?: boolean;
 };
 
 export function SidebarFooter({
@@ -14,11 +17,17 @@ export function SidebarFooter({
   weeklyResetLabel,
   creditsLabel,
   showWeekly,
+  compact = false,
 }: SidebarFooterProps) {
   return (
-    <div className="rounded-lg border border-border bg-card p-3 text-xs text-muted-foreground">
-      <div className="space-y-3 text-foreground">
-        <div className="space-y-2">
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card text-xs text-muted-foreground",
+        compact ? "p-2" : "p-3",
+      )}
+    >
+      <div className={cn("text-foreground", compact ? "space-y-2" : "space-y-3")}>
+        <div className={cn(compact ? "space-y-1.5" : "space-y-2")}>
           <div className="flex items-center justify-between text-[11px] font-semibold">
             <span className="inline-flex items-center gap-2">
               <span>Session</span>
@@ -40,7 +49,7 @@ export function SidebarFooter({
           </div>
         </div>
         {showWeekly && (
-          <div className="space-y-2">
+          <div className={cn(compact ? "space-y-1.5" : "space-y-2")}>
             <div className="flex items-center justify-between text-[11px] font-semibold">
               <span className="inline-flex items-center gap-2">
                 <span>Weekly</span>
@@ -64,7 +73,9 @@ export function SidebarFooter({
         )}
       </div>
       {creditsLabel && (
-        <div className="mt-3 text-[10px] text-muted-foreground">{creditsLabel}</div>
+        <div className={cn("text-[10px] text-muted-foreground", compact ? "mt-2" : "mt-3")}>
+          {creditsLabel}
+        </div>
       )}
     </div>
   );

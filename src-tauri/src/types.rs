@@ -223,6 +223,7 @@ pub(crate) struct WorkspaceInfo {
 pub(crate) enum WorkspaceKind {
     Main,
     Worktree,
+    Nanobot,
 }
 
 impl Default for WorkspaceKind {
@@ -234,6 +235,10 @@ impl Default for WorkspaceKind {
 impl WorkspaceKind {
     pub(crate) fn is_worktree(&self) -> bool {
         matches!(self, WorkspaceKind::Worktree)
+    }
+
+    pub(crate) fn is_nanobot(&self) -> bool {
+        matches!(self, WorkspaceKind::Nanobot)
     }
 }
 
@@ -316,6 +321,11 @@ pub(crate) struct AppSettings {
     pub(crate) nanobot_mode: String,
     #[serde(default = "default_nanobot_enabled", rename = "nanobotEnabled")]
     pub(crate) nanobot_enabled: bool,
+    #[serde(
+        default = "default_nanobot_session_memory_enabled",
+        rename = "nanobotSessionMemoryEnabled"
+    )]
+    pub(crate) nanobot_session_memory_enabled: bool,
     #[serde(
         default = "default_nanobot_dingtalk_enabled",
         rename = "nanobotDingTalkEnabled"
@@ -533,6 +543,8 @@ pub(crate) struct AppSettings {
     pub(crate) last_composer_reasoning_effort: Option<String>,
     #[serde(default = "default_ui_scale", rename = "uiScale")]
     pub(crate) ui_scale: f64,
+    #[serde(default = "default_compact_sidebar", rename = "compactSidebar")]
+    pub(crate) compact_sidebar: bool,
     #[serde(default = "default_theme", rename = "theme")]
     pub(crate) theme: String,
     #[serde(default = "default_theme_color", rename = "themeColor")]
@@ -705,6 +717,10 @@ fn default_nanobot_enabled() -> bool {
     false
 }
 
+fn default_nanobot_session_memory_enabled() -> bool {
+    true
+}
+
 fn default_nanobot_mode() -> String {
     "bridge".to_string()
 }
@@ -815,6 +831,10 @@ fn default_nanobot_qq_allow_from() -> String {
 
 fn default_ui_scale() -> f64 {
     1.0
+}
+
+fn default_compact_sidebar() -> bool {
+    false
 }
 
 fn default_theme() -> String {
@@ -1102,6 +1122,7 @@ impl Default for AppSettings {
             happy_secret: None,
             nanobot_mode: default_nanobot_mode(),
             nanobot_enabled: default_nanobot_enabled(),
+            nanobot_session_memory_enabled: default_nanobot_session_memory_enabled(),
             nanobot_dingtalk_enabled: default_nanobot_dingtalk_enabled(),
             nanobot_dingtalk_client_id: default_nanobot_dingtalk_client_id(),
             nanobot_dingtalk_client_secret: default_nanobot_dingtalk_client_secret(),
@@ -1149,6 +1170,7 @@ impl Default for AppSettings {
             last_composer_model_id: None,
             last_composer_reasoning_effort: None,
             ui_scale: 1.0,
+            compact_sidebar: default_compact_sidebar(),
             theme: default_theme(),
             theme_color: default_theme_color(),
             language: default_language(),
@@ -1212,6 +1234,7 @@ mod tests {
         assert!(settings.happy_secret.is_none());
         assert_eq!(settings.nanobot_mode, "bridge");
         assert!(!settings.nanobot_enabled);
+        assert!(settings.nanobot_session_memory_enabled);
         assert!(!settings.nanobot_dingtalk_enabled);
         assert!(settings.nanobot_dingtalk_client_id.is_empty());
         assert!(settings.nanobot_dingtalk_client_secret.is_empty());
@@ -1238,6 +1261,7 @@ mod tests {
         assert!(settings.nanobot_qq_app_id.is_empty());
         assert!(settings.nanobot_qq_secret.is_empty());
         assert!(settings.nanobot_qq_allow_from.is_empty());
+        assert!(!settings.compact_sidebar);
         assert_eq!(settings.default_access_mode, "current");
         assert_eq!(
             settings.composer_model_shortcut.as_deref(),

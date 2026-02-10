@@ -25,6 +25,7 @@ use crate::codex::spawn_workspace_session;
 use crate::codex_args::resolve_workspace_codex_args;
 use crate::codex_home::resolve_workspace_codex_home;
 use crate::git_utils::resolve_git_root;
+use crate::nanobot_integration::nanobot_workspace_root_path;
 use crate::remote_backend;
 use crate::state::AppState;
 use crate::storage::write_workspaces;
@@ -53,6 +54,31 @@ fn normalize_setup_script(script: Option<String>) -> Option<String> {
         Some(value) => Some(value),
         None => None,
     }
+}
+
+fn normalize_workspace_path_key(path: &str) -> String {
+    let normalized = path.trim().replace('\\', "/");
+    let trimmed = normalized.trim_end_matches('/');
+    if cfg!(target_os = "windows") {
+        trimmed.to_lowercase()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn resolve_nanobot_root_key() -> Option<String> {
+    nanobot_workspace_root_path()
+        .ok()
+        .and_then(|path| path.to_str().map(normalize_workspace_path_key))
+}
+
+fn workspace_kind_for_path(path: &str, nanobot_root_key: Option<&str>) -> WorkspaceKind {
+    if let Some(root_key) = nanobot_root_key {
+        if normalize_workspace_path_key(path) == root_key {
+            return WorkspaceKind::Nanobot;
+        }
+    }
+    WorkspaceKind::Main
 }
 
 #[tauri::command]
@@ -92,21 +118,44 @@ pub(crate) async fn list_workspaces(
         return serde_json::from_value(response).map_err(|err| err.to_string());
     }
 
-    let workspaces = state.workspaces.lock().await;
-    let sessions = state.sessions.lock().await;
+    let nanobot_root_key = resolve_nanobot_root_key();
+    let mut persisted_entries: Option<Vec<WorkspaceEntry>> = None;
     let mut result = Vec::new();
-    for entry in workspaces.values() {
-        result.push(WorkspaceInfo {
-            id: entry.id.clone(),
-            name: entry.name.clone(),
-            path: entry.path.clone(),
-            codex_bin: entry.codex_bin.clone(),
-            connected: sessions.contains_key(&entry.id),
-            kind: entry.kind.clone(),
-            parent_id: entry.parent_id.clone(),
-            worktree: entry.worktree.clone(),
-            settings: entry.settings.clone(),
-        });
+    {
+        let mut workspaces = state.workspaces.lock().await;
+        let sessions = state.sessions.lock().await;
+        let mut changed = false;
+        for entry in workspaces.values_mut() {
+            if !entry.kind.is_worktree() {
+                let target_kind =
+                    workspace_kind_for_path(&entry.path, nanobot_root_key.as_deref());
+                if entry.kind.is_nanobot() != target_kind.is_nanobot() {
+                    entry.kind = target_kind.clone();
+                    changed = true;
+                }
+                if target_kind.is_nanobot() && entry.name != "Nanobot" {
+                    entry.name = "Nanobot".to_string();
+                    changed = true;
+                }
+            }
+            result.push(WorkspaceInfo {
+                id: entry.id.clone(),
+                name: entry.name.clone(),
+                path: entry.path.clone(),
+                codex_bin: entry.codex_bin.clone(),
+                connected: sessions.contains_key(&entry.id),
+                kind: entry.kind.clone(),
+                parent_id: entry.parent_id.clone(),
+                worktree: entry.worktree.clone(),
+                settings: entry.settings.clone(),
+            });
+        }
+        if changed {
+            persisted_entries = Some(workspaces.values().cloned().collect());
+        }
+    }
+    if let Some(list) = persisted_entries {
+        write_workspaces(&state.storage_path, &list)?;
     }
     sort_workspaces(&mut result);
     Ok(result)
@@ -157,17 +206,22 @@ pub(crate) async fn add_workspace(
         return Err("Workspace path must be a folder.".to_string());
     }
 
-    let name = PathBuf::from(&path)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or("Workspace")
-        .to_string();
+    let workspace_kind = workspace_kind_for_path(&path, resolve_nanobot_root_key().as_deref());
+    let name = if workspace_kind.is_nanobot() {
+        "Nanobot".to_string()
+    } else {
+        PathBuf::from(&path)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Workspace")
+            .to_string()
+    };
     let entry = WorkspaceEntry {
         id: Uuid::new_v4().to_string(),
         name: name.clone(),
         path: path.clone(),
         codex_bin,
-        kind: WorkspaceKind::Main,
+        kind: workspace_kind,
         parent_id: None,
         worktree: None,
         settings: WorkspaceSettings::default(),

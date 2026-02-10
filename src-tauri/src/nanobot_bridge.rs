@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use serde_json::{Map, Value, json};
@@ -40,6 +41,7 @@ pub(crate) struct NanobotBridgeState {
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     config: Option<NanobotBridgeConfig>,
+    provider_thread_by_session: HashMap<String, String>,
 }
 
 impl Default for NanobotBridgeState {
@@ -48,6 +50,7 @@ impl Default for NanobotBridgeState {
             child: None,
             stdin: None,
             config: None,
+            provider_thread_by_session: HashMap::new(),
         }
     }
 }
@@ -70,6 +73,29 @@ fn emit_status(app: &AppHandle, connected: bool, reason: Option<String>) {
             "type": "status",
             "connected": connected,
             "reason": reason,
+        }),
+    );
+}
+
+fn emit_provider_event(
+    app: &AppHandle,
+    session_key: &str,
+    request_id: &str,
+    workspace_id: &str,
+    phase: &str,
+    duration_ms: Option<u128>,
+    message: Option<String>,
+) {
+    let _ = app.emit(
+        "nanobot-bridge-event",
+        json!({
+            "type": "provider",
+            "sessionKey": session_key,
+            "requestId": request_id,
+            "workspaceId": workspace_id,
+            "phase": phase,
+            "durationMs": duration_ms.map(|value| value as u64),
+            "message": message,
         }),
     );
 }
@@ -290,6 +316,7 @@ async fn send_command_with_guard(
         if guard.child.is_some() {
             guard.child = None;
             guard.stdin = None;
+            guard.provider_thread_by_session.clear();
             return Err("Nanobot bridge daemon stopped".to_string());
         }
         return Err("Nanobot bridge is not running".to_string());
@@ -319,8 +346,35 @@ async fn send_daemon_command(app: &AppHandle, command: Value) -> Result<(), Stri
     send_command_with_guard(&mut guard, &command).await
 }
 
+async fn create_provider_bridge_thread(
+    session: &std::sync::Arc<crate::codex::WorkspaceSession>,
+    cwd: &str,
+) -> Result<String, String> {
+    let thread_result = session
+        .send_request(
+            "thread/start",
+            json!({
+                "cwd": cwd,
+                "approvalPolicy": "never",
+            }),
+        )
+        .await?;
+    if let Some(error) = extract_error_message(&thread_result) {
+        return Err(error);
+    }
+    extract_thread_id(&thread_result)
+        .ok_or_else(|| "failed to create provider bridge thread".to_string())
+}
+
+async fn clear_provider_thread_for_session(app: &AppHandle, session_key: &str) {
+    let state = app.state::<AppState>();
+    let mut guard = state.nanobot_bridge.lock().await;
+    guard.provider_thread_by_session.remove(session_key);
+}
+
 async fn run_provider_completion(
     app: &AppHandle,
+    session_key: &str,
     workspace_id: &str,
     prompt: String,
     model: Option<String>,
@@ -329,159 +383,174 @@ async fn run_provider_completion(
     if remote_backend::is_remote_mode(&*state).await {
         return Err("Provider bridge is unavailable in remote backend mode.".to_string());
     }
-
-    let session = {
-        let sessions = state.sessions.lock().await;
-        sessions
+    let session = crate::codex::ensure_global_session(&state, app).await?;
+    let provider_cwd = {
+        let workspaces = state.workspaces.lock().await;
+        workspaces
             .get(workspace_id)
+            .map(|entry| entry.path.clone())
+            .unwrap_or_else(|| session.entry.path.clone())
+    };
+
+    let mut provider_thread_id = {
+        let guard = state.nanobot_bridge.lock().await;
+        guard
+            .provider_thread_by_session
+            .get(session_key)
             .cloned()
-            .ok_or_else(|| format!("workspace not connected: {workspace_id}"))?
     };
 
-    let thread_result = session
-        .send_request(
-            "thread/start",
-            json!({
-                "cwd": session.entry.path.clone(),
-                "approvalPolicy": "never",
-            }),
-        )
-        .await?;
-    if let Some(error) = extract_error_message(&thread_result) {
-        return Err(error);
-    }
-    let provider_thread_id = extract_thread_id(&thread_result)
-        .ok_or_else(|| "failed to create provider bridge thread".to_string())?;
-
-    let (tx, mut rx) = mpsc::unbounded_channel::<Value>();
-    {
-        let mut callbacks = session.background_thread_callbacks.lock().await;
-        callbacks.insert(provider_thread_id.clone(), tx);
-    }
-
-    let mut turn_params = Map::new();
-    turn_params.insert("threadId".to_string(), json!(provider_thread_id.clone()));
-    turn_params.insert(
-        "input".to_string(),
-        json!([{ "type": "text", "text": prompt }]),
-    );
-    turn_params.insert("cwd".to_string(), json!(session.entry.path.clone()));
-    turn_params.insert("approvalPolicy".to_string(), json!("never"));
-    turn_params.insert("sandboxPolicy".to_string(), json!({ "type": "readOnly" }));
-    if let Some(model) = model {
-        let trimmed = model.trim().to_string();
-        if !trimmed.is_empty() {
-            turn_params.insert("model".to_string(), json!(trimmed));
+    for attempt in 0..2 {
+        if provider_thread_id.is_none() {
+            let created = create_provider_bridge_thread(&session, &provider_cwd).await?;
+            {
+                let mut guard = state.nanobot_bridge.lock().await;
+                guard
+                    .provider_thread_by_session
+                    .insert(session_key.to_string(), created.clone());
+            }
+            provider_thread_id = Some(created);
         }
-    }
+        let thread_id = provider_thread_id.clone().unwrap_or_default();
 
-    let turn_result = session
-        .send_request("turn/start", Value::Object(turn_params))
-        .await;
-    let turn_result = match turn_result {
-        Ok(value) => value,
-        Err(error) => {
+        let (tx, mut rx) = mpsc::unbounded_channel::<Value>();
+        {
             let mut callbacks = session.background_thread_callbacks.lock().await;
-            callbacks.remove(&provider_thread_id);
-            let _ = session
-                .send_request(
-                    "thread/archive",
-                    json!({
-                        "threadId": provider_thread_id.clone(),
-                    }),
-                )
-                .await;
-            return Err(error);
+            callbacks.insert(thread_id.clone(), tx);
         }
-    };
-    if let Some(error) = extract_error_message(&turn_result) {
-        let mut callbacks = session.background_thread_callbacks.lock().await;
-        callbacks.remove(&provider_thread_id);
-        let _ = session
-            .send_request(
-                "thread/archive",
-                json!({
-                    "threadId": provider_thread_id.clone(),
-                }),
-            )
-            .await;
-        return Err(error);
-    }
 
-    let collect_result = timeout(Duration::from_secs(120), async {
-        let mut text = String::new();
-        while let Some(event) = rx.recv().await {
-            let method = event.get("method").and_then(Value::as_str).unwrap_or("");
-            match method {
-                "item/agentMessage/delta" => {
-                    if let Some(delta) = event
-                        .get("params")
-                        .and_then(|params| params.get("delta"))
-                        .and_then(Value::as_str)
-                    {
-                        text.push_str(delta);
-                    }
-                }
-                "item/completed" => {
-                    if !text.trim().is_empty() {
-                        continue;
-                    }
-                    let item = event
-                        .get("params")
-                        .and_then(|params| params.get("item"))
-                        .cloned()
-                        .unwrap_or_else(|| json!({}));
-                    if item.get("type").and_then(Value::as_str) == Some("agentMessage") {
-                        if let Some(completed_text) = extract_agent_text_from_item(&item) {
-                            text = completed_text;
-                        }
-                    }
-                }
-                "turn/completed" => break,
-                "turn/error" | "error" => {
-                    let message = event
-                        .get("params")
-                        .and_then(|params| params.get("error"))
-                        .and_then(|err| err.get("message"))
-                        .and_then(Value::as_str)
-                        .unwrap_or("provider turn failed")
-                        .to_string();
-                    return Err(message);
-                }
-                _ => {}
+        let mut turn_params = Map::new();
+        turn_params.insert("threadId".to_string(), json!(thread_id.clone()));
+        turn_params.insert(
+            "input".to_string(),
+            json!([{ "type": "text", "text": prompt }]),
+        );
+        turn_params.insert("cwd".to_string(), json!(provider_cwd.clone()));
+        // Nanobot agent mode should run with Codex "allow all" behavior by default.
+        turn_params.insert("approvalPolicy".to_string(), json!("never"));
+        turn_params.insert(
+            "sandboxPolicy".to_string(),
+            json!({ "type": "dangerFullAccess" }),
+        );
+        if let Some(model) = model.clone() {
+            let trimmed = model.trim().to_string();
+            if !trimmed.is_empty() {
+                turn_params.insert("model".to_string(), json!(trimmed));
             }
         }
-        if text.trim().is_empty() {
-            return Err("provider returned empty response".to_string());
-        }
-        Ok(text)
-    })
-    .await;
 
-    {
-        let mut callbacks = session.background_thread_callbacks.lock().await;
-        callbacks.remove(&provider_thread_id);
-    }
-    let _ = session
-        .send_request(
-            "thread/archive",
-            json!({
-                "threadId": provider_thread_id,
-            }),
-        )
+        let turn_result = session
+            .send_request("turn/start", Value::Object(turn_params))
+            .await;
+        let turn_result = match turn_result {
+            Ok(value) => value,
+            Err(error) => {
+                let mut callbacks = session.background_thread_callbacks.lock().await;
+                callbacks.remove(&thread_id);
+                if attempt == 0 {
+                    clear_provider_thread_for_session(app, session_key).await;
+                    provider_thread_id = None;
+                    continue;
+                }
+                return Err(error);
+            }
+        };
+        if let Some(error) = extract_error_message(&turn_result) {
+            let mut callbacks = session.background_thread_callbacks.lock().await;
+            callbacks.remove(&thread_id);
+            if attempt == 0 {
+                clear_provider_thread_for_session(app, session_key).await;
+                provider_thread_id = None;
+                continue;
+            }
+            return Err(error);
+        }
+
+        let collect_result = timeout(Duration::from_secs(120), async {
+            let mut text = String::new();
+            while let Some(event) = rx.recv().await {
+                let method = event.get("method").and_then(Value::as_str).unwrap_or("");
+                match method {
+                    "item/agentMessage/delta" => {
+                        if let Some(delta) = event
+                            .get("params")
+                            .and_then(|params| params.get("delta"))
+                            .and_then(Value::as_str)
+                        {
+                            text.push_str(delta);
+                        }
+                    }
+                    "item/completed" => {
+                        if !text.trim().is_empty() {
+                            continue;
+                        }
+                        let item = event
+                            .get("params")
+                            .and_then(|params| params.get("item"))
+                            .cloned()
+                            .unwrap_or_else(|| json!({}));
+                        if item.get("type").and_then(Value::as_str) == Some("agentMessage") {
+                            if let Some(completed_text) = extract_agent_text_from_item(&item) {
+                                text = completed_text;
+                            }
+                        }
+                    }
+                    "turn/completed" => break,
+                    "turn/error" | "error" => {
+                        let message = event
+                            .get("params")
+                            .and_then(|params| params.get("error"))
+                            .and_then(|err| err.get("message"))
+                            .and_then(Value::as_str)
+                            .unwrap_or("provider turn failed")
+                            .to_string();
+                        return Err(message);
+                    }
+                    _ => {}
+                }
+            }
+            if text.trim().is_empty() {
+                return Err("provider returned empty response".to_string());
+            }
+            Ok(text)
+        })
         .await;
 
-    let raw_text = match collect_result {
-        Ok(Ok(text)) => text,
-        Ok(Err(error)) => return Err(error),
-        Err(_) => return Err("provider request timed out".to_string()),
-    };
-    Ok(normalize_provider_response(&raw_text))
+        {
+            let mut callbacks = session.background_thread_callbacks.lock().await;
+            callbacks.remove(&thread_id);
+        }
+
+        match collect_result {
+            Ok(Ok(text)) => return Ok(normalize_provider_response(&text)),
+            Ok(Err(error)) => {
+                clear_provider_thread_for_session(app, session_key).await;
+                return Err(error);
+            }
+            Err(_) => {
+                clear_provider_thread_for_session(app, session_key).await;
+                return Err("provider request timed out".to_string());
+            }
+        }
+    }
+
+    Err("failed to resolve provider bridge thread".to_string())
 }
 
 async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(), String> {
     let request_id = normalize_required(payload.get("requestId"), "requestId")?;
+    let session_key = normalize_required(payload.get("sessionKey"), "sessionKey")?;
     let workspace_id = normalize_required(payload.get("workspaceId"), "workspaceId")?;
+    let started_at = Instant::now();
+    emit_provider_event(
+        app,
+        &session_key,
+        &request_id,
+        &workspace_id,
+        "start",
+        None,
+        None,
+    );
     let messages = payload
         .get("messages")
         .and_then(Value::as_array)
@@ -508,9 +577,19 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
 
     let prompt =
         build_provider_prompt(&messages, &tools, model.as_deref(), max_tokens, temperature);
-    let result = run_provider_completion(app, &workspace_id, prompt, model).await;
+    let result =
+        run_provider_completion(app, &session_key, &workspace_id, prompt, model).await;
     match result {
         Ok(response) => {
+            emit_provider_event(
+                app,
+                &session_key,
+                &request_id,
+                &workspace_id,
+                "done",
+                Some(started_at.elapsed().as_millis()),
+                None,
+            );
             send_daemon_command(
                 app,
                 json!({
@@ -523,6 +602,15 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
             .await
         }
         Err(error) => {
+            emit_provider_event(
+                app,
+                &session_key,
+                &request_id,
+                &workspace_id,
+                "error",
+                Some(started_at.elapsed().as_millis()),
+                Some(error.clone()),
+            );
             send_daemon_command(
                 app,
                 json!({
@@ -631,6 +719,7 @@ pub(crate) async fn apply_settings(
         stop_child(&mut child).await;
     }
     guard.stdin = None;
+    guard.provider_thread_by_session.clear();
     guard.config = Some(config.clone());
 
     if !config.should_run() {
@@ -672,6 +761,7 @@ pub(crate) async fn shutdown(state: &AppState) {
         stop_child(&mut child).await;
     }
     guard.stdin = None;
+    guard.provider_thread_by_session.clear();
     guard.config = None;
 }
 

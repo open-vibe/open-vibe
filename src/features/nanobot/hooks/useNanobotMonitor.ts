@@ -136,6 +136,13 @@ export function useNanobotMonitor({
         return;
       }
 
+      if (event.type === "provider") {
+        setConnected(true);
+        setReason(null);
+        appendLog("event", `nanobot/provider/${event.phase}`, event, timestamp);
+        return;
+      }
+
       if (event.type === "agent-trace") {
         setConnected(true);
         setReason(null);
