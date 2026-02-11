@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
@@ -8,7 +9,7 @@ use serde_json::{Map, Value, json};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-use tokio::sync::mpsc;
+use tokio::sync::{Mutex as TokioMutex, mpsc};
 use tokio::time::timeout;
 use uuid::Uuid;
 
@@ -41,7 +42,8 @@ pub(crate) struct NanobotBridgeState {
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     config: Option<NanobotBridgeConfig>,
-    provider_thread_by_session: HashMap<String, String>,
+    provider_thread_by_key: HashMap<String, String>,
+    provider_turn_lock_by_key: HashMap<String, Arc<TokioMutex<()>>>,
 }
 
 impl Default for NanobotBridgeState {
@@ -50,7 +52,8 @@ impl Default for NanobotBridgeState {
             child: None,
             stdin: None,
             config: None,
-            provider_thread_by_session: HashMap::new(),
+            provider_thread_by_key: HashMap::new(),
+            provider_turn_lock_by_key: HashMap::new(),
         }
     }
 }
@@ -153,10 +156,45 @@ fn extract_json_value(raw: &str) -> Option<Value> {
 }
 
 fn extract_agent_text_from_item(item: &Value) -> Option<String> {
-    item.get("text")
-        .and_then(Value::as_str)
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
+    fn collect_text(value: &Value, acc: &mut Vec<String>) {
+        match value {
+            Value::String(raw) => {
+                let trimmed = raw.trim();
+                if !trimmed.is_empty() {
+                    acc.push(trimmed.to_string());
+                }
+            }
+            Value::Array(items) => {
+                for item in items {
+                    collect_text(item, acc);
+                }
+            }
+            Value::Object(map) => {
+                if let Some(text) = map.get("text").and_then(Value::as_str) {
+                    let trimmed = text.trim();
+                    if !trimmed.is_empty() {
+                        acc.push(trimmed.to_string());
+                    }
+                }
+                if let Some(content) = map.get("content") {
+                    collect_text(content, acc);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    for key in ["text", "content", "message"] {
+        let Some(value) = item.get(key) else {
+            continue;
+        };
+        let mut segments = Vec::new();
+        collect_text(value, &mut segments);
+        if !segments.is_empty() {
+            return Some(segments.join(""));
+        }
+    }
+    None
 }
 
 fn build_provider_prompt(
@@ -373,7 +411,8 @@ async fn send_command_with_guard(
         if guard.child.is_some() {
             guard.child = None;
             guard.stdin = None;
-            guard.provider_thread_by_session.clear();
+            guard.provider_thread_by_key.clear();
+            guard.provider_turn_lock_by_key.clear();
             return Err("Nanobot bridge daemon stopped".to_string());
         }
         return Err("Nanobot bridge is not running".to_string());
@@ -423,21 +462,36 @@ async fn create_provider_bridge_thread(
         .ok_or_else(|| "failed to create provider bridge thread".to_string())
 }
 
-async fn clear_provider_thread_for_session(app: &AppHandle, session_key: &str) {
+async fn clear_provider_thread_for_key(app: &AppHandle, key: &str) {
     let state = app.state::<AppState>();
     let mut guard = state.nanobot_bridge.lock().await;
-    guard.provider_thread_by_session.remove(session_key);
+    guard.provider_thread_by_key.remove(key);
+}
+
+async fn get_provider_turn_lock_for_key(
+    app: &AppHandle,
+    key: &str,
+) -> Arc<TokioMutex<()>> {
+    let state = app.state::<AppState>();
+    let mut guard = state.nanobot_bridge.lock().await;
+    guard
+        .provider_turn_lock_by_key
+        .entry(key.to_string())
+        .or_insert_with(|| Arc::new(TokioMutex::new(())))
+        .clone()
 }
 
 async fn run_provider_completion(
     app: &AppHandle,
-    session_key: &str,
+    provider_key: &str,
     workspace_id: &str,
     prompt: String,
     model: Option<String>,
     effort: Option<String>,
     access_mode: String,
 ) -> Result<Value, String> {
+    let session_turn_lock = get_provider_turn_lock_for_key(app, provider_key).await;
+    let _session_turn_guard = session_turn_lock.lock().await;
     let state = app.state::<AppState>();
     if remote_backend::is_remote_mode(&*state).await {
         return Err("Provider bridge is unavailable in remote backend mode.".to_string());
@@ -469,8 +523,8 @@ async fn run_provider_completion(
     let mut provider_thread_id = {
         let guard = state.nanobot_bridge.lock().await;
         guard
-            .provider_thread_by_session
-            .get(session_key)
+            .provider_thread_by_key
+            .get(provider_key)
             .cloned()
     };
 
@@ -480,8 +534,8 @@ async fn run_provider_completion(
             {
                 let mut guard = state.nanobot_bridge.lock().await;
                 guard
-                    .provider_thread_by_session
-                    .insert(session_key.to_string(), created.clone());
+                    .provider_thread_by_key
+                    .insert(provider_key.to_string(), created.clone());
             }
             provider_thread_id = Some(created);
         }
@@ -536,7 +590,7 @@ async fn run_provider_completion(
                 let mut callbacks = session.background_thread_callbacks.lock().await;
                 callbacks.remove(&thread_id);
                 if attempt == 0 {
-                    clear_provider_thread_for_session(app, session_key).await;
+                    clear_provider_thread_for_key(app, provider_key).await;
                     provider_thread_id = None;
                     continue;
                 }
@@ -547,7 +601,7 @@ async fn run_provider_completion(
             let mut callbacks = session.background_thread_callbacks.lock().await;
             callbacks.remove(&thread_id);
             if attempt == 0 {
-                clear_provider_thread_for_session(app, session_key).await;
+                clear_provider_thread_for_key(app, provider_key).await;
                 provider_thread_id = None;
                 continue;
             }
@@ -612,11 +666,19 @@ async fn run_provider_completion(
         match collect_result {
             Ok(Ok(text)) => return Ok(normalize_provider_response(&text)),
             Ok(Err(error)) => {
-                clear_provider_thread_for_session(app, session_key).await;
+                if attempt == 0 {
+                    clear_provider_thread_for_key(app, provider_key).await;
+                    provider_thread_id = None;
+                    continue;
+                }
                 return Err(error);
             }
             Err(_) => {
-                clear_provider_thread_for_session(app, session_key).await;
+                if attempt == 0 {
+                    clear_provider_thread_for_key(app, provider_key).await;
+                    provider_thread_id = None;
+                    continue;
+                }
                 return Err("provider request timed out".to_string());
             }
         }
@@ -653,6 +715,13 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         .get("model")
         .and_then(Value::as_str)
         .map(ToOwned::to_owned);
+    let provider_key = payload
+        .get("threadId")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(session_key.as_str())
+        .to_string();
     let overrides =
         resolve_provider_turn_overrides(app, requested_model.as_deref()).await;
     let max_tokens = payload
@@ -668,7 +737,7 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         build_provider_prompt(&messages, &tools, overrides.model.as_deref(), max_tokens, temperature);
     let result = run_provider_completion(
         app,
-        &session_key,
+        &provider_key,
         &workspace_id,
         prompt,
         overrides.model,
@@ -816,7 +885,8 @@ pub(crate) async fn apply_settings(
         stop_child(&mut child).await;
     }
     guard.stdin = None;
-    guard.provider_thread_by_session.clear();
+    guard.provider_thread_by_key.clear();
+    guard.provider_turn_lock_by_key.clear();
     guard.config = Some(config.clone());
 
     if !config.should_run() {
@@ -858,7 +928,8 @@ pub(crate) async fn shutdown(state: &AppState) {
         stop_child(&mut child).await;
     }
     guard.stdin = None;
-    guard.provider_thread_by_session.clear();
+    guard.provider_thread_by_key.clear();
+    guard.provider_turn_lock_by_key.clear();
     guard.config = None;
 }
 

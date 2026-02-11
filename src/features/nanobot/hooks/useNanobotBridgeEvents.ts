@@ -106,6 +106,7 @@ const OPENVIBE_SETTING_LABEL_KEYS: Record<OpenVibeSettingKey, TranslationKey> = 
 
 const NANOBOT_SESSION_STATE_STORAGE_KEY = "openvibe.nanobot.sessionState.v1";
 const NANOBOT_THREAD_IDS_STORAGE_KEY = "openvibe.nanobot.threadIds.v1";
+const NANOBOT_AGENT_THREAD_PREFIX = "nanobot-agent";
 
 function isMenuCommand(raw: string) {
   const lower = raw.toLowerCase();
@@ -435,6 +436,12 @@ function getConfigParentPath(configPath: string) {
   return normalized.slice(0, lastSlash);
 }
 
+function buildAgentRouteThreadId(channel: string, chatId: string) {
+  const normalizedChannel = channel.trim().toLowerCase() || "channel";
+  const normalizedChatId = chatId.trim() || "chat";
+  return `${NANOBOT_AGENT_THREAD_PREFIX}:${normalizedChannel}:${normalizedChatId}`;
+}
+
 export function useNanobotBridgeEvents({
   enabled,
   sessionMemoryEnabled,
@@ -463,8 +470,6 @@ export function useNanobotBridgeEvents({
   const relayOptionsRef = useRef<Map<string, RelayCandidate[]>>(new Map());
   const nanobotWorkspacePathRef = useRef<string | null>(null);
   const ensuringWorkspaceRef = useRef<Promise<WorkspaceInfo | null> | null>(null);
-  const warmThreadIdRef = useRef<string | null>(null);
-  const warmThreadTaskRef = useRef<Promise<void> | null>(null);
   const stateLoadedRef = useRef(false);
   const persistSessionState = useCallback(() => {
     if (!sessionMemoryEnabled || typeof window === "undefined") {
@@ -607,8 +612,6 @@ export function useNanobotBridgeEvents({
 
   useEffect(() => {
     if (!enabled) {
-      warmThreadIdRef.current = null;
-      warmThreadTaskRef.current = null;
       return;
     }
     void loadNanobotWorkspacePath();
@@ -648,39 +651,8 @@ export function useNanobotBridgeEvents({
     if (!enabled) {
       return;
     }
-    if (warmThreadTaskRef.current) {
-      return;
-    }
-    const task = (async () => {
-      const workspace = await ensureNanobotWorkspace();
-      if (!workspace) {
-        return;
-      }
-      const hasRoute = Array.from(routesRef.current.values()).some(
-        (route) => route.workspaceId === workspace.id,
-      );
-      if (hasRoute || warmThreadIdRef.current) {
-        return;
-      }
-      if (!workspace.connected) {
-        await connectWorkspace(workspace);
-      }
-      const threadId = await startThreadForWorkspace(workspace.id);
-      if (threadId) {
-        warmThreadIdRef.current = threadId;
-        rememberNanobotThread(workspace.id, threadId);
-      }
-    })().finally(() => {
-      warmThreadTaskRef.current = null;
-    });
-    warmThreadTaskRef.current = task;
-  }, [
-    enabled,
-    ensureNanobotWorkspace,
-    connectWorkspace,
-    rememberNanobotThread,
-    startThreadForWorkspace,
-  ]);
+    void ensureNanobotWorkspace();
+  }, [enabled, ensureNanobotWorkspace]);
 
   const sendBridgeReply = useCallback(
     async (
@@ -877,6 +849,17 @@ export function useNanobotBridgeEvents({
 
       const existingRoute = routesRef.current.get(event.sessionKey) ?? null;
       const fallbackWorkspaceId = existingRoute?.workspaceId ?? event.workspaceId ?? null;
+      const isAgentMode = getSessionMode(event.sessionKey) === "agent";
+
+      if (
+        isAgentMode &&
+        (action.type === "workspace-open" ||
+          action.type === "thread-open" ||
+          action.type === "thread-focus")
+      ) {
+        await sendBridgeReply(event, t("nanobot.bridge.ov.reply.disabledInAgent"));
+        return true;
+      }
 
       if (action.type === "workspace-list") {
         if (!workspaces.length) {
@@ -954,13 +937,15 @@ export function useNanobotBridgeEvents({
             return true;
           }
           openThreadTab(workspace.id, threadId);
-          await bindSessionRoute({
-            sessionKey: event.sessionKey,
-            channel: event.channel,
-            chatId: event.chatId,
-            workspaceId: workspace.id,
-            threadId,
-          });
+          if (!isAgentMode) {
+            await bindSessionRoute({
+              sessionKey: event.sessionKey,
+              channel: event.channel,
+              chatId: event.chatId,
+              workspaceId: workspace.id,
+              threadId,
+            });
+          }
           await sendBridgeReply(
             event,
             t("nanobot.bridge.ov.reply.threadOpened", { value: threadId.slice(0, 8) }),
@@ -1039,13 +1024,15 @@ export function useNanobotBridgeEvents({
         }
 
         openThreadTab(resolvedWorkspace.id, thread.id);
-        await bindSessionRoute({
-          sessionKey: event.sessionKey,
-          channel: event.channel,
-          chatId: event.chatId,
-          workspaceId: resolvedWorkspace.id,
-          threadId: thread.id,
-        });
+        if (!isAgentMode) {
+          await bindSessionRoute({
+            sessionKey: event.sessionKey,
+            channel: event.channel,
+            chatId: event.chatId,
+            workspaceId: resolvedWorkspace.id,
+            threadId: thread.id,
+          });
+        }
         await sendBridgeReply(
           event,
           t("nanobot.bridge.ov.reply.threadOpened", { value: thread.name }),
@@ -1136,6 +1123,7 @@ export function useNanobotBridgeEvents({
       resolveWorkspaceTarget,
       sendBridgeReply,
       startThreadForWorkspace,
+      getSessionMode,
       syncSessionMode,
       t,
       threadsByWorkspace,
@@ -1148,11 +1136,14 @@ export function useNanobotBridgeEvents({
     async (
       event: Extract<NanobotBridgeEvent, { type: "remote-message" }>,
     ): Promise<SessionRoute | null> => {
+      const sessionMode = getSessionMode(event.sessionKey);
+      const isAgentMode = sessionMode === "agent";
       const preferredWorkspace = await ensureNanobotWorkspace();
       if (!preferredWorkspace) {
         throw new Error("Nanobot workspace is unavailable.");
       }
       const preferredWorkspaceId = preferredWorkspace.id;
+      const agentRouteThreadId = buildAgentRouteThreadId(event.channel, event.chatId);
       const reuseRouteForChat = () =>
         Array.from(routesRef.current.values()).find(
           (route) =>
@@ -1184,7 +1175,7 @@ export function useNanobotBridgeEvents({
           mappedWorkspaceId,
           mappedThreadId,
         );
-        if (mappedThreadExists !== false) {
+        if (isAgentMode || mappedThreadExists !== false) {
           const mapped: SessionRoute = {
             sessionKey: event.sessionKey,
             channel: event.channel,
@@ -1206,7 +1197,7 @@ export function useNanobotBridgeEvents({
           existing.workspaceId,
           existing.threadId,
         );
-        if (existingThreadExists === false) {
+        if (!isAgentMode && existingThreadExists === false) {
           routesRef.current.delete(event.sessionKey);
           boundSessionKeysRef.current.delete(event.sessionKey);
           persistSessionState();
@@ -1235,7 +1226,11 @@ export function useNanobotBridgeEvents({
       }
 
       const reusable = reuseRouteForChat();
-      if (reusable && hasThreadInWorkspace(reusable.workspaceId, reusable.threadId) !== false) {
+      if (
+        reusable &&
+        (isAgentMode ||
+          hasThreadInWorkspace(reusable.workspaceId, reusable.threadId) !== false)
+      ) {
         inheritSessionMode(reusable.sessionKey, event.sessionKey);
         const reusedRoute: SessionRoute = {
           sessionKey: event.sessionKey,
@@ -1275,11 +1270,9 @@ export function useNanobotBridgeEvents({
         if (!workspace.connected) {
           await connectWorkspace(workspace);
         }
-        const threadId =
-          warmThreadIdRef.current ?? (await startThreadForWorkspace(workspace.id));
-        if (warmThreadIdRef.current === threadId) {
-          warmThreadIdRef.current = null;
-        }
+        const threadId = isAgentMode
+          ? agentRouteThreadId
+          : await startThreadForWorkspace(workspace.id);
         if (!threadId) {
           throw new Error("Failed to create thread for Nanobot route.");
         }

@@ -190,6 +190,8 @@ const en = {
   "nanobot.bridge.ov.reply.threadClosed": "Thread tab closed: {value}",
   "nanobot.bridge.ov.reply.threadCloseNotOpen":
     "Thread tab is not open: {value}",
+  "nanobot.bridge.ov.reply.disabledInAgent":
+    "Agent mode keeps a fixed Nanobot route. Switch to bridge mode to open/focus workspaces or threads.",
   "nanobot.bridge.ov.reply.settingsListHeader": "Settings (allowlist):",
   "nanobot.bridge.ov.reply.settingsValue": "{key}: {value}",
   "nanobot.bridge.ov.reply.settingsUpdated": "Updated {key} = {value}",
@@ -1078,6 +1080,8 @@ const zhCN: Record<TranslationKey, string> = {
   "nanobot.bridge.ov.reply.threadOpened": "已打开对话：{value}",
   "nanobot.bridge.ov.reply.threadClosed": "已关闭对话标签：{value}",
   "nanobot.bridge.ov.reply.threadCloseNotOpen": "该对话未打开：{value}",
+  "nanobot.bridge.ov.reply.disabledInAgent":
+    "Agent 模式使用固定的 Nanobot 路由。请先切换到桥接模式，再执行工作区或对话打开/聚焦。",
   "nanobot.bridge.ov.reply.settingsListHeader": "设置项（白名单）：",
   "nanobot.bridge.ov.reply.settingsValue": "{key}: {value}",
   "nanobot.bridge.ov.reply.settingsUpdated": "已更新 {key} = {value}",
