@@ -1,9 +1,10 @@
 import type { MouseEvent } from "react";
-import { ChevronDown, Folder, Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import type { WorkspaceInfo } from "../../../types";
+import { WorkspaceGlyph } from "./WorkspaceGlyph";
 
 type WorkspaceCardProps = {
   workspace: WorkspaceInfo;
@@ -37,6 +38,8 @@ export function WorkspaceCard({
   onToggleAddMenu,
   children,
 }: WorkspaceCardProps) {
+  const workspaceAccent = workspace.settings.workspaceColor?.trim() || null;
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -59,8 +62,11 @@ export function WorkspaceCard({
         }}
       >
         <div role="button" tabIndex={0} className="flex min-w-0 flex-1 items-center gap-2">
-          <Folder className="h-4 w-4 text-muted-foreground" aria-hidden />
-          <span className="min-w-0 flex-1 truncate font-medium">
+          <WorkspaceGlyph settings={workspace.settings} fallbackIcon="folder" />
+          <span
+            className="min-w-0 flex-1 truncate font-medium"
+            style={workspaceAccent ? { color: workspaceAccent } : undefined}
+          >
             {workspace.name}
           </span>
           <div className="ml-auto flex items-center gap-2">

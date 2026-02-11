@@ -275,6 +275,12 @@ pub(crate) struct WorkspaceSettings {
     pub(crate) launch_script: Option<String>,
     #[serde(default, rename = "worktreeSetupScript")]
     pub(crate) worktree_setup_script: Option<String>,
+    #[serde(default, rename = "workspaceIcon")]
+    pub(crate) workspace_icon: Option<String>,
+    #[serde(default, rename = "workspaceEmoji")]
+    pub(crate) workspace_emoji: Option<String>,
+    #[serde(default, rename = "workspaceColor")]
+    pub(crate) workspace_color: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -326,6 +332,41 @@ pub(crate) struct AppSettings {
         rename = "nanobotSessionMemoryEnabled"
     )]
     pub(crate) nanobot_session_memory_enabled: bool,
+    #[serde(
+        default = "default_nanobot_away_notify_enabled",
+        rename = "nanobotAwayNotifyEnabled"
+    )]
+    pub(crate) nanobot_away_notify_enabled: bool,
+    #[serde(
+        default = "default_nanobot_away_idle_seconds",
+        rename = "nanobotAwayIdleSeconds"
+    )]
+    pub(crate) nanobot_away_idle_seconds: u64,
+    #[serde(
+        default = "default_nanobot_away_cooldown_seconds",
+        rename = "nanobotAwayCooldownSeconds"
+    )]
+    pub(crate) nanobot_away_cooldown_seconds: u64,
+    #[serde(
+        default = "default_nanobot_away_bluetooth_enabled",
+        rename = "nanobotAwayBluetoothEnabled"
+    )]
+    pub(crate) nanobot_away_bluetooth_enabled: bool,
+    #[serde(
+        default = "default_nanobot_away_bluetooth_keyword",
+        rename = "nanobotAwayBluetoothKeyword"
+    )]
+    pub(crate) nanobot_away_bluetooth_keyword: String,
+    #[serde(
+        default = "default_nanobot_away_bluetooth_device_id",
+        rename = "nanobotAwayBluetoothDeviceId"
+    )]
+    pub(crate) nanobot_away_bluetooth_device_id: String,
+    #[serde(
+        default = "default_nanobot_away_bluetooth_device_name",
+        rename = "nanobotAwayBluetoothDeviceName"
+    )]
+    pub(crate) nanobot_away_bluetooth_device_name: String,
     #[serde(
         default = "default_nanobot_agent_model",
         rename = "nanobotAgentModel"
@@ -728,6 +769,34 @@ fn default_nanobot_enabled() -> bool {
 
 fn default_nanobot_session_memory_enabled() -> bool {
     true
+}
+
+fn default_nanobot_away_notify_enabled() -> bool {
+    false
+}
+
+fn default_nanobot_away_idle_seconds() -> u64 {
+    120
+}
+
+fn default_nanobot_away_cooldown_seconds() -> u64 {
+    120
+}
+
+fn default_nanobot_away_bluetooth_enabled() -> bool {
+    false
+}
+
+fn default_nanobot_away_bluetooth_keyword() -> String {
+    String::new()
+}
+
+fn default_nanobot_away_bluetooth_device_id() -> String {
+    String::new()
+}
+
+fn default_nanobot_away_bluetooth_device_name() -> String {
+    String::new()
 }
 
 fn default_nanobot_agent_model() -> String {
@@ -1136,6 +1205,13 @@ impl Default for AppSettings {
             nanobot_mode: default_nanobot_mode(),
             nanobot_enabled: default_nanobot_enabled(),
             nanobot_session_memory_enabled: default_nanobot_session_memory_enabled(),
+            nanobot_away_notify_enabled: default_nanobot_away_notify_enabled(),
+            nanobot_away_idle_seconds: default_nanobot_away_idle_seconds(),
+            nanobot_away_cooldown_seconds: default_nanobot_away_cooldown_seconds(),
+            nanobot_away_bluetooth_enabled: default_nanobot_away_bluetooth_enabled(),
+            nanobot_away_bluetooth_keyword: default_nanobot_away_bluetooth_keyword(),
+            nanobot_away_bluetooth_device_id: default_nanobot_away_bluetooth_device_id(),
+            nanobot_away_bluetooth_device_name: default_nanobot_away_bluetooth_device_name(),
             nanobot_agent_model: default_nanobot_agent_model(),
             nanobot_agent_reasoning_effort: None,
             nanobot_dingtalk_enabled: default_nanobot_dingtalk_enabled(),
@@ -1251,6 +1327,13 @@ mod tests {
         assert_eq!(settings.nanobot_mode, "bridge");
         assert!(!settings.nanobot_enabled);
         assert!(settings.nanobot_session_memory_enabled);
+        assert!(!settings.nanobot_away_notify_enabled);
+        assert_eq!(settings.nanobot_away_idle_seconds, 120);
+        assert_eq!(settings.nanobot_away_cooldown_seconds, 120);
+        assert!(!settings.nanobot_away_bluetooth_enabled);
+        assert!(settings.nanobot_away_bluetooth_keyword.is_empty());
+        assert!(settings.nanobot_away_bluetooth_device_id.is_empty());
+        assert!(settings.nanobot_away_bluetooth_device_name.is_empty());
         assert_eq!(settings.nanobot_agent_model, "");
         assert!(settings.nanobot_agent_reasoning_effort.is_none());
         assert!(!settings.nanobot_dingtalk_enabled);
@@ -1422,5 +1505,8 @@ mod tests {
         assert!(settings.sort_order.is_none());
         assert!(settings.group_id.is_none());
         assert!(settings.git_root.is_none());
+        assert!(settings.workspace_icon.is_none());
+        assert!(settings.workspace_emoji.is_none());
+        assert!(settings.workspace_color.is_none());
     }
 }

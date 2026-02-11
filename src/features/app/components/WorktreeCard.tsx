@@ -1,9 +1,10 @@
 import type { MouseEvent } from "react";
-import { ChevronDown, GitBranch } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import type { WorkspaceInfo } from "../../../types";
+import { WorkspaceGlyph } from "./WorkspaceGlyph";
 
 type WorktreeCardProps = {
   worktree: WorkspaceInfo;
@@ -29,6 +30,7 @@ export function WorktreeCard({
   const worktreeCollapsed = worktree.settings.sidebarCollapsed;
   const worktreeBranch = worktree.worktree?.branch ?? "";
   const label = worktreeBranch || worktree.name;
+  const workspaceAccent = worktree.settings.workspaceColor?.trim() || null;
 
   return (
     <SidebarMenuItem>
@@ -71,8 +73,18 @@ export function WorktreeCard({
             isDeleting && "opacity-60",
           )}
         >
-          <GitBranch className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-          <span className="min-w-0 flex-1 truncate">{label}</span>
+          <WorkspaceGlyph
+            settings={worktree.settings}
+            fallbackIcon="git-branch"
+            className="h-4 w-4"
+            iconClassName="h-3 w-3"
+          />
+          <span
+            className="min-w-0 flex-1 truncate"
+            style={workspaceAccent ? { color: workspaceAccent } : undefined}
+          >
+            {label}
+          </span>
           <div className="ml-auto flex items-center gap-2">
             {isDeleting ? (
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">

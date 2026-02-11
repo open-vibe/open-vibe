@@ -218,6 +218,21 @@ export type SettingsViewProps = {
     cleared: number;
     workspaceName: string;
   }>;
+  nanobotAwayDetected?: boolean;
+  nanobotBluetoothState?: {
+    supported: boolean;
+    scanning: boolean;
+    nearby: boolean | null;
+    error: string | null;
+    lastSeenAt: number | null;
+  };
+  nanobotBluetoothDevices?: Array<{
+    id: string;
+    name: string;
+    rssi?: number | null;
+  }>;
+  onStartNanobotBluetoothScan?: () => Promise<void>;
+  onStopNanobotBluetoothScan?: () => void;
   nanobotWorkspace?: WorkspaceInfo | null;
   onUpdateWorkspaceCodexBin: (
     id: string,
@@ -344,6 +359,11 @@ export function SettingsView({
   onGetNanobotConfigPath,
   onTestNanobotDingTalk,
   onClearNanobotThreads,
+  nanobotAwayDetected = false,
+  nanobotBluetoothState,
+  nanobotBluetoothDevices = [],
+  onStartNanobotBluetoothScan,
+  onStopNanobotBluetoothScan,
   nanobotWorkspace = null,
   onUpdateWorkspaceCodexBin,
   onUpdateWorkspaceSettings,
@@ -1967,7 +1987,7 @@ export function SettingsView({
                             <DictationTabSection {...{ t, platform, appSettings, onUpdateAppSettings, dictationModelStatus, onCancelDictationDownload, onDownloadDictationModel, dictationModels, selectedDictationModel, dictationProgress, dictationReady, onRemoveDictationModel, DICTATION_AUTO_VALUE, DICTATION_HOLD_OFF_VALUE }} />
                             <ShortcutsTabSection {...{ t, shortcutDrafts, handleShortcutKeyDown, updateShortcut, formatShortcut, getDefaultInterruptShortcut }} />
                             <OpenAppsTabSection {...{ t, openAppDrafts, openAppIconById, handleOpenAppDraftChange, handleCommitOpenApps, handleOpenAppKindChange, fileManagerLabel, openAppSelectedId, handleSelectOpenAppDefault, handleMoveOpenApp, handleDeleteOpenApp, handleAddOpenApp }} />
-                            <NanobotTabSection {...{ t, appSettings, onUpdateAppSettings, models, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAgentModel, nextNanobotAgentReasoningEffort, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAgentModelDraft, nanobotAgentModelSelectValue, handleSelectNanobotAgentModel, nanobotAgentReasoningEffortDraft, nanobotAgentReasoningOptions, handleSelectNanobotAgentReasoningEffort, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotWorkspace, nanobotCodexBinDraft, setNanobotCodexBinDraft, handleCommitNanobotCodexBin, nanobotCodexBinSaving, nanobotCodexBinSavedAt, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, cn }} />
+                            <NanobotTabSection {...{ t, appSettings, onUpdateAppSettings, models, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAgentModel, nextNanobotAgentReasoningEffort, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAgentModelDraft, nanobotAgentModelSelectValue, handleSelectNanobotAgentModel, nanobotAgentReasoningEffortDraft, nanobotAgentReasoningOptions, handleSelectNanobotAgentReasoningEffort, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotAwayDetected, nanobotBluetoothState, nanobotBluetoothDevices, onStartNanobotBluetoothScan, onStopNanobotBluetoothScan, nanobotWorkspace, nanobotCodexBinDraft, setNanobotCodexBinDraft, handleCommitNanobotCodexBin, nanobotCodexBinSaving, nanobotCodexBinSavedAt, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, cn }} />
                             <CodexTabSection {...{ t, codexPathDraft, setCodexPathDraft, handleBrowseCodex, codexArgsDraft, setCodexArgsDraft, codexDirty, handleSaveCodexSettings, isSavingSettings, handleRunDoctor, doctorState, projects, codexBinOverrideDrafts, setCodexBinOverrideDrafts, handleCommitCodexBinOverride, codexBinOverrideSaving, codexBinOverrideSavedAt, setCodexBinOverrideSaving, onUpdateWorkspaceCodexBin, setCodexBinOverrideSavedAt, appSettings, handleRunWorkspaceDoctor, codexBinOverrideDoctor, codexHomeOverrideDrafts, setCodexHomeOverrideDrafts, onUpdateWorkspaceSettings, codexArgsOverrideDrafts, setCodexArgsOverrideDrafts, onUpdateAppSettings, remoteHostDraft, setRemoteHostDraft, handleCommitRemoteHost, remoteTokenDraft, setRemoteTokenDraft, handleCommitRemoteToken, globalAgentsMeta, globalAgentsError, globalAgentsContent, globalAgentsLoading, globalAgentsRefreshDisabled, globalAgentsSaveDisabled, globalAgentsSaveLabel, setGlobalAgentsContent, refreshGlobalAgents, saveGlobalAgents, globalConfigMeta, globalConfigError, globalConfigContent, globalConfigLoading, globalConfigRefreshDisabled, globalConfigSaveDisabled, globalConfigSaveLabel, setGlobalConfigContent, refreshGlobalConfig, saveGlobalConfig, normalizeOverrideValue, cn }} />
                             <ExperimentalTabSection {...{ t, hasCodexHomeOverrides, fileManagerLabel, handleOpenConfig, openInFileManagerLabel, openConfigError, appSettings, onUpdateAppSettings, yunyiTokenDraft, setYunyiTokenDraft, handleCommitYunyiToken, happyServerDraft, setHappyServerDraft, handleCommitHappyServer }} />
             </div>

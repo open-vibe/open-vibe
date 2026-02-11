@@ -82,6 +82,7 @@ import { useGitHubPanelController } from "./features/app/hooks/useGitHubPanelCon
 import { useHappyBridgeEvents } from "./features/happy/hooks/useHappyBridgeEvents";
 import { useNanobotBridgeEvents } from "./features/nanobot/hooks/useNanobotBridgeEvents";
 import { useNanobotMonitor } from "./features/nanobot/hooks/useNanobotMonitor";
+import { useNanobotAwayNotify } from "./features/nanobot/hooks/useNanobotAwayNotify";
 import { useSettingsModalState } from "./features/app/hooks/useSettingsModalState";
 import { usePersistComposerSettings } from "./features/app/hooks/usePersistComposerSettings";
 import { isMissingGitRepoError } from "./utils/gitErrors";
@@ -806,6 +807,21 @@ function MainApp() {
     nanobotBridgeEnabled: nanobotEnabled,
     getWorkspacePath,
   });
+  const {
+    isAway: nanobotAwayDetected,
+    bluetooth: nanobotBluetoothState,
+    bluetoothDevices: nanobotBluetoothDevices,
+    startBluetoothScan: startNanobotBluetoothScan,
+    stopBluetoothScan: stopNanobotBluetoothScan,
+  } = useNanobotAwayNotify({
+    appSettings,
+    nanobotStatus: nanobotStatusSnapshot,
+    threadStatusById,
+    threadsByWorkspace,
+    workspaces,
+    t,
+    onDebug: addDebugEntry,
+  });
   const activeThreadIdRef = useRef<string | null>(activeThreadId ?? null);
   const { getThreadRows } = useThreadRows(threadParentById);
   useEffect(() => {
@@ -822,6 +838,7 @@ function MainApp() {
     openDebugLogTab,
     openNanobotLogTab,
     closeTab: closeThreadTab,
+    closeTabs: closeThreadTabs,
     markTabLoaded,
     reorderTabs: reorderThreadTabs,
   } = useThreadTabs({
@@ -1139,6 +1156,95 @@ function MainApp() {
       threadTabs,
     ],
   );
+
+  const closeThreadTabsByIds = useCallback(
+    (tabIds: string[]) => {
+      if (!tabIds.length) {
+        return;
+      }
+      const closeSet = new Set(tabIds);
+      const remainingTabs = threadTabs.filter((tab) => !closeSet.has(tab.id));
+      threadTabs.forEach((tab) => {
+        if (closeSet.has(tab.id) && tab.kind === "thread") {
+          closedThreadTabIdsRef.current.add(tab.id);
+        }
+      });
+      closeThreadTabs(tabIds);
+      if (!activeThreadTabId || !closeSet.has(activeThreadTabId)) {
+        return;
+      }
+      if (remainingTabs.length === 0) {
+        if (activeWorkspaceId) {
+          setActiveThreadId(null, activeWorkspaceId);
+        }
+        setHomeView(true);
+        selectHomeRef.current();
+        return;
+      }
+      const activeIndex = threadTabs.findIndex((tab) => tab.id === activeThreadTabId);
+      const nextTab =
+        threadTabs
+          .slice(0, activeIndex)
+          .reverse()
+          .find((tab) => !closeSet.has(tab.id)) ??
+        threadTabs
+          .slice(activeIndex + 1)
+          .find((tab) => !closeSet.has(tab.id)) ??
+        null;
+      if (!nextTab) {
+        return;
+      }
+      if (nextTab.kind === "home") {
+        setHomeView(true);
+        selectHomeRef.current();
+      } else {
+        setHomeView(false);
+      }
+    },
+    [
+      activeThreadTabId,
+      activeWorkspaceId,
+      closeThreadTabs,
+      setActiveThreadId,
+      setHomeView,
+      threadTabs,
+    ],
+  );
+
+  const handleCloseOtherTabs = useCallback(
+    (tabId: string) => {
+      closeThreadTabsByIds(
+        threadTabs.filter((tab) => tab.id !== tabId).map((tab) => tab.id),
+      );
+    },
+    [closeThreadTabsByIds, threadTabs],
+  );
+
+  const handleCloseTabsToLeft = useCallback(
+    (tabId: string) => {
+      const index = threadTabs.findIndex((tab) => tab.id === tabId);
+      if (index <= 0) {
+        return;
+      }
+      closeThreadTabsByIds(threadTabs.slice(0, index).map((tab) => tab.id));
+    },
+    [closeThreadTabsByIds, threadTabs],
+  );
+
+  const handleCloseTabsToRight = useCallback(
+    (tabId: string) => {
+      const index = threadTabs.findIndex((tab) => tab.id === tabId);
+      if (index < 0 || index >= threadTabs.length - 1) {
+        return;
+      }
+      closeThreadTabsByIds(threadTabs.slice(index + 1).map((tab) => tab.id));
+    },
+    [closeThreadTabsByIds, threadTabs],
+  );
+
+  const handleCloseAllTabs = useCallback(() => {
+    closeThreadTabsByIds(threadTabs.map((tab) => tab.id));
+  }, [closeThreadTabsByIds, threadTabs]);
 
   useAutoExitEmptyDiff({
     centerMode,
@@ -1944,7 +2050,9 @@ function MainApp() {
     const normalizedNanobotPath = nanobotWorkspacePath
       ? normalizeWorkspacePath(nanobotWorkspacePath)
       : null;
-    const isNanobotWorkspace = (workspace: WorkspaceInfo | null) =>
+    const isNanobotWorkspace = (
+      workspace: WorkspaceInfo | null,
+    ): workspace is WorkspaceInfo =>
       Boolean(
         workspace &&
           ((workspace.kind ?? "main") === "nanobot" ||
@@ -2461,6 +2569,9 @@ function MainApp() {
     onRenameThread: (workspaceId, threadId) => {
       handleRenameThread(workspaceId, threadId);
     },
+    onUpdateWorkspaceSettings: async (workspaceId, patch) => {
+      await updateWorkspaceSettings(workspaceId, patch);
+    },
     onDeleteWorkspace: (workspaceId) => {
       void removeWorkspace(workspaceId);
     },
@@ -2868,6 +2979,10 @@ function MainApp() {
       onCloseTab={handleCloseThreadTab}
       onReorderTab={reorderThreadTabs}
       onRenameThread={handleRenameThread}
+      onCloseOtherTabs={handleCloseOtherTabs}
+      onCloseTabsToLeft={handleCloseTabsToLeft}
+      onCloseTabsToRight={handleCloseTabsToRight}
+      onCloseAllTabs={handleCloseAllTabs}
     />
   ) : null;
 
@@ -3060,6 +3175,11 @@ function MainApp() {
             onGetNanobotConfigPath: getNanobotConfigPath,
             onTestNanobotDingTalk: testNanobotDingTalk,
             onClearNanobotThreads: handleClearNanobotThreads,
+            nanobotAwayDetected,
+            nanobotBluetoothState,
+            nanobotBluetoothDevices,
+            onStartNanobotBluetoothScan: startNanobotBluetoothScan,
+            onStopNanobotBluetoothScan: stopNanobotBluetoothScan,
             nanobotWorkspace: nanobotWorkspaceId
               ? (workspacesById.get(nanobotWorkspaceId) ?? null)
               : null,

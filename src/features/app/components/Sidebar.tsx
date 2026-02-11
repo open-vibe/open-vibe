@@ -45,6 +45,7 @@ import { formatRelativeTimeShort } from "../../../utils/time";
 import { useI18n } from "../../../i18n";
 import { YunyiQuotaCard } from "./YunyiQuotaCard";
 import { NanobotStatusCard } from "./NanobotStatusCard";
+import { WorkspaceAppearanceDialog } from "./WorkspaceAppearanceDialog";
 
 const COLLAPSED_GROUPS_STORAGE_KEY = "codexmonitor.collapsedGroups";
 const UNGROUPED_COLLAPSE_ID = "__ungrouped__";
@@ -127,6 +128,10 @@ type SidebarProps = {
   isThreadPinned: (workspaceId: string, threadId: string) => boolean;
   getPinTimestamp: (workspaceId: string, threadId: string) => number | null;
   onRenameThread: (workspaceId: string, threadId: string) => void;
+  onUpdateWorkspaceSettings: (
+    workspaceId: string,
+    patch: Partial<WorkspaceInfo["settings"]>,
+  ) => Promise<void>;
   onDeleteWorkspace: (workspaceId: string) => void;
   onDeleteWorktree: (workspaceId: string) => void;
   onLoadOlderThreads: (workspaceId: string) => void;
@@ -183,6 +188,7 @@ export function Sidebar({
   isThreadPinned,
   getPinTimestamp,
   onRenameThread,
+  onUpdateWorkspaceSettings,
   onDeleteWorkspace,
   onDeleteWorktree,
   onLoadOlderThreads,
@@ -207,6 +213,9 @@ export function Sidebar({
     width: number;
   } | null>(null);
   const [contextMenu, setContextMenu] = useState<SidebarContextMenu | null>(
+    null,
+  );
+  const [appearanceWorkspaceId, setAppearanceWorkspaceId] = useState<string | null>(
     null,
   );
   const addMenuRef = useRef<HTMLDivElement | null>(null);
@@ -263,6 +272,13 @@ export function Sidebar({
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+  const appearanceWorkspace = useMemo(
+    () =>
+      appearanceWorkspaceId
+        ? workspaces.find((workspace) => workspace.id === appearanceWorkspaceId) ?? null
+        : null,
+    [appearanceWorkspaceId, workspaces],
+  );
   const {
     sessionPercent,
     weeklyPercent,
@@ -993,6 +1009,15 @@ export function Sidebar({
                 <>
                   <DropdownMenuItem
                     onSelect={() => {
+                      setAppearanceWorkspaceId(contextMenu.workspaceId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.appearance")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
                       onReloadWorkspaceThreads(contextMenu.workspaceId);
                       closeContextMenu();
                     }}
@@ -1012,6 +1037,15 @@ export function Sidebar({
               )}
               {contextMenu.type === "worktree" && (
                 <>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setAppearanceWorkspaceId(contextMenu.workspaceId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t("sidebar.menu.appearance")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={() => {
                       onReloadWorkspaceThreads(contextMenu.workspaceId);
@@ -1035,6 +1069,22 @@ export function Sidebar({
           </DropdownMenu>,
           document.body,
         )}
+      <WorkspaceAppearanceDialog
+        open={Boolean(appearanceWorkspace)}
+        workspaceName={appearanceWorkspace?.name ?? ""}
+        settings={appearanceWorkspace?.settings ?? null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAppearanceWorkspaceId(null);
+          }
+        }}
+        onSave={async (patch) => {
+          if (!appearanceWorkspace) {
+            return;
+          }
+          await onUpdateWorkspaceSettings(appearanceWorkspace.id, patch);
+        }}
+      />
       <SidebarRail />
     </ShadcnSidebar>
   );

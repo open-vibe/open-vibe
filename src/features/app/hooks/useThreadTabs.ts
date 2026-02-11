@@ -360,18 +360,53 @@ export function useThreadTabs({
 
   const closeTab = useCallback((tabId: string) => {
     setTabs((prev) => {
-      const idx = prev.findIndex((tab) => tab.id === tabId);
-      if (idx === -1) {
+      const currentIndex = prev.findIndex((tab) => tab.id === tabId);
+      if (currentIndex === -1) {
         return prev;
       }
       const nextTabs = prev.filter((tab) => tab.id !== tabId);
-      if (activeTabId === tabId) {
-        const nextTab = nextTabs[idx - 1] ?? nextTabs[idx] ?? null;
-        setActiveTabId(nextTab?.id ?? null);
-      }
+      setActiveTabId((currentActive) => {
+        if (!currentActive || currentActive !== tabId) {
+          return currentActive;
+        }
+        const leftTab = prev
+          .slice(0, currentIndex)
+          .reverse()
+          .find((tab) => tab.id !== tabId);
+        const rightTab = prev.slice(currentIndex + 1).find((tab) => tab.id !== tabId);
+        return leftTab?.id ?? rightTab?.id ?? null;
+      });
       return nextTabs;
     });
-  }, [activeTabId]);
+  }, []);
+
+  const closeTabs = useCallback((tabIds: string[]) => {
+    if (tabIds.length === 0) {
+      return;
+    }
+    const closeSet = new Set(tabIds);
+    setTabs((prev) => {
+      if (!prev.some((tab) => closeSet.has(tab.id))) {
+        return prev;
+      }
+      const nextTabs = prev.filter((tab) => !closeSet.has(tab.id));
+      setActiveTabId((currentActive) => {
+        if (!currentActive || !closeSet.has(currentActive)) {
+          return currentActive;
+        }
+        const currentIndex = prev.findIndex((tab) => tab.id === currentActive);
+        const leftTab = prev
+          .slice(0, currentIndex)
+          .reverse()
+          .find((tab) => !closeSet.has(tab.id));
+        const rightTab = prev
+          .slice(currentIndex + 1)
+          .find((tab) => !closeSet.has(tab.id));
+        return leftTab?.id ?? rightTab?.id ?? null;
+      });
+      return nextTabs;
+    });
+  }, []);
 
   const setActiveTab = useCallback((tabId: string | null) => {
     setTabs((prev) =>
@@ -419,6 +454,7 @@ export function useThreadTabs({
     openDebugLogTab,
     openNanobotLogTab,
     closeTab,
+    closeTabs,
     markTabLoaded,
     reorderTabs,
   };

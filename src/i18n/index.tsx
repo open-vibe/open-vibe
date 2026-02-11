@@ -3,8 +3,8 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 export type AppLanguage = "system" | "en" | "zh-CN";
 export type ResolvedLanguage = "en" | "zh-CN";
 
-type TranslationKey = keyof typeof en;
-type TranslationParams = Record<string, string | number>;
+export type TranslationKey = keyof typeof en;
+export type TranslationParams = Record<string, string | number>;
 
 const en = {
   "language.system": "System",
@@ -201,6 +201,10 @@ const en = {
   "nanobot.bridge.ov.setting.label.nanobotSessionMemoryEnabled":
     "nanobotSessionMemoryEnabled",
   "nanobot.bridge.ov.setting.label.nanobotMode": "nanobotMode",
+  "nanobot.awayNotify.message.single":
+    "OpenVibe task finished: {name} ({workspace}).",
+  "nanobot.awayNotify.message.multi":
+    "OpenVibe finished {count} tasks. Latest: {name} ({workspace}).",
   "settings.composer.codeFences.title": "Code fences",
   "settings.composer.codeFences.expandSpace.title": "Expand fences on Space",
   "settings.composer.codeFences.expandSpace.subtitle":
@@ -239,6 +243,7 @@ const en = {
   "settings.status.notFound": "Not found",
   "settings.status.truncated": "Truncated",
   "settings.action.save": "Save",
+  "settings.action.cancel": "Cancel",
   "settings.action.create": "Create",
   "settings.action.clear": "Clear",
   "settings.action.browse": "Browse",
@@ -390,9 +395,29 @@ const en = {
   "sidebar.menu.copyId": "Copy ID",
   "sidebar.menu.pin": "Pin",
   "sidebar.menu.unpin": "Unpin",
+  "sidebar.menu.appearance": "Edit appearance",
   "sidebar.menu.reloadThreads": "Reload threads",
   "sidebar.menu.delete": "Delete",
   "sidebar.menu.deleteWorktree": "Delete worktree",
+  "sidebar.appearance.title": "Workspace appearance",
+  "sidebar.appearance.description": "Customize icon and accent color for {name}.",
+  "sidebar.appearance.emoji.label": "Emoji",
+  "sidebar.appearance.emoji.placeholder": "Optional, e.g. 🚀",
+  "sidebar.appearance.emoji.none": "No emoji",
+  "sidebar.appearance.emoji.open": "Pick emoji",
+  "sidebar.appearance.emoji.clear": "Clear",
+  "sidebar.appearance.icon.label": "Icon",
+  "sidebar.appearance.color.label": "Accent color",
+  "sidebar.appearance.color.none": "No color",
+  "sidebar.appearance.color.reset": "Reset",
+  "sidebar.appearance.color.custom": "Custom",
+  "sidebar.appearance.color.customLabel": "Custom color",
+  "threadTabs.menu.close": "Close",
+  "threadTabs.menu.closeOthers": "Close others",
+  "threadTabs.menu.closeLeft": "Close tabs to the left",
+  "threadTabs.menu.closeRight": "Close tabs to the right",
+  "threadTabs.menu.closeAll": "Close all tabs",
+  "threadTabs.menu.rename": "Rename thread",
   "sidebar.user.localWorkspace": "Local Workspace",
   "sidebar.user.settings": "Settings",
   "sidebar.user.debugLog": "Debug log",
@@ -481,6 +506,42 @@ const en = {
   "settings.nanobot.sessionMemory.title": "Remember session state",
   "settings.nanobot.sessionMemory.subtitle":
     "Restore per-channel mode and bound thread after app restart.",
+  "settings.nanobot.away.sectionTitle": "Away notifications",
+  "settings.nanobot.away.enable.title":
+    "Notify when tasks complete while you're away",
+  "settings.nanobot.away.enable.subtitle":
+    "Send a Nanobot channel message when an OpenVibe task finishes.",
+  "settings.nanobot.away.idleSeconds.label": "Idle threshold (seconds)",
+  "settings.nanobot.away.cooldownSeconds.label":
+    "Notification cooldown (seconds)",
+  "settings.nanobot.away.bluetooth.enable.title":
+    "Use Bluetooth proximity detection",
+  "settings.nanobot.away.bluetooth.enable.subtitle":
+    "Treat you as nearby when the paired phone BLE advertisement is detected.",
+  "settings.nanobot.away.bluetooth.keyword.label": "Bluetooth name keyword",
+  "settings.nanobot.away.bluetooth.keyword.placeholder":
+    "Optional filter, e.g. iPhone",
+  "settings.nanobot.away.bluetooth.bound.label": "Bound device: {name}",
+  "settings.nanobot.away.bluetooth.bound.none":
+    "No bound device. Select one from the list below.",
+  "settings.nanobot.away.bluetooth.clearBinding": "Clear bound device",
+  "settings.nanobot.away.bluetooth.devices.title": "Detected devices",
+  "settings.nanobot.away.bluetooth.devices.empty":
+    "No named Bluetooth devices detected yet. Keep scanning and unlock your phone.",
+  "settings.nanobot.away.bluetooth.start": "Start scan",
+  "settings.nanobot.away.bluetooth.stop": "Stop scan",
+  "settings.nanobot.away.status":
+    "Away status: {away} · Bluetooth: {bluetooth}",
+  "settings.nanobot.away.status.away": "Away",
+  "settings.nanobot.away.status.nearby": "Nearby",
+  "settings.nanobot.away.bluetooth.state.nearby": "Nearby",
+  "settings.nanobot.away.bluetooth.state.away": "Away",
+  "settings.nanobot.away.bluetooth.state.scanning": "Scanning",
+  "settings.nanobot.away.bluetooth.state.unknown": "Unknown",
+  "settings.nanobot.away.bluetooth.unsupported":
+    "Bluetooth LE scan is not supported in this environment.",
+  "settings.nanobot.away.bluetooth.unavailable":
+    "Bluetooth is unavailable on this device.",
   "settings.nanobot.providerWorkspace.title":
     "Nanobot provider workspace override",
   "settings.nanobot.providerWorkspace.empty":
@@ -1007,6 +1068,10 @@ const zhCN: Record<TranslationKey, string> = {
   "nanobot.bridge.ov.setting.label.refreshThreadsOnFocus": "聚焦刷新",
   "nanobot.bridge.ov.setting.label.nanobotSessionMemoryEnabled": "会话状态记忆",
   "nanobot.bridge.ov.setting.label.nanobotMode": "Nanobot 模式",
+  "nanobot.awayNotify.message.single":
+    "OpenVibe 任务已完成：{name}（{workspace}）。",
+  "nanobot.awayNotify.message.multi":
+    "OpenVibe 已完成 {count} 个任务，最新：{name}（{workspace}）。",
   "settings.composer.codeFences.title": "代码围栏",
   "settings.composer.codeFences.expandSpace.title": "空格自动展开围栏",
   "settings.composer.codeFences.expandSpace.subtitle": "输入 ``` 后按空格插入代码围栏。",
@@ -1037,6 +1102,7 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.status.notFound": "未找到",
   "settings.status.truncated": "已截断",
   "settings.action.save": "保存",
+  "settings.action.cancel": "取消",
   "settings.action.create": "创建",
   "settings.action.clear": "清除",
   "settings.action.browse": "浏览",
@@ -1185,9 +1251,29 @@ const zhCN: Record<TranslationKey, string> = {
   "sidebar.menu.copyId": "复制 ID",
   "sidebar.menu.pin": "置顶",
   "sidebar.menu.unpin": "取消置顶",
+  "sidebar.menu.appearance": "修改图标与颜色",
   "sidebar.menu.reloadThreads": "重新加载会话",
   "sidebar.menu.delete": "删除",
   "sidebar.menu.deleteWorktree": "删除工作树",
+  "sidebar.appearance.title": "工作区外观",
+  "sidebar.appearance.description": "为 {name} 设置图标与主题色。",
+  "sidebar.appearance.emoji.label": "Emoji",
+  "sidebar.appearance.emoji.placeholder": "可选，例如 🚀",
+  "sidebar.appearance.emoji.none": "未设置 Emoji",
+  "sidebar.appearance.emoji.open": "选择 Emoji",
+  "sidebar.appearance.emoji.clear": "清除",
+  "sidebar.appearance.icon.label": "图标",
+  "sidebar.appearance.color.label": "主题色",
+  "sidebar.appearance.color.none": "未设置颜色",
+  "sidebar.appearance.color.reset": "重置",
+  "sidebar.appearance.color.custom": "自定义",
+  "sidebar.appearance.color.customLabel": "自定义颜色",
+  "threadTabs.menu.close": "关闭",
+  "threadTabs.menu.closeOthers": "关闭其他标签",
+  "threadTabs.menu.closeLeft": "关闭左侧标签",
+  "threadTabs.menu.closeRight": "关闭右侧标签",
+  "threadTabs.menu.closeAll": "关闭全部标签",
+  "threadTabs.menu.rename": "重命名对话",
   "sidebar.user.localWorkspace": "本地工作区",
   "sidebar.user.settings": "设置",
   "sidebar.user.debugLog": "调试日志",
@@ -1271,6 +1357,37 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.sessionMemory.title": "记忆会话状态",
   "settings.nanobot.sessionMemory.subtitle":
     "重启应用后恢复每个渠道的模式与绑定会话。",
+  "settings.nanobot.away.sectionTitle": "离开通知",
+  "settings.nanobot.away.enable.title": "离开时任务完成推送",
+  "settings.nanobot.away.enable.subtitle":
+    "当 OpenVibe 任务完成且你不在电脑前时，通过 Nanobot 渠道发送提醒。",
+  "settings.nanobot.away.idleSeconds.label": "空闲阈值（秒）",
+  "settings.nanobot.away.cooldownSeconds.label": "通知冷却（秒）",
+  "settings.nanobot.away.bluetooth.enable.title": "启用蓝牙邻近检测",
+  "settings.nanobot.away.bluetooth.enable.subtitle":
+    "检测到已配对手机的 BLE 广播时视为“在附近”。",
+  "settings.nanobot.away.bluetooth.keyword.label": "蓝牙名称关键字",
+  "settings.nanobot.away.bluetooth.keyword.placeholder":
+    "可选筛选，例如 iPhone",
+  "settings.nanobot.away.bluetooth.bound.label": "已绑定设备：{name}",
+  "settings.nanobot.away.bluetooth.bound.none": "尚未绑定设备，请从下方列表选择。",
+  "settings.nanobot.away.bluetooth.clearBinding": "清除绑定设备",
+  "settings.nanobot.away.bluetooth.devices.title": "已检测设备",
+  "settings.nanobot.away.bluetooth.devices.empty":
+    "暂未检测到带名称的蓝牙设备，请保持扫描并确保手机蓝牙可被发现。",
+  "settings.nanobot.away.bluetooth.start": "开始扫描",
+  "settings.nanobot.away.bluetooth.stop": "停止扫描",
+  "settings.nanobot.away.status": "离开状态：{away} · 蓝牙：{bluetooth}",
+  "settings.nanobot.away.status.away": "离开",
+  "settings.nanobot.away.status.nearby": "在附近",
+  "settings.nanobot.away.bluetooth.state.nearby": "在附近",
+  "settings.nanobot.away.bluetooth.state.away": "离开",
+  "settings.nanobot.away.bluetooth.state.scanning": "扫描中",
+  "settings.nanobot.away.bluetooth.state.unknown": "未知",
+  "settings.nanobot.away.bluetooth.unsupported":
+    "当前环境不支持蓝牙低功耗扫描。",
+  "settings.nanobot.away.bluetooth.unavailable":
+    "当前设备蓝牙不可用。",
   "settings.nanobot.providerWorkspace.title": "Nanobot Provider 工作区覆盖",
   "settings.nanobot.providerWorkspace.empty":
     "Nanobot 工作区尚未就绪，请先启用 Nanobot。",

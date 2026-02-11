@@ -7,6 +7,9 @@ export type WorkspaceSettings = {
   codexArgs?: string | null;
   launchScript?: string | null;
   worktreeSetupScript?: string | null;
+  workspaceIcon?: string | null;
+  workspaceEmoji?: string | null;
+  workspaceColor?: string | null;
 };
 
 export type WorkspaceGroup = {
@@ -196,6 +199,13 @@ export type AppSettings = {
   nanobotMode: NanobotMode;
   nanobotEnabled: boolean;
   nanobotSessionMemoryEnabled: boolean;
+  nanobotAwayNotifyEnabled: boolean;
+  nanobotAwayIdleSeconds: number;
+  nanobotAwayCooldownSeconds: number;
+  nanobotAwayBluetoothEnabled: boolean;
+  nanobotAwayBluetoothKeyword: string;
+  nanobotAwayBluetoothDeviceId: string;
+  nanobotAwayBluetoothDeviceName: string;
   nanobotAgentModel: string;
   nanobotAgentReasoningEffort: string | null;
   nanobotDingTalkEnabled: boolean;

@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use btleplug::api::{Central as _, Manager as _, Peripheral as _, ScanFilter};
+use btleplug::platform::Manager;
 use ::nanobot::config::{get_config_path, load_config, save_config, Config};
 use serde_json::{json, Value};
 
@@ -257,6 +259,94 @@ pub(crate) async fn nanobot_config_path() -> Result<String, String> {
     path.to_str()
         .map(|value| value.to_string())
         .ok_or_else(|| "Unable to resolve nanobot config path.".to_string())
+}
+
+#[tauri::command]
+pub(crate) async fn nanobot_bluetooth_probe(
+    _keyword: Option<String>,
+    timeout_ms: Option<u64>,
+) -> Result<Value, String> {
+    let timeout = Duration::from_millis(timeout_ms.unwrap_or(2200).clamp(300, 10_000));
+    let manager = match Manager::new().await {
+        Ok(value) => value,
+        Err(error) => {
+            return Ok(json!({
+                "supported": false,
+                "devices": [],
+                "error": format!("Bluetooth manager unavailable: {error}"),
+            }))
+        }
+    };
+    let adapters = match manager.adapters().await {
+        Ok(value) => value,
+        Err(error) => {
+            return Ok(json!({
+                "supported": false,
+                "devices": [],
+                "error": format!("Failed to enumerate Bluetooth adapters: {error}"),
+            }))
+        }
+    };
+    let adapter_count = adapters.len();
+    if adapter_count == 0 {
+        return Ok(json!({
+            "supported": false,
+            "devices": [],
+            "adapterCount": 0,
+            "error": "No Bluetooth adapter detected.",
+        }));
+    }
+
+    let mut last_error: Option<String> = None;
+    let mut seen_ids = HashSet::new();
+    let mut devices = Vec::new();
+    for adapter in adapters {
+        if let Err(error) = adapter.start_scan(ScanFilter::default()).await {
+            last_error = Some(format!("Bluetooth scan start failed: {error}"));
+            continue;
+        }
+        tokio::time::sleep(timeout).await;
+        let peripherals = match adapter.peripherals().await {
+            Ok(value) => value,
+            Err(error) => {
+                let _ = adapter.stop_scan().await;
+                last_error = Some(format!("Failed to read Bluetooth devices: {error}"));
+                continue;
+            }
+        };
+        for peripheral in peripherals {
+            let properties = match peripheral.properties().await {
+                Ok(value) => value,
+                Err(error) => {
+                    last_error = Some(format!("Failed to read Bluetooth device details: {error}"));
+                    continue;
+                }
+            };
+            let Some(properties) = properties else {
+                continue;
+            };
+            let local_name = properties.local_name.unwrap_or_default().trim().to_string();
+            if local_name.is_empty() {
+                continue;
+            }
+            let id = peripheral.id().to_string();
+            if seen_ids.insert(id.clone()) {
+                devices.push(json!({
+                    "id": id,
+                    "name": local_name,
+                    "rssi": properties.rssi,
+                }));
+            }
+        }
+        let _ = adapter.stop_scan().await;
+    }
+
+    Ok(json!({
+        "supported": true,
+        "devices": devices,
+        "adapterCount": adapter_count,
+        "error": last_error,
+    }))
 }
 
 pub(crate) fn nanobot_workspace_root_path() -> Result<PathBuf, String> {

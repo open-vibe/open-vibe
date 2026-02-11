@@ -46,6 +46,11 @@ export function NanobotTabSection(props: any) {
     setNanobotAllowFromDraft,
     handleTestNanobotDingTalk,
     nanobotTestState,
+    nanobotAwayDetected,
+    nanobotBluetoothState,
+    nanobotBluetoothDevices,
+    onStartNanobotBluetoothScan,
+    onStopNanobotBluetoothScan,
     nanobotWorkspace,
     nanobotCodexBinDraft,
     setNanobotCodexBinDraft,
@@ -214,6 +219,222 @@ export function NanobotTabSection(props: any) {
                             });
                           }}
                         />
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.away.sectionTitle")}
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.away.enable.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.away.enable.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotAwayNotifyEnabled}
+                              onCheckedChange={(checked: any) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotAwayNotifyEnabled: checked,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-away-idle-seconds">
+                                {t("settings.nanobot.away.idleSeconds.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-away-idle-seconds"
+                                type="number"
+                                min={15}
+                                step={5}
+                                value={String(appSettings.nanobotAwayIdleSeconds)}
+                                onChange={(event: any) => {
+                                  const next = Math.max(
+                                    15,
+                                    Number.parseInt(event.target.value, 10) || 120,
+                                  );
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    nanobotAwayIdleSeconds: next,
+                                  });
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="nanobot-away-cooldown-seconds">
+                                {t("settings.nanobot.away.cooldownSeconds.label")}
+                              </Label>
+                              <Input
+                                id="nanobot-away-cooldown-seconds"
+                                type="number"
+                                min={15}
+                                step={5}
+                                value={String(appSettings.nanobotAwayCooldownSeconds)}
+                                onChange={(event: any) => {
+                                  const next = Math.max(
+                                    15,
+                                    Number.parseInt(event.target.value, 10) || 120,
+                                  );
+                                  void onUpdateAppSettings({
+                                    ...appSettings,
+                                    nanobotAwayCooldownSeconds: next,
+                                  });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-start justify-between gap-3 rounded-md border border-border/60 p-3">
+                            <div>
+                              <div className="text-sm font-medium">
+                                {t("settings.nanobot.away.bluetooth.enable.title")}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t("settings.nanobot.away.bluetooth.enable.subtitle")}
+                              </div>
+                            </div>
+                            <Switch
+                              checked={appSettings.nanobotAwayBluetoothEnabled}
+                              onCheckedChange={(checked: any) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotAwayBluetoothEnabled: checked,
+                                });
+                                if (!checked) {
+                                  onStopNanobotBluetoothScan?.();
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="nanobot-away-bluetooth-keyword">
+                              {t("settings.nanobot.away.bluetooth.keyword.label")}
+                            </Label>
+                            <Input
+                              id="nanobot-away-bluetooth-keyword"
+                              value={appSettings.nanobotAwayBluetoothKeyword}
+                              placeholder={t(
+                                "settings.nanobot.away.bluetooth.keyword.placeholder",
+                              )}
+                              onChange={(event: any) => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotAwayBluetoothKeyword: event.target.value,
+                                });
+                              }}
+                            />
+                            <div className="text-[11px] text-muted-foreground">
+                              {appSettings.nanobotAwayBluetoothDeviceName
+                                ? t("settings.nanobot.away.bluetooth.bound.label", {
+                                    name: appSettings.nanobotAwayBluetoothDeviceName,
+                                  })
+                                : t("settings.nanobot.away.bluetooth.bound.none")}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!onStartNanobotBluetoothScan}
+                              onClick={() => {
+                                void onStartNanobotBluetoothScan?.();
+                              }}
+                            >
+                              {t("settings.nanobot.away.bluetooth.start")}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              disabled={!onStopNanobotBluetoothScan}
+                              onClick={() => {
+                                onStopNanobotBluetoothScan?.();
+                              }}
+                            >
+                              {t("settings.nanobot.away.bluetooth.stop")}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                void onUpdateAppSettings({
+                                  ...appSettings,
+                                  nanobotAwayBluetoothDeviceId: "",
+                                  nanobotAwayBluetoothDeviceName: "",
+                                });
+                              }}
+                            >
+                              {t("settings.nanobot.away.bluetooth.clearBinding")}
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium text-foreground">
+                              {t("settings.nanobot.away.bluetooth.devices.title")}
+                            </div>
+                            {nanobotBluetoothDevices?.length ? (
+                              <div className="grid gap-2 md:grid-cols-2">
+                                {nanobotBluetoothDevices.map((device: any) => (
+                                  <button
+                                    key={String(device.id)}
+                                    type="button"
+                                    className={cn(
+                                      "flex items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2 text-left text-xs transition-colors",
+                                      appSettings.nanobotAwayBluetoothDeviceId === device.id
+                                        ? "border-primary/50 bg-primary/10 text-foreground"
+                                        : "text-muted-foreground hover:bg-muted/40",
+                                    )}
+                                    onClick={() => {
+                                      void onUpdateAppSettings({
+                                        ...appSettings,
+                                        nanobotAwayBluetoothDeviceId: String(device.id ?? ""),
+                                        nanobotAwayBluetoothDeviceName: String(device.name ?? ""),
+                                      });
+                                    }}
+                                  >
+                                    <span className="min-w-0 flex-1 truncate">
+                                      {String(device.name ?? device.id ?? "")}
+                                    </span>
+                                    <span className="shrink-0 text-[10px] opacity-70">
+                                      {String(device.id ?? "").slice(-6)}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="rounded-md border border-dashed border-border/60 p-2 text-xs text-muted-foreground">
+                                {t("settings.nanobot.away.bluetooth.devices.empty")}
+                              </div>
+                            )}
+                          </div>
+                          <div className="rounded-md border border-border/60 bg-muted/30 p-2 text-xs text-muted-foreground">
+                            {t("settings.nanobot.away.status", {
+                              away: nanobotAwayDetected
+                                ? t("settings.nanobot.away.status.away")
+                                : t("settings.nanobot.away.status.nearby"),
+                              bluetooth:
+                                nanobotBluetoothState?.nearby === true
+                                  ? t("settings.nanobot.away.bluetooth.state.nearby")
+                                  : nanobotBluetoothState?.nearby === false
+                                    ? t("settings.nanobot.away.bluetooth.state.away")
+                                    : nanobotBluetoothState?.scanning
+                                      ? t("settings.nanobot.away.bluetooth.state.scanning")
+                                      : t("settings.nanobot.away.bluetooth.state.unknown"),
+                            })}
+                            {nanobotBluetoothState?.error ? (
+                              <div className="mt-1 text-[11px] text-destructive">
+                                {nanobotBluetoothState.error}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
                       </div>
                       <div className="rounded-md border border-border/60 p-3">
                         <div className="mb-3 text-sm font-medium">

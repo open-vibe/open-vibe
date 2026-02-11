@@ -54,6 +54,13 @@ const defaultSettings: AppSettings = {
   nanobotMode: "bridge",
   nanobotEnabled: false,
   nanobotSessionMemoryEnabled: true,
+  nanobotAwayNotifyEnabled: false,
+  nanobotAwayIdleSeconds: 120,
+  nanobotAwayCooldownSeconds: 120,
+  nanobotAwayBluetoothEnabled: false,
+  nanobotAwayBluetoothKeyword: "",
+  nanobotAwayBluetoothDeviceId: "",
+  nanobotAwayBluetoothDeviceName: "",
   nanobotAgentModel: "",
   nanobotAgentReasoningEffort: null,
   nanobotDingTalkEnabled: false,
@@ -198,6 +205,24 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
       : "bridge",
     nanobotEnabled: Boolean(settings.nanobotEnabled),
     nanobotSessionMemoryEnabled: Boolean(settings.nanobotSessionMemoryEnabled),
+    nanobotAwayNotifyEnabled: Boolean(settings.nanobotAwayNotifyEnabled),
+    nanobotAwayIdleSeconds:
+      typeof settings.nanobotAwayIdleSeconds === "number" &&
+      Number.isFinite(settings.nanobotAwayIdleSeconds)
+        ? Math.max(15, Math.round(settings.nanobotAwayIdleSeconds))
+        : 120,
+    nanobotAwayCooldownSeconds:
+      typeof settings.nanobotAwayCooldownSeconds === "number" &&
+      Number.isFinite(settings.nanobotAwayCooldownSeconds)
+        ? Math.max(15, Math.round(settings.nanobotAwayCooldownSeconds))
+        : 120,
+    nanobotAwayBluetoothEnabled: Boolean(settings.nanobotAwayBluetoothEnabled),
+    nanobotAwayBluetoothKeyword:
+      settings.nanobotAwayBluetoothKeyword?.trim() ?? "",
+    nanobotAwayBluetoothDeviceId:
+      settings.nanobotAwayBluetoothDeviceId?.trim() ?? "",
+    nanobotAwayBluetoothDeviceName:
+      settings.nanobotAwayBluetoothDeviceName?.trim() ?? "",
     nanobotAgentModel: settings.nanobotAgentModel?.trim() ?? "",
     nanobotAgentReasoningEffort: (() => {
       const effort = settings.nanobotAgentReasoningEffort?.trim();

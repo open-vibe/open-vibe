@@ -587,6 +587,27 @@ export async function getNanobotConfigPath(): Promise<string> {
   return invoke<string>("nanobot_config_path");
 }
 
+export type NanobotBluetoothProbeResult = {
+  supported: boolean;
+  devices: Array<{
+    id: string;
+    name: string;
+    rssi?: number | null;
+  }>;
+  adapterCount?: number;
+  error?: string | null;
+};
+
+export async function probeNanobotBluetooth(
+  keyword: string,
+  timeoutMs = 2200,
+): Promise<NanobotBluetoothProbeResult> {
+  return invoke<NanobotBluetoothProbeResult>("nanobot_bluetooth_probe", {
+    keyword: keyword.trim(),
+    timeoutMs,
+  });
+}
+
 export async function testNanobotDingTalk(
   clientId: string,
   clientSecret: string,

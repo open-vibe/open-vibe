@@ -144,6 +144,7 @@ pub fn run() {
             settings::get_codex_config_path,
             nanobot_integration::nanobot_config_path,
             nanobot_integration::nanobot_test_dingtalk,
+            nanobot_integration::nanobot_bluetooth_probe,
             nanobot_bridge::nanobot_bridge_status,
             nanobot_bridge::nanobot_bridge_send,
             files::file_read,

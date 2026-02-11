@@ -10,10 +10,11 @@ import { getNanobotConfigPath, sendNanobotBridgeCommand } from "../../../service
 import { subscribeNanobotBridgeEvents } from "../../../services/events";
 import { useTauriEvent } from "../../app/hooks/useTauriEvent";
 import type { ThreadTab } from "../../app/hooks/useThreadTabs";
+import type { TranslationKey, TranslationParams } from "../../../i18n";
 
 type NanobotBridgeTranslator = (
-  key: string,
-  params?: Record<string, string | number>,
+  key: TranslationKey,
+  params?: TranslationParams,
 ) => string;
 
 type UseNanobotBridgeEventsOptions = {
@@ -95,6 +96,13 @@ type OpenVibeControlAction =
   | { type: "thread-close"; workspace?: string; thread: string }
   | { type: "settings-get"; key?: OpenVibeSettingKey }
   | { type: "settings-set"; key: OpenVibeSettingKey; value: string };
+
+const OPENVIBE_SETTING_LABEL_KEYS: Record<OpenVibeSettingKey, TranslationKey> = {
+  compactSidebar: "nanobot.bridge.ov.setting.label.compactSidebar",
+  refreshThreadsOnFocus: "nanobot.bridge.ov.setting.label.refreshThreadsOnFocus",
+  nanobotSessionMemoryEnabled: "nanobot.bridge.ov.setting.label.nanobotSessionMemoryEnabled",
+  nanobotMode: "nanobot.bridge.ov.setting.label.nanobotMode",
+};
 
 const NANOBOT_SESSION_STATE_STORAGE_KEY = "openvibe.nanobot.sessionState.v1";
 
@@ -987,7 +995,7 @@ export function useNanobotBridgeEvents({
         ];
         const lines = keys.map(
           (key) =>
-            `- ${t("nanobot.bridge.ov.setting.label." + key)}: ${formatSettingValue(key)}`,
+            `- ${t(OPENVIBE_SETTING_LABEL_KEYS[key])}: ${formatSettingValue(key)}`,
         );
         await sendBridgeReply(
           event,
@@ -1031,7 +1039,7 @@ export function useNanobotBridgeEvents({
         await sendBridgeReply(
           event,
           t("nanobot.bridge.ov.reply.settingsUpdated", {
-            key: t("nanobot.bridge.ov.setting.label." + action.key),
+            key: t(OPENVIBE_SETTING_LABEL_KEYS[action.key]),
             value: String(parsed),
           }),
         );
