@@ -92,23 +92,62 @@ export function useNanobotAwayNotify({
   const hasNanobotChannel =
     nanobotStatus.dingtalkEnabled || nanobotStatus.emailEnabled || nanobotStatus.qqEnabled;
 
-  const pollBluetoothPresence = useCallback(async () => {
-    if (bluetoothPollingRef.current) {
-      return;
-    }
-    bluetoothPollingRef.current = true;
+  const resolveNearbyByDevices = useCallback(
+    (
+      devices: Array<{
+        id: string;
+        name: string;
+        rssi?: number | null;
+      }>,
+    ) => {
+      const selectedDeviceId = appSettings.nanobotAwayBluetoothDeviceId.trim();
+      const selectedDeviceName = appSettings.nanobotAwayBluetoothDeviceName
+        .trim()
+        .toLowerCase();
+      const keyword = bluetoothKeywordRef.current;
+      const nearbyById =
+        selectedDeviceId.length > 0 &&
+        devices.some((item) => {
+          const currentId = String(item.id ?? "").trim();
+          if (!currentId) {
+            return false;
+          }
+          if (currentId === selectedDeviceId) {
+            return true;
+          }
+          const currentBase = currentId.includes(":")
+            ? currentId.split(":").slice(1).join(":")
+            : currentId;
+          const selectedBase = selectedDeviceId.includes(":")
+            ? selectedDeviceId.split(":").slice(1).join(":")
+            : selectedDeviceId;
+          return currentBase === selectedBase;
+        });
+      const nearbyByName =
+        selectedDeviceName.length > 0 &&
+        devices.some(
+          (item) => String(item.name ?? "").trim().toLowerCase() === selectedDeviceName,
+        );
+      const nearbyByKeyword =
+        keyword.length > 0 &&
+        devices.some((item) => String(item.name ?? "").toLowerCase().includes(keyword));
+
+      return selectedDeviceId || selectedDeviceName
+        ? nearbyById || nearbyByName
+        : keyword
+          ? nearbyByKeyword
+          : null;
+    },
+    [appSettings.nanobotAwayBluetoothDeviceId, appSettings.nanobotAwayBluetoothDeviceName],
+  );
+
+  const probeBluetoothPresenceNow = useCallback(async (timeoutMs: number) => {
     try {
-      const result = await probeNanobotBluetooth(bluetoothKeywordRef.current, 2200);
+      const result = await probeNanobotBluetooth(bluetoothKeywordRef.current, timeoutMs);
       const now = Date.now();
       const nextError = result.error?.trim() ?? "";
-      const selectedDeviceId = appSettings.nanobotAwayBluetoothDeviceId.trim();
-      const keyword = bluetoothKeywordRef.current;
       const devices = Array.isArray(result.devices) ? result.devices : [];
-      const nearby = selectedDeviceId
-        ? devices.some((item) => item.id === selectedDeviceId)
-        : keyword
-          ? devices.some((item) => item.name.toLowerCase().includes(keyword))
-          : null;
+      const nearby = resolveNearbyByDevices(devices);
       setBluetoothState((prev) => ({
         ...prev,
         devices,
@@ -132,17 +171,42 @@ export function useNanobotAwayNotify({
           },
         });
       }
+      return {
+        supported: result.supported,
+        nearby,
+        devicesCount: devices.length,
+      };
     } catch (error) {
+      const errorMessage =
+        stringifyError(error) || t("settings.nanobot.away.bluetooth.unavailable");
       setBluetoothState((prev) => ({
         ...prev,
         supported: false,
         nearby: null,
-        error: stringifyError(error) || t("settings.nanobot.away.bluetooth.unavailable"),
+        error: errorMessage,
       }));
+      return {
+        supported: false,
+        nearby: null as boolean | null,
+        devicesCount: 0,
+        error: errorMessage,
+      };
+    }
+  }, [onDebug, resolveNearbyByDevices, t]);
+
+  const pollBluetoothPresence = useCallback(async () => {
+    if (bluetoothPollingRef.current) {
+      return;
+    }
+    bluetoothPollingRef.current = true;
+    try {
+      await probeBluetoothPresenceNow(4500);
     } finally {
       bluetoothPollingRef.current = false;
     }
-  }, [appSettings.nanobotAwayBluetoothDeviceId, onDebug, t]);
+  }, [
+    probeBluetoothPresenceNow,
+  ]);
 
   const stopBluetoothScan = useCallback(() => {
     if (bluetoothTimerRef.current !== null) {
@@ -288,8 +352,7 @@ export function useNanobotAwayNotify({
       !appSettings.nanobotAwayNotifyEnabled ||
       !nanobotStatus.enabled ||
       !nanobotStatus.connected ||
-      !hasNanobotChannel ||
-      !isAway
+      !hasNanobotChannel
     ) {
       return;
     }
@@ -302,59 +365,81 @@ export function useNanobotAwayNotify({
     if (now - lastNotifyAtRef.current < cooldownMs) {
       return;
     }
-    const latestThreadId = completedThreadIds[completedThreadIds.length - 1];
-    const latest = threadLookup.get(latestThreadId);
-    const fallbackName = latestThreadId.slice(0, 8);
-    const content =
-      completedThreadIds.length > 1
-        ? t("nanobot.awayNotify.message.multi", {
-            count: completedThreadIds.length,
-            name: latest?.threadName ?? fallbackName,
-            workspace: latest?.workspaceName ?? "",
-          })
-        : t("nanobot.awayNotify.message.single", {
-            name: latest?.threadName ?? fallbackName,
-            workspace: latest?.workspaceName ?? "",
-          });
-    void sendNanobotBridgeCommand({
-      type: "direct-message",
-      channel: route.channel,
-      chatId: route.chatId,
-      content,
-    })
-      .then(() => {
-        lastNotifyAtRef.current = now;
+    void (async () => {
+      let awayNow = isAway;
+      if (appSettings.nanobotAwayBluetoothEnabled && windowAway) {
+        const probe = await probeBluetoothPresenceNow(2400);
+        awayNow = windowAway && probe.nearby !== true;
         onDebug?.({
-          id: `${now}-nanobot-away-notify`,
-          timestamp: now,
+          id: `${Date.now()}-nanobot-away-probe-on-complete`,
+          timestamp: Date.now(),
           source: "event",
-          label: "nanobot/away-notify",
+          label: "nanobot/away-probe-on-complete",
           payload: {
-            threadIds: completedThreadIds,
-            route,
+            nearby: probe.nearby,
+            supported: probe.supported,
+            devices: probe.devicesCount,
+            error: probe.error ?? null,
           },
         });
-      })
-      .catch((error: unknown) => {
-        onDebug?.({
-          id: `${Date.now()}-nanobot-away-notify-error`,
-          timestamp: Date.now(),
-          source: "error",
-          label: "nanobot/away-notify-error",
-          payload: stringifyError(error),
-        });
+      }
+      if (!awayNow) {
+        return;
+      }
+      const latestThreadId = completedThreadIds[completedThreadIds.length - 1];
+      const latest = threadLookup.get(latestThreadId);
+      const fallbackName = latestThreadId.slice(0, 8);
+      const content =
+        completedThreadIds.length > 1
+          ? t("nanobot.awayNotify.message.multi", {
+              count: completedThreadIds.length,
+              name: latest?.threadName ?? fallbackName,
+              workspace: latest?.workspaceName ?? "",
+            })
+          : t("nanobot.awayNotify.message.single", {
+              name: latest?.threadName ?? fallbackName,
+              workspace: latest?.workspaceName ?? "",
+            });
+      await sendNanobotBridgeCommand({
+        type: "direct-message",
+        channel: route.channel,
+        chatId: route.chatId,
+        content,
       });
+      lastNotifyAtRef.current = now;
+      onDebug?.({
+        id: `${now}-nanobot-away-notify`,
+        timestamp: now,
+        source: "event",
+        label: "nanobot/away-notify",
+        payload: {
+          threadIds: completedThreadIds,
+          route,
+        },
+      });
+    })().catch((error: unknown) => {
+      onDebug?.({
+        id: `${Date.now()}-nanobot-away-notify-error`,
+        timestamp: Date.now(),
+        source: "error",
+        label: "nanobot/away-notify-error",
+        payload: stringifyError(error),
+      });
+    });
   }, [
     appSettings.nanobotAwayCooldownSeconds,
+    appSettings.nanobotAwayBluetoothEnabled,
     appSettings.nanobotAwayNotifyEnabled,
     hasNanobotChannel,
     isAway,
     nanobotStatus.connected,
     nanobotStatus.enabled,
     onDebug,
+    probeBluetoothPresenceNow,
     t,
     threadLookup,
     threadStatusById,
+    windowAway,
   ]);
 
   return {

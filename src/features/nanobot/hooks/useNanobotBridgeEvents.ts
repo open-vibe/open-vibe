@@ -105,6 +105,7 @@ const OPENVIBE_SETTING_LABEL_KEYS: Record<OpenVibeSettingKey, TranslationKey> = 
 };
 
 const NANOBOT_SESSION_STATE_STORAGE_KEY = "openvibe.nanobot.sessionState.v1";
+const NANOBOT_THREAD_IDS_STORAGE_KEY = "openvibe.nanobot.threadIds.v1";
 
 function isMenuCommand(raw: string) {
   const lower = raw.toLowerCase();
@@ -373,6 +374,50 @@ function readPersistedSessionState(): PersistedSessionState {
   }
 }
 
+type PersistedThreadIdsByWorkspace = Record<string, string[]>;
+
+function readPersistedThreadIdsByWorkspace(): PersistedThreadIdsByWorkspace {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  const raw = window.localStorage.getItem(NANOBOT_THREAD_IDS_STORAGE_KEY);
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const normalized: PersistedThreadIdsByWorkspace = {};
+    Object.entries(parsed).forEach(([workspaceId, threadIds]) => {
+      if (!Array.isArray(threadIds)) {
+        return;
+      }
+      const unique = Array.from(
+        new Set(
+          threadIds
+            .map((item) => (typeof item === "string" ? item.trim() : ""))
+            .filter((item) => item.length > 0),
+        ),
+      );
+      if (unique.length > 0) {
+        normalized[workspaceId] = unique;
+      }
+    });
+    return normalized;
+  } catch {
+    return {};
+  }
+}
+
+function persistThreadIdsByWorkspace(value: PersistedThreadIdsByWorkspace) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(
+    NANOBOT_THREAD_IDS_STORAGE_KEY,
+    JSON.stringify(value),
+  );
+}
+
 function normalizePath(path: string) {
   return path.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 }
@@ -442,6 +487,19 @@ export function useNanobotBridgeEvents({
       JSON.stringify({ modes, routes }),
     );
   }, [sessionMemoryEnabled]);
+
+  const rememberNanobotThread = useCallback((workspaceId: string, threadId: string) => {
+    const normalizedWorkspaceId = workspaceId.trim();
+    const normalizedThreadId = threadId.trim();
+    if (!normalizedWorkspaceId || !normalizedThreadId || typeof window === "undefined") {
+      return;
+    }
+    const current = readPersistedThreadIdsByWorkspace();
+    const next = new Set(current[normalizedWorkspaceId] ?? []);
+    next.add(normalizedThreadId);
+    current[normalizedWorkspaceId] = Array.from(next);
+    persistThreadIdsByWorkspace(current);
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -610,12 +668,19 @@ export function useNanobotBridgeEvents({
       const threadId = await startThreadForWorkspace(workspace.id);
       if (threadId) {
         warmThreadIdRef.current = threadId;
+        rememberNanobotThread(workspace.id, threadId);
       }
     })().finally(() => {
       warmThreadTaskRef.current = null;
     });
     warmThreadTaskRef.current = task;
-  }, [enabled, ensureNanobotWorkspace, connectWorkspace, startThreadForWorkspace]);
+  }, [
+    enabled,
+    ensureNanobotWorkspace,
+    connectWorkspace,
+    rememberNanobotThread,
+    startThreadForWorkspace,
+  ]);
 
   const sendBridgeReply = useCallback(
     async (
@@ -715,6 +780,17 @@ export function useNanobotBridgeEvents({
     [threadsByWorkspace],
   );
 
+  const hasThreadInWorkspace = useCallback(
+    (workspaceId: string, threadId: string): boolean | null => {
+      const threads = threadsByWorkspace[workspaceId];
+      if (!threads) {
+        return null;
+      }
+      return threads.some((thread) => thread.id === threadId);
+    },
+    [threadsByWorkspace],
+  );
+
   const resolveThreadTargetAcrossWorkspaces = useCallback(
     (target: string) => {
       const matches: { workspace: WorkspaceInfo; thread: ThreadSummary }[] = [];
@@ -747,10 +823,11 @@ export function useNanobotBridgeEvents({
       });
       routesRef.current.set(route.sessionKey, route);
       boundSessionKeysRef.current.add(route.sessionKey);
+      rememberNanobotThread(route.workspaceId, route.threadId);
       persistSessionState();
       await syncSessionMode(route.sessionKey, getSessionMode(route.sessionKey));
     },
-    [getSessionMode, persistSessionState, syncSessionMode],
+    [getSessionMode, persistSessionState, rememberNanobotThread, syncSessionMode],
   );
 
   const formatSettingValue = useCallback(
@@ -1103,22 +1180,37 @@ export function useNanobotBridgeEvents({
         preferredWorkspaceId &&
         mappedWorkspaceId === preferredWorkspaceId
       ) {
-        const mapped: SessionRoute = {
-          sessionKey: event.sessionKey,
-          channel: event.channel,
-          chatId: event.chatId,
-          workspaceId: mappedWorkspaceId,
-          threadId: mappedThreadId,
-        };
-        routesRef.current.set(event.sessionKey, mapped);
-        boundSessionKeysRef.current.add(event.sessionKey);
-        persistSessionState();
-        return mapped;
+        const mappedThreadExists = hasThreadInWorkspace(
+          mappedWorkspaceId,
+          mappedThreadId,
+        );
+        if (mappedThreadExists !== false) {
+          const mapped: SessionRoute = {
+            sessionKey: event.sessionKey,
+            channel: event.channel,
+            chatId: event.chatId,
+            workspaceId: mappedWorkspaceId,
+            threadId: mappedThreadId,
+          };
+          routesRef.current.set(event.sessionKey, mapped);
+          boundSessionKeysRef.current.add(event.sessionKey);
+          rememberNanobotThread(mapped.workspaceId, mapped.threadId);
+          persistSessionState();
+          return mapped;
+        }
       }
 
       const existing = routesRef.current.get(event.sessionKey);
       if (existing) {
-        if (existing.workspaceId !== preferredWorkspaceId) {
+        const existingThreadExists = hasThreadInWorkspace(
+          existing.workspaceId,
+          existing.threadId,
+        );
+        if (existingThreadExists === false) {
+          routesRef.current.delete(event.sessionKey);
+          boundSessionKeysRef.current.delete(event.sessionKey);
+          persistSessionState();
+        } else if (existing.workspaceId !== preferredWorkspaceId) {
           routesRef.current.delete(event.sessionKey);
           boundSessionKeysRef.current.delete(event.sessionKey);
           persistSessionState();
@@ -1143,7 +1235,7 @@ export function useNanobotBridgeEvents({
       }
 
       const reusable = reuseRouteForChat();
-      if (reusable) {
+      if (reusable && hasThreadInWorkspace(reusable.workspaceId, reusable.threadId) !== false) {
         inheritSessionMode(reusable.sessionKey, event.sessionKey);
         const reusedRoute: SessionRoute = {
           sessionKey: event.sessionKey,
@@ -1168,6 +1260,7 @@ export function useNanobotBridgeEvents({
           boundSessionKeysRef.current.add(event.sessionKey);
         }
         routesRef.current.set(event.sessionKey, reusedRoute);
+        rememberNanobotThread(reusedRoute.workspaceId, reusedRoute.threadId);
         persistSessionState();
         return reusedRoute;
       }
@@ -1208,11 +1301,12 @@ export function useNanobotBridgeEvents({
         await syncSessionMode(route.sessionKey, getSessionMode(route.sessionKey));
         routesRef.current.set(route.sessionKey, route);
         boundSessionKeysRef.current.add(route.sessionKey);
+        rememberNanobotThread(route.workspaceId, route.threadId);
         persistSessionState();
         return route;
       })().finally(() => {
-          creatingRouteRef.current.delete(event.sessionKey);
-        });
+        creatingRouteRef.current.delete(event.sessionKey);
+      });
 
       creatingRouteRef.current.set(event.sessionKey, resolver);
       return resolver;
@@ -1221,6 +1315,8 @@ export function useNanobotBridgeEvents({
       connectWorkspace,
       ensureNanobotWorkspace,
       getSessionMode,
+      hasThreadInWorkspace,
+      rememberNanobotThread,
       startThreadForWorkspace,
       syncSessionMode,
       persistSessionState,
@@ -1308,6 +1404,7 @@ export function useNanobotBridgeEvents({
       routesRef.current.set(route.sessionKey, route);
       boundSessionKeysRef.current.add(route.sessionKey);
       sessionModeRef.current.set(route.sessionKey, "bridge");
+      rememberNanobotThread(route.workspaceId, route.threadId);
       persistSessionState();
       await syncSessionMode(route.sessionKey, "bridge");
       await sendBridgeReply(
@@ -1322,6 +1419,7 @@ export function useNanobotBridgeEvents({
       getRelayCandidates,
       getSessionMode,
       handleOpenVibeControl,
+      rememberNanobotThread,
       sendBridgeReply,
       syncSessionMode,
       t,

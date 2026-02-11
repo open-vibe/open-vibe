@@ -374,6 +374,18 @@ const en = {
   "sidebar.nanobot.lastEvent": "Last event: {value}",
   "sidebar.nanobot.lastEvent.none": "No events",
   "sidebar.nanobot.reason": "Reason",
+  "sidebar.nanobot.connection": "Connection: {value}",
+  "sidebar.nanobot.state": "Status: {value}",
+  "sidebar.nanobot.bluetooth": "Bluetooth: {value}",
+  "sidebar.nanobot.bluetooth.disabled": "Disabled",
+  "sidebar.nanobot.bluetooth.scanning": "Scanning",
+  "sidebar.nanobot.bluetooth.connected": "Ready",
+  "sidebar.nanobot.bluetooth.disconnected": "Unavailable",
+  "sidebar.nanobot.nearby": "Presence: {value}",
+  "sidebar.nanobot.nearby.disabled": "Disabled",
+  "sidebar.nanobot.nearby.present": "Nearby",
+  "sidebar.nanobot.nearby.away": "Away",
+  "sidebar.nanobot.nearby.unknown": "Unknown",
   "sidebar.nanobot.workspaceSection": "System",
   "sidebar.nanobot.workspaceName": "Nanobot",
   "sidebar.nanobot.expandThreads": "Show Nanobot threads",
@@ -565,6 +577,9 @@ const en = {
     "Default effort for Nanobot agent-mode provider turns.",
   "settings.nanobot.agentOverrides.reasoning.option.default":
     "Follow current composer setting",
+  "settings.nanobot.agentOverrides.saveErrorTitle":
+    "Unable to save Nanobot agent overrides",
+  "settings.nanobot.agentOverrides.saveErrorMessage": "Please try again.",
   "settings.nanobot.agentOverrides.reasoning.option.low": "Low",
   "settings.nanobot.agentOverrides.reasoning.option.medium": "Medium",
   "settings.nanobot.agentOverrides.reasoning.option.high": "High",
@@ -637,6 +652,10 @@ const en = {
   "settings.nanobot.cleanup.button": "Clean Nanobot threads",
   "settings.nanobot.cleanup.confirm":
     "Archive all Nanobot threads now? This cannot be undone.",
+  "settings.nanobot.cleanup.preview.count":
+    "Threads to archive in {workspace}: {count}",
+  "settings.nanobot.cleanup.preview.examples": "Preview:",
+  "settings.nanobot.cleanup.preview.more": "...and {count} more",
   "settings.nanobot.cleanup.success":
     "Archived {count} thread(s) in {workspace}.",
   "settings.nanobot.cleanup.empty":
@@ -1230,6 +1249,18 @@ const zhCN: Record<TranslationKey, string> = {
   "sidebar.nanobot.lastEvent": "最后事件：{value}",
   "sidebar.nanobot.lastEvent.none": "暂无",
   "sidebar.nanobot.reason": "原因",
+  "sidebar.nanobot.connection": "连接：{value}",
+  "sidebar.nanobot.state": "状态：{value}",
+  "sidebar.nanobot.bluetooth": "蓝牙：{value}",
+  "sidebar.nanobot.bluetooth.disabled": "未启用",
+  "sidebar.nanobot.bluetooth.scanning": "扫描中",
+  "sidebar.nanobot.bluetooth.connected": "正常",
+  "sidebar.nanobot.bluetooth.disconnected": "不可用",
+  "sidebar.nanobot.nearby": "在场状态：{value}",
+  "sidebar.nanobot.nearby.disabled": "未启用",
+  "sidebar.nanobot.nearby.present": "在附近",
+  "sidebar.nanobot.nearby.away": "已离开",
+  "sidebar.nanobot.nearby.unknown": "未知",
   "sidebar.nanobot.workspaceSection": "系统",
   "sidebar.nanobot.workspaceName": "Nanobot",
   "sidebar.nanobot.expandThreads": "展开 Nanobot 对话",
@@ -1407,6 +1438,8 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.agentOverrides.reasoning.help":
     "作为 Nanobot agent 模式的默认推理力度。",
   "settings.nanobot.agentOverrides.reasoning.option.default": "跟随当前输入框设置",
+  "settings.nanobot.agentOverrides.saveErrorTitle": "无法保存 Nanobot 覆盖设置",
+  "settings.nanobot.agentOverrides.saveErrorMessage": "请稍后重试。",
   "settings.nanobot.agentOverrides.reasoning.option.low": "低",
   "settings.nanobot.agentOverrides.reasoning.option.medium": "中",
   "settings.nanobot.agentOverrides.reasoning.option.high": "高",
@@ -1476,6 +1509,10 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.cleanup.button": "清理 Nanobot 对话",
   "settings.nanobot.cleanup.confirm":
     "确认归档 Nanobot 的全部对话？此操作不可撤销。",
+  "settings.nanobot.cleanup.preview.count":
+    "{workspace} 中将归档 {count} 个对话",
+  "settings.nanobot.cleanup.preview.examples": "预览：",
+  "settings.nanobot.cleanup.preview.more": "……另有 {count} 个",
   "settings.nanobot.cleanup.success":
     "已在 {workspace} 归档 {count} 个对话。",
   "settings.nanobot.cleanup.empty":

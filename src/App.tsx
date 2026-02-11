@@ -457,6 +457,10 @@ function MainApp() {
     setDepth: setGitRootScanDepth,
     clear: clearGitRootCandidates,
   } = useGitRepoScan(activeWorkspace);
+  const modelWorkspace = useMemo(
+    () => activeWorkspace ?? workspaces.find((workspace) => workspace.connected) ?? null,
+    [activeWorkspace, workspaces],
+  );
   const {
     models,
     selectedModel,
@@ -467,7 +471,7 @@ function MainApp() {
     selectedEffort,
     setSelectedEffort
   } = useModels({
-    activeWorkspace,
+    activeWorkspace: modelWorkspace,
     onDebug: addDebugEntry,
     preferredModelId: appSettings.lastComposerModelId,
     preferredEffort: appSettings.lastComposerReasoningEffort,
@@ -700,7 +704,7 @@ function MainApp() {
     })();
   }, [nanobotEnabled]);
   useEffect(() => {
-    if (!nanobotEnabled || !nanobotWorkspacePath || nanobotWorkspaceId) {
+    if (!hasLoaded || !nanobotEnabled || !nanobotWorkspacePath || nanobotWorkspaceId) {
       return;
     }
     if (nanobotWorkspaceBootstrapRef.current) {
@@ -727,6 +731,7 @@ function MainApp() {
   }, [
     activeWorkspaceId,
     addWorkspaceFromPath,
+    hasLoaded,
     nanobotEnabled,
     nanobotWorkspaceId,
     nanobotWorkspacePath,
@@ -2046,7 +2051,9 @@ function MainApp() {
     [connectWorkspace, removeThread, workspacesById],
   );
 
-  const handleClearNanobotThreads = useCallback(async () => {
+  const handleClearNanobotThreads = useCallback(async (options?: { previewOnly?: boolean }) => {
+    const nanobotSessionStateStorageKey = "openvibe.nanobot.sessionState.v1";
+    const nanobotThreadIdsStorageKey = "openvibe.nanobot.threadIds.v1";
     const normalizedNanobotPath = nanobotWorkspacePath
       ? normalizeWorkspacePath(nanobotWorkspacePath)
       : null;
@@ -2076,11 +2083,65 @@ function MainApp() {
     if (!isNanobotWorkspace(workspace)) {
       throw new Error("Nanobot workspace is unavailable.");
     }
+    if ((workspace.kind ?? "main") !== "nanobot") {
+      throw new Error("Refusing to clear a non-Nanobot workspace.");
+    }
     if (!workspace.connected) {
       await connectWorkspace(workspace);
     }
 
-    const threadIds: string[] = [];
+    const trackedThreadIds = new Set<string>();
+    if (typeof window !== "undefined") {
+      try {
+        const rawTracked = window.localStorage.getItem(nanobotThreadIdsStorageKey);
+        if (rawTracked) {
+          const parsed = JSON.parse(rawTracked) as Record<string, unknown>;
+          const ids = parsed[workspace.id];
+          if (Array.isArray(ids)) {
+            ids.forEach((id) => {
+              if (typeof id === "string" && id.trim()) {
+                trackedThreadIds.add(id.trim());
+              }
+            });
+          }
+        }
+      } catch {
+        // Ignore malformed persisted thread ids.
+      }
+      try {
+        const rawSession = window.localStorage.getItem(nanobotSessionStateStorageKey);
+        if (rawSession) {
+          const parsed = JSON.parse(rawSession) as {
+            routes?: Record<
+              string,
+              { workspaceId?: string; threadId?: string }
+            >;
+          };
+          Object.values(parsed.routes ?? {}).forEach((route) => {
+            if (
+              route &&
+              route.workspaceId === workspace.id &&
+              typeof route.threadId === "string" &&
+              route.threadId.trim()
+            ) {
+              trackedThreadIds.add(route.threadId.trim());
+            }
+          });
+        }
+      } catch {
+        // Ignore malformed persisted session state.
+      }
+    }
+    if (trackedThreadIds.size === 0) {
+      return {
+        cleared: 0,
+        workspaceName: workspace.name,
+      };
+    }
+
+    const workspacePathKey = normalizeWorkspacePath(workspace.path);
+    const workspaceThreadIds = new Set<string>();
+    const threadNameById = new Map<string, string>();
     let cursor: string | null = null;
     do {
       const response = await listThreadsService(workspace.id, cursor, 200);
@@ -2102,8 +2163,29 @@ function MainApp() {
             : typeof (item as { thread_id?: unknown }).thread_id === "string"
               ? ((item as { thread_id: string }).thread_id)
               : null;
-        if (threadId) {
-          threadIds.push(threadId);
+        const threadCwd =
+          typeof (item as { cwd?: unknown }).cwd === "string"
+            ? (item as { cwd: string }).cwd
+            : "";
+        const isNanobotThread =
+          threadCwd.trim().length > 0 &&
+          normalizeWorkspacePath(threadCwd) === workspacePathKey;
+        if (threadId && isNanobotThread) {
+          workspaceThreadIds.add(threadId);
+          const name =
+            typeof (item as { name?: unknown }).name === "string"
+              ? (item as { name: string }).name.trim()
+              : typeof (item as { preview?: unknown }).preview === "string"
+                ? (item as { preview: string }).preview.trim()
+                : typeof (item as { title?: unknown }).title === "string"
+                  ? (item as { title: string }).title.trim()
+                  : "";
+          if (!threadNameById.has(threadId)) {
+            threadNameById.set(
+              threadId,
+              name.length > 0 ? name : `Thread ${threadId.slice(0, 8)}`,
+            );
+          }
         }
       }
       const nextCursor =
@@ -2115,6 +2197,21 @@ function MainApp() {
       cursor = nextCursor && nextCursor.trim() ? nextCursor : null;
     } while (cursor);
 
+    const threadIds = Array.from(trackedThreadIds).filter((threadId) =>
+      workspaceThreadIds.has(threadId),
+    );
+    const candidates = threadIds.map((threadId) => ({
+      id: threadId,
+      name: threadNameById.get(threadId) ?? `Thread ${threadId.slice(0, 8)}`,
+    }));
+    if (options?.previewOnly) {
+      return {
+        cleared: 0,
+        workspaceName: workspace.name,
+        candidateCount: candidates.length,
+        candidates,
+      };
+    }
     for (const threadId of threadIds) {
       await archiveThreadService(workspace.id, threadId);
     }
@@ -2135,13 +2232,74 @@ function MainApp() {
     resetWorkspaceThreads(workspace.id);
     await listThreadsForWorkspace(workspace);
 
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("openvibe.nanobot.sessionState.v1");
+    if (typeof window !== "undefined" && archivedThreadIds.size > 0) {
+      try {
+        const rawTracked = window.localStorage.getItem(nanobotThreadIdsStorageKey);
+        const parsed = rawTracked
+          ? (JSON.parse(rawTracked) as Record<string, unknown>)
+          : {};
+        const existing = Array.isArray(parsed[workspace.id])
+          ? (parsed[workspace.id] as unknown[])
+          : [];
+        const remaining = existing
+          .map((id) => (typeof id === "string" ? id.trim() : ""))
+          .filter((id) => id.length > 0 && !archivedThreadIds.has(id));
+        if (remaining.length > 0) {
+          parsed[workspace.id] = remaining;
+        } else {
+          delete parsed[workspace.id];
+        }
+        window.localStorage.setItem(
+          nanobotThreadIdsStorageKey,
+          JSON.stringify(parsed),
+        );
+      } catch {
+        // Ignore malformed persisted thread ids.
+      }
+      try {
+        const rawSession = window.localStorage.getItem(nanobotSessionStateStorageKey);
+        if (rawSession) {
+          const parsed = JSON.parse(rawSession) as {
+            modes?: Record<string, string>;
+            routes?: Record<
+              string,
+              {
+                channel?: string;
+                chatId?: string;
+                workspaceId?: string;
+                threadId?: string;
+              }
+            >;
+          };
+          const routes = parsed.routes ?? {};
+          const filteredRoutes = Object.fromEntries(
+            Object.entries(routes).filter(([, route]) => {
+              if (!route || route.workspaceId !== workspace.id) {
+                return true;
+              }
+              const routeThreadId =
+                typeof route.threadId === "string" ? route.threadId.trim() : "";
+              return !routeThreadId || !archivedThreadIds.has(routeThreadId);
+            }),
+          );
+          window.localStorage.setItem(
+            nanobotSessionStateStorageKey,
+            JSON.stringify({
+              modes: parsed.modes ?? {},
+              routes: filteredRoutes,
+            }),
+          );
+        }
+      } catch {
+        // Ignore malformed persisted session state.
+      }
     }
 
     return {
       cleared: threadIds.length,
       workspaceName: workspace.name,
+      candidateCount: candidates.length,
+      candidates,
     };
   }, [
     addWorkspaceFromPath,
@@ -2491,6 +2649,12 @@ function MainApp() {
     onOpenNanobotLog: handleOpenNanobotLog,
     showDebugButton,
     nanobotStatus: nanobotStatusSnapshot,
+    nanobotPresence: {
+      bluetoothEnabled: appSettings.nanobotAwayBluetoothEnabled,
+      bluetoothSupported: nanobotBluetoothState.supported,
+      bluetoothScanning: nanobotBluetoothState.scanning,
+      bluetoothNearby: nanobotBluetoothState.nearby,
+    },
     themePreference: appSettings.theme,
     themeColor: appSettings.themeColor,
     compactSidebar: appSettings.compactSidebar,

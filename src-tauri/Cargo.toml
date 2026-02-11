@@ -56,7 +56,7 @@ whisper-rs = "0.12"
 sha2 = "0.10"
 
 [target."cfg(target_os = \"windows\")".dependencies]
-windows = { version = "0.61.3", features = ["Foundation", "Foundation_Collections", "Media_SpeechRecognition", "Win32_System_WinRT"] }
+windows = { version = "0.61.3", features = ["Foundation", "Foundation_Collections", "Media_SpeechRecognition", "Win32_Devices_Bluetooth", "Win32_Foundation", "Win32_System_WinRT"] }
 winreg = "0.55"
 
 [target."cfg(target_os = \"macos\")".dependencies]

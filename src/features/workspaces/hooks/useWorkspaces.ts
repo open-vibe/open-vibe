@@ -246,7 +246,15 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
       });
       try {
         const workspace = await addWorkspaceService(selection, defaultCodexBin ?? null);
-        setWorkspaces((prev) => [...prev, workspace]);
+        setWorkspaces((prev) => {
+          const existingIndex = prev.findIndex((entry) => entry.id === workspace.id);
+          if (existingIndex < 0) {
+            return [...prev, workspace];
+          }
+          const next = prev.slice();
+          next[existingIndex] = workspace;
+          return next;
+        });
         setActiveWorkspaceId(workspace.id);
         Sentry.metrics.count("workspace_added", 1, {
           attributes: {

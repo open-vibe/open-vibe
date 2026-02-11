@@ -431,6 +431,12 @@ type LayoutNodesOptions = {
     reason: string | null;
     lastEventAt: number | null;
   };
+  nanobotPresence?: {
+    bluetoothEnabled: boolean;
+    bluetoothSupported: boolean;
+    bluetoothScanning: boolean;
+    bluetoothNearby: boolean | null;
+  };
   onOpenNanobotLog: () => void;
   onResizeDebug: (event: MouseEvent<Element>) => void;
   onResizeTerminal: (event: MouseEvent<Element>) => void;
@@ -485,6 +491,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       experimentalYunyiEnabled={options.experimentalYunyiEnabled}
       experimentalYunyiToken={options.experimentalYunyiToken}
       nanobotStatus={options.nanobotStatus}
+      nanobotPresence={options.nanobotPresence}
       onOpenSettings={options.onOpenSettings}
       onOpenDebug={options.onOpenDebug}
       onOpenNanobotLog={options.onOpenNanobotLog}

@@ -448,12 +448,22 @@ async fn run_provider_completion(
     }
     .or_else(|| state.global_session.get().cloned())
     .ok_or_else(|| "workspace not connected".to_string())?;
-    let provider_cwd = {
+    let workspace_cwd = {
         let workspaces = state.workspaces.lock().await;
         workspaces
             .get(workspace_id)
             .map(|entry| entry.path.clone())
             .unwrap_or_else(|| session.entry.path.clone())
+    };
+    let provider_cwd = {
+        let isolated = PathBuf::from(&workspace_cwd)
+            .join(".openvibe")
+            .join("nanobot-provider");
+        if std::fs::create_dir_all(&isolated).is_ok() {
+            isolated.to_string_lossy().to_string()
+        } else {
+            workspace_cwd
+        }
     };
 
     let mut provider_thread_id = {

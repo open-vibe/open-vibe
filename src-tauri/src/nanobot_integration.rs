@@ -12,6 +12,104 @@ use crate::types::AppSettings;
 const DINGTALK_V1_ACCESS_TOKEN_ENDPOINT: &str = "https://api.dingtalk.com/v1.0/oauth2/accessToken";
 const DINGTALK_V0_ACCESS_TOKEN_ENDPOINT: &str = "https://oapi.dingtalk.com/gettoken";
 
+#[cfg(target_os = "windows")]
+fn utf16_buf_to_string(value: &[u16]) -> String {
+    let end = value.iter().position(|item| *item == 0).unwrap_or(value.len());
+    String::from_utf16_lossy(&value[..end]).trim().to_string()
+}
+
+#[cfg(target_os = "windows")]
+fn format_bluetooth_address(value: u64) -> String {
+    let bytes = value.to_be_bytes();
+    format!(
+        "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+        bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn probe_windows_classic_bluetooth(keyword: &str) -> Result<Vec<Value>, String> {
+    use std::mem::size_of;
+    use windows::Win32::Devices::Bluetooth::{
+        BluetoothFindDeviceClose, BluetoothFindFirstDevice, BluetoothFindFirstRadio,
+        BluetoothFindNextDevice, BluetoothFindNextRadio, BluetoothFindRadioClose,
+        BLUETOOTH_DEVICE_INFO, BLUETOOTH_DEVICE_SEARCH_PARAMS, BLUETOOTH_FIND_RADIO_PARAMS,
+    };
+    use windows::Win32::Foundation::{CloseHandle, HANDLE};
+
+    let mut devices = Vec::new();
+    let mut seen = HashSet::new();
+    let lowered_keyword = keyword.trim().to_lowercase();
+
+    unsafe {
+        let mut radio_search = BLUETOOTH_FIND_RADIO_PARAMS {
+            dwSize: size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
+        };
+        let mut radio_handle = HANDLE::default();
+        let radio_find = match BluetoothFindFirstRadio(&mut radio_search, &mut radio_handle) {
+            Ok(value) => value,
+            Err(_) => return Ok(devices),
+        };
+
+        loop {
+            let search = BLUETOOTH_DEVICE_SEARCH_PARAMS {
+                dwSize: size_of::<BLUETOOTH_DEVICE_SEARCH_PARAMS>() as u32,
+                fReturnAuthenticated: true.into(),
+                fReturnRemembered: true.into(),
+                fReturnUnknown: true.into(),
+                fReturnConnected: true.into(),
+                fIssueInquiry: true.into(),
+                cTimeoutMultiplier: 2,
+                hRadio: radio_handle,
+            };
+            let mut device = BLUETOOTH_DEVICE_INFO {
+                dwSize: size_of::<BLUETOOTH_DEVICE_INFO>() as u32,
+                ..Default::default()
+            };
+            if let Ok(device_find) = BluetoothFindFirstDevice(&search, &mut device) {
+                loop {
+                    let address = format_bluetooth_address(device.Address.Anonymous.ullLong);
+                    let name = utf16_buf_to_string(&device.szName);
+                    let display_name = if name.is_empty() {
+                        format!("Unknown ({})", &address)
+                    } else {
+                        name
+                    };
+                    if lowered_keyword.is_empty()
+                        || display_name.to_lowercase().contains(&lowered_keyword)
+                        || address.to_lowercase().contains(&lowered_keyword)
+                    {
+                        let id = format!("classic:{address}");
+                        if seen.insert(id.clone()) {
+                            devices.push(json!({
+                                "id": id,
+                                "name": display_name,
+                                "rssi": Value::Null,
+                                "source": "classic",
+                            }));
+                        }
+                    }
+                    if BluetoothFindNextDevice(device_find, &mut device).is_err() {
+                        break;
+                    }
+                }
+                let _ = BluetoothFindDeviceClose(device_find);
+            }
+
+            let _ = CloseHandle(radio_handle);
+            let mut next_radio = HANDLE::default();
+            if BluetoothFindNextRadio(radio_find, &mut next_radio).is_err() {
+                break;
+            }
+            radio_handle = next_radio;
+        }
+
+        let _ = BluetoothFindRadioClose(radio_find);
+    }
+
+    Ok(devices)
+}
+
 fn panic_to_string(payload: Box<dyn std::any::Any + Send>) -> String {
     if let Some(text) = payload.downcast_ref::<&str>() {
         return (*text).to_string();
@@ -263,89 +361,120 @@ pub(crate) async fn nanobot_config_path() -> Result<String, String> {
 
 #[tauri::command]
 pub(crate) async fn nanobot_bluetooth_probe(
-    _keyword: Option<String>,
+    keyword: Option<String>,
     timeout_ms: Option<u64>,
 ) -> Result<Value, String> {
     let timeout = Duration::from_millis(timeout_ms.unwrap_or(2200).clamp(300, 10_000));
-    let manager = match Manager::new().await {
-        Ok(value) => value,
-        Err(error) => {
-            return Ok(json!({
-                "supported": false,
-                "devices": [],
-                "error": format!("Bluetooth manager unavailable: {error}"),
-            }))
+    let keyword = keyword.unwrap_or_default().trim().to_lowercase();
+    let mut errors: Vec<String> = Vec::new();
+    let mut supported = false;
+    let mut adapter_count = 0usize;
+    let mut devices = Vec::new();
+    let mut seen_ids = HashSet::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        match probe_windows_classic_bluetooth(&keyword) {
+            Ok(classic_devices) => {
+                supported = true;
+                for device in classic_devices {
+                    let id = device
+                        .get("id")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+                    if !id.is_empty() && seen_ids.insert(id) {
+                        devices.push(device);
+                    }
+                }
+            }
+            Err(error) => errors.push(error),
         }
-    };
-    let adapters = match manager.adapters().await {
-        Ok(value) => value,
-        Err(error) => {
-            return Ok(json!({
-                "supported": false,
-                "devices": [],
-                "error": format!("Failed to enumerate Bluetooth adapters: {error}"),
-            }))
+    }
+
+    match Manager::new().await {
+        Ok(manager) => {
+            supported = true;
+            match manager.adapters().await {
+                Ok(adapters) => {
+                    adapter_count = adapters.len();
+                    for adapter in adapters {
+                        if let Err(error) = adapter.start_scan(ScanFilter::default()).await {
+                            errors.push(format!("Bluetooth scan start failed: {error}"));
+                            continue;
+                        }
+                        tokio::time::sleep(timeout).await;
+                        let peripherals = match adapter.peripherals().await {
+                            Ok(value) => value,
+                            Err(error) => {
+                                let _ = adapter.stop_scan().await;
+                                errors.push(format!("Failed to read Bluetooth devices: {error}"));
+                                continue;
+                            }
+                        };
+                        for peripheral in peripherals {
+                            let properties = match peripheral.properties().await {
+                                Ok(value) => value,
+                                Err(error) => {
+                                    errors.push(format!(
+                                        "Failed to read Bluetooth device details: {error}"
+                                    ));
+                                    continue;
+                                }
+                            };
+                            let Some(properties) = properties else {
+                                continue;
+                            };
+                            let id = peripheral.id().to_string();
+                            let local_name =
+                                properties.local_name.unwrap_or_default().trim().to_string();
+                            let display_name = if local_name.is_empty() {
+                                format!("Unknown ({})", &id.chars().take(8).collect::<String>())
+                            } else {
+                                local_name
+                            };
+                            if !keyword.is_empty() {
+                                let id_lower = id.to_lowercase();
+                                let name_lower = display_name.to_lowercase();
+                                if !id_lower.contains(&keyword) && !name_lower.contains(&keyword) {
+                                    continue;
+                                }
+                            }
+                            let scoped_id = format!("ble:{id}");
+                            if seen_ids.insert(scoped_id.clone()) {
+                                devices.push(json!({
+                                    "id": scoped_id,
+                                    "name": display_name,
+                                    "rssi": properties.rssi,
+                                    "source": "ble",
+                                }));
+                            }
+                        }
+                        let _ = adapter.stop_scan().await;
+                    }
+                }
+                Err(error) => {
+                    errors.push(format!("Failed to enumerate Bluetooth adapters: {error}"))
+                }
+            }
         }
-    };
-    let adapter_count = adapters.len();
-    if adapter_count == 0 {
+        Err(error) => errors.push(format!("Bluetooth manager unavailable: {error}")),
+    }
+
+    if !supported {
         return Ok(json!({
             "supported": false,
             "devices": [],
-            "adapterCount": 0,
-            "error": "No Bluetooth adapter detected.",
+            "adapterCount": adapter_count,
+            "error": errors.first().cloned().unwrap_or_else(|| "Bluetooth unavailable.".to_string()),
         }));
-    }
-
-    let mut last_error: Option<String> = None;
-    let mut seen_ids = HashSet::new();
-    let mut devices = Vec::new();
-    for adapter in adapters {
-        if let Err(error) = adapter.start_scan(ScanFilter::default()).await {
-            last_error = Some(format!("Bluetooth scan start failed: {error}"));
-            continue;
-        }
-        tokio::time::sleep(timeout).await;
-        let peripherals = match adapter.peripherals().await {
-            Ok(value) => value,
-            Err(error) => {
-                let _ = adapter.stop_scan().await;
-                last_error = Some(format!("Failed to read Bluetooth devices: {error}"));
-                continue;
-            }
-        };
-        for peripheral in peripherals {
-            let properties = match peripheral.properties().await {
-                Ok(value) => value,
-                Err(error) => {
-                    last_error = Some(format!("Failed to read Bluetooth device details: {error}"));
-                    continue;
-                }
-            };
-            let Some(properties) = properties else {
-                continue;
-            };
-            let local_name = properties.local_name.unwrap_or_default().trim().to_string();
-            if local_name.is_empty() {
-                continue;
-            }
-            let id = peripheral.id().to_string();
-            if seen_ids.insert(id.clone()) {
-                devices.push(json!({
-                    "id": id,
-                    "name": local_name,
-                    "rssi": properties.rssi,
-                }));
-            }
-        }
-        let _ = adapter.stop_scan().await;
     }
 
     Ok(json!({
         "supported": true,
         "devices": devices,
         "adapterCount": adapter_count,
-        "error": last_error,
+        "error": if errors.is_empty() { Value::Null } else { Value::String(errors.join("; ")) },
     }))
 }
 

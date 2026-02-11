@@ -103,6 +103,12 @@ type SidebarProps = {
     reason: string | null;
     lastEventAt: number | null;
   };
+  nanobotPresence?: {
+    bluetoothEnabled: boolean;
+    bluetoothSupported: boolean;
+    bluetoothScanning: boolean;
+    bluetoothNearby: boolean | null;
+  };
   themePreference: ThemePreference;
   themeColor: ThemeColor;
   compactSidebar: boolean;
@@ -163,6 +169,7 @@ export function Sidebar({
   experimentalYunyiEnabled,
   experimentalYunyiToken,
   nanobotStatus,
+  nanobotPresence,
   themePreference,
   themeColor,
   compactSidebar,
@@ -202,6 +209,56 @@ export function Sidebar({
   onWorkspaceDrop,
 }: SidebarProps) {
   const { t } = useI18n();
+  const resolvedNanobotPresence = nanobotPresence ?? {
+    bluetoothEnabled: false,
+    bluetoothSupported: false,
+    bluetoothScanning: false,
+    bluetoothNearby: null,
+  };
+  const nanobotConnectionStatus = !nanobotStatus.enabled
+    ? t("sidebar.nanobot.status.disabled")
+    : nanobotStatus.connected
+      ? t("sidebar.nanobot.status.connected")
+      : nanobotStatus.running
+        ? t("sidebar.nanobot.status.connecting")
+        : t("sidebar.nanobot.status.disconnected");
+  const nanobotModeValue =
+    nanobotStatus.mode === "bridge"
+      ? t("sidebar.nanobot.mode.bridge")
+      : t("sidebar.nanobot.mode.agent");
+  const nanobotChannelValue =
+    [
+      nanobotStatus.dingtalkEnabled ? t("sidebar.nanobot.channel.dingtalk") : null,
+      nanobotStatus.emailEnabled ? t("sidebar.nanobot.channel.email") : null,
+      nanobotStatus.qqEnabled ? t("sidebar.nanobot.channel.qq") : null,
+    ]
+      .filter((item): item is string => Boolean(item))
+      .join(" + ") || t("sidebar.nanobot.channel.disabled");
+  const nanobotRuntimeValue =
+    nanobotStatus.running && nanobotStatus.configured
+      ? t("sidebar.nanobot.runtime.running")
+      : t("sidebar.nanobot.runtime.stopped");
+  const nanobotLastEventValue = nanobotStatus.lastEventAt
+    ? formatRelativeTimeShort(nanobotStatus.lastEventAt)
+    : t("sidebar.nanobot.lastEvent.none");
+  const nanobotBluetoothLabel = t("sidebar.nanobot.bluetooth", {
+    value: !resolvedNanobotPresence.bluetoothEnabled
+      ? t("sidebar.nanobot.bluetooth.disabled")
+      : resolvedNanobotPresence.bluetoothScanning
+        ? t("sidebar.nanobot.bluetooth.scanning")
+        : resolvedNanobotPresence.bluetoothSupported
+          ? t("sidebar.nanobot.bluetooth.connected")
+          : t("sidebar.nanobot.bluetooth.disconnected"),
+  });
+  const nanobotNearbyLabel = t("sidebar.nanobot.nearby", {
+    value: !resolvedNanobotPresence.bluetoothEnabled
+      ? t("sidebar.nanobot.nearby.disabled")
+      : resolvedNanobotPresence.bluetoothNearby === true
+        ? t("sidebar.nanobot.nearby.present")
+        : resolvedNanobotPresence.bluetoothNearby === false
+          ? t("sidebar.nanobot.nearby.away")
+          : t("sidebar.nanobot.nearby.unknown"),
+  });
   const [expandedWorkspaces, setExpandedWorkspaces] = useState(
     new Set<string>(),
   );
@@ -844,48 +901,27 @@ export function Sidebar({
                     running={nanobotStatus.running}
                     connected={nanobotStatus.connected}
                     reason={nanobotStatus.reason}
-                    statusLabel={
-                      !nanobotStatus.enabled
-                        ? t("sidebar.nanobot.status.disabled")
-                        : nanobotStatus.connected
-                          ? t("sidebar.nanobot.status.connected")
-                          : nanobotStatus.running
-                            ? t("sidebar.nanobot.status.connecting")
-                            : t("sidebar.nanobot.status.disconnected")
-                    }
-                    modeLabel={t("sidebar.nanobot.mode", {
-                      value:
-                        nanobotStatus.mode === "bridge"
-                          ? t("sidebar.nanobot.mode.bridge")
-                          : t("sidebar.nanobot.mode.agent"),
+                    bluetoothEnabled={resolvedNanobotPresence.bluetoothEnabled}
+                    bluetoothSupported={resolvedNanobotPresence.bluetoothSupported}
+                    bluetoothScanning={resolvedNanobotPresence.bluetoothScanning}
+                    bluetoothNearby={resolvedNanobotPresence.bluetoothNearby}
+                    statusLabel={nanobotConnectionStatus}
+                    modeValue={nanobotModeValue}
+                    channelValue={nanobotChannelValue}
+                    runtimeValue={nanobotRuntimeValue}
+                    lastEventValue={nanobotLastEventValue}
+                    modeTooltip={t("sidebar.nanobot.mode", { value: nanobotModeValue })}
+                    channelTooltip={t("sidebar.nanobot.channel", { value: nanobotChannelValue })}
+                    runtimeTooltip={t("sidebar.nanobot.state", { value: nanobotRuntimeValue })}
+                    lastEventTooltip={t("sidebar.nanobot.lastEvent", {
+                      value: nanobotLastEventValue,
                     })}
-                    channelLabel={t("sidebar.nanobot.channel", {
-                      value: [
-                        nanobotStatus.dingtalkEnabled
-                          ? t("sidebar.nanobot.channel.dingtalk")
-                          : null,
-                        nanobotStatus.emailEnabled
-                          ? t("sidebar.nanobot.channel.email")
-                          : null,
-                        nanobotStatus.qqEnabled
-                          ? t("sidebar.nanobot.channel.qq")
-                          : null,
-                      ]
-                        .filter((item): item is string => Boolean(item))
-                        .join(" + ") || t("sidebar.nanobot.channel.disabled"),
-                    })}
-                    runtimeLabel={t("sidebar.nanobot.runtime", {
-                      value:
-                        nanobotStatus.running && nanobotStatus.configured
-                          ? t("sidebar.nanobot.runtime.running")
-                          : t("sidebar.nanobot.runtime.stopped"),
-                    })}
-                    lastEventLabel={t("sidebar.nanobot.lastEvent", {
-                      value: nanobotStatus.lastEventAt
-                        ? formatRelativeTimeShort(nanobotStatus.lastEventAt)
-                        : t("sidebar.nanobot.lastEvent.none"),
+                    statusTooltip={t("sidebar.nanobot.connection", {
+                      value: nanobotConnectionStatus,
                     })}
                     reasonLabel={t("sidebar.nanobot.reason")}
+                    bluetoothLabel={nanobotBluetoothLabel}
+                    nearbyLabel={nanobotNearbyLabel}
                     onOpenLog={onOpenNanobotLog}
                     compact={compactSidebar}
                   />

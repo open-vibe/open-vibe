@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
@@ -125,6 +126,36 @@ pub(crate) async fn list_workspaces(
         let mut workspaces = state.workspaces.lock().await;
         let sessions = state.sessions.lock().await;
         let mut changed = false;
+        let mut keep_by_path_key: HashMap<String, String> = HashMap::new();
+        let mut remove_ids: Vec<String> = Vec::new();
+        for entry in workspaces.values() {
+            if entry.kind.is_worktree() || entry.parent_id.is_some() {
+                continue;
+            }
+            let path_key = normalize_workspace_path_key(&entry.path);
+            if let Some(existing_id) = keep_by_path_key.get(&path_key).cloned() {
+                let existing_connected = sessions.contains_key(&existing_id);
+                let current_connected = sessions.contains_key(&entry.id);
+                let should_replace = (!existing_connected && current_connected)
+                    || (existing_connected == current_connected && entry.id < existing_id);
+                if should_replace {
+                    keep_by_path_key.insert(path_key, entry.id.clone());
+                    remove_ids.push(existing_id);
+                } else {
+                    remove_ids.push(entry.id.clone());
+                }
+            } else {
+                keep_by_path_key.insert(path_key, entry.id.clone());
+            }
+        }
+        if !remove_ids.is_empty() {
+            remove_ids.sort();
+            remove_ids.dedup();
+            for id in remove_ids {
+                workspaces.remove(&id);
+            }
+            changed = true;
+        }
         for entry in workspaces.values_mut() {
             if !entry.kind.is_worktree() {
                 let target_kind =
@@ -206,7 +237,56 @@ pub(crate) async fn add_workspace(
         return Err("Workspace path must be a folder.".to_string());
     }
 
-    let workspace_kind = workspace_kind_for_path(&path, resolve_nanobot_root_key().as_deref());
+    let nanobot_root_key = resolve_nanobot_root_key();
+    let workspace_kind = workspace_kind_for_path(&path, nanobot_root_key.as_deref());
+    let path_key = normalize_workspace_path_key(&path);
+    let existing_entry = {
+        let mut workspaces = state.workspaces.lock().await;
+        let existing_id = workspaces.values().find_map(|entry| {
+            if entry.kind.is_worktree() || entry.parent_id.is_some() {
+                return None;
+            }
+            (normalize_workspace_path_key(&entry.path) == path_key).then(|| entry.id.clone())
+        });
+        if let Some(existing_id) = existing_id {
+            let mut changed = false;
+            let snapshot = if let Some(entry) = workspaces.get_mut(&existing_id) {
+                if workspace_kind.is_nanobot() && !entry.kind.is_nanobot() {
+                    entry.kind = WorkspaceKind::Nanobot;
+                    changed = true;
+                }
+                if workspace_kind.is_nanobot() && entry.name != "Nanobot" {
+                    entry.name = "Nanobot".to_string();
+                    changed = true;
+                }
+                entry.clone()
+            } else {
+                return Err("workspace not found".to_string());
+            };
+            if changed {
+                let list: Vec<_> = workspaces.values().cloned().collect();
+                write_workspaces(&state.storage_path, &list)?;
+            }
+            Some(snapshot)
+        } else {
+            None
+        }
+    };
+    if let Some(existing_entry) = existing_entry {
+        let connected = state.sessions.lock().await.contains_key(&existing_entry.id);
+        return Ok(WorkspaceInfo {
+            id: existing_entry.id,
+            name: existing_entry.name,
+            path: existing_entry.path,
+            codex_bin: existing_entry.codex_bin,
+            connected,
+            kind: existing_entry.kind,
+            parent_id: existing_entry.parent_id,
+            worktree: existing_entry.worktree,
+            settings: existing_entry.settings,
+        });
+    }
+
     let name = if workspace_kind.is_nanobot() {
         "Nanobot".to_string()
     } else {

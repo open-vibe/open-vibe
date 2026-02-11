@@ -214,9 +214,14 @@ export type SettingsViewProps = {
     clientId: string,
     clientSecret: string,
   ) => Promise<NanobotDingTalkTestResult>;
-  onClearNanobotThreads?: () => Promise<{
+  onClearNanobotThreads?: (options?: { previewOnly?: boolean }) => Promise<{
     cleared: number;
     workspaceName: string;
+    candidateCount?: number;
+    candidates?: Array<{
+      id: string;
+      name: string;
+    }>;
   }>;
   nanobotAwayDetected?: boolean;
   nanobotBluetoothState?: {
@@ -1293,27 +1298,60 @@ export function SettingsView({
     normalizeWindowsPath,
     onUpdateWorkspaceCodexBin,
   ]);
+  const persistNanobotAgentOverrides = useCallback(
+    async (nextModel: string, nextReasoningEffort: string | null) => {
+      if (
+        nextModel === appSettings.nanobotAgentModel &&
+        nextReasoningEffort === appSettings.nanobotAgentReasoningEffort
+      ) {
+        return;
+      }
+      try {
+        await onUpdateAppSettings({
+          ...appSettings,
+          nanobotAgentModel: nextModel,
+          nanobotAgentReasoningEffort: nextReasoningEffort,
+        });
+      } catch (error) {
+        pushErrorToast({
+          title: t("settings.nanobot.agentOverrides.saveErrorTitle"),
+          message:
+            error instanceof Error
+              ? error.message
+              : t("settings.nanobot.agentOverrides.saveErrorMessage"),
+        });
+      }
+    },
+    [appSettings, onUpdateAppSettings, t],
+  );
   const handleSelectNanobotAgentModel = useCallback(
     (value: string) => {
+      const nextReasoningEffort = nanobotAgentReasoningEffortDraft.trim() || null;
       if (value === "__nanobot-model-default__") {
         setNanobotAgentModelDraft("");
+        void persistNanobotAgentOverrides("", nextReasoningEffort);
         return;
       }
       const selected = models.find((model) => model.id === value);
       if (!selected) {
         return;
       }
-      setNanobotAgentModelDraft(selected.model);
+      const nextModel = selected.model;
+      setNanobotAgentModelDraft(nextModel);
+      void persistNanobotAgentOverrides(nextModel, nextReasoningEffort);
     },
-    [models],
+    [models, nanobotAgentReasoningEffortDraft, persistNanobotAgentOverrides],
   );
   const handleSelectNanobotAgentReasoningEffort = useCallback((value: string) => {
+    const nextModel = nanobotAgentModelDraft.trim();
     if (value === "__nanobot-effort-default__") {
       setNanobotAgentReasoningEffortDraft("");
+      void persistNanobotAgentOverrides(nextModel, null);
       return;
     }
     setNanobotAgentReasoningEffortDraft(value);
-  }, []);
+    void persistNanobotAgentOverrides(nextModel, value);
+  }, [nanobotAgentModelDraft, persistNanobotAgentOverrides]);
 
   const handleCommitCodexBinOverride = useCallback(
     async (workspace: WorkspaceInfo) => {
@@ -1710,19 +1748,65 @@ export function SettingsView({
     if (!onClearNanobotThreads) {
       return;
     }
-    const confirmed = await ask(t("settings.nanobot.cleanup.confirm"), {
-      kind: "warning",
-      title: t("settings.nanobot.cleanup.title"),
-    });
-    if (!confirmed) {
-      return;
-    }
-    setNanobotCleanupState({
-      status: "running",
-      ok: true,
-      message: null,
-    });
     try {
+      const preview = await onClearNanobotThreads({ previewOnly: true });
+      const candidateCount =
+        preview.candidateCount ?? preview.candidates?.length ?? 0;
+      const previewItems = (preview.candidates ?? []).slice(0, 5);
+      const previewLines = previewItems.map(
+        (thread, index) => `${index + 1}. ${thread.name}`,
+      );
+      const confirmParts = [t("settings.nanobot.cleanup.confirm")];
+      if (candidateCount > 0) {
+        confirmParts.push(
+          "",
+          t("settings.nanobot.cleanup.preview.count", {
+            count: candidateCount,
+            workspace: preview.workspaceName,
+          }),
+        );
+        if (previewLines.length > 0) {
+          confirmParts.push(
+            "",
+            t("settings.nanobot.cleanup.preview.examples"),
+            ...previewLines,
+          );
+        }
+        if (candidateCount > previewLines.length) {
+          confirmParts.push(
+            t("settings.nanobot.cleanup.preview.more", {
+              count: candidateCount - previewLines.length,
+            }),
+          );
+        }
+      } else {
+        confirmParts.push(
+          "",
+          t("settings.nanobot.cleanup.empty", { workspace: preview.workspaceName }),
+        );
+      }
+      const confirmed = await ask(confirmParts.join("\n"), {
+        kind: "warning",
+        title: t("settings.nanobot.cleanup.title"),
+      });
+      if (!confirmed) {
+        return;
+      }
+      if (candidateCount === 0) {
+        setNanobotCleanupState({
+          status: "done",
+          ok: true,
+          message: t("settings.nanobot.cleanup.empty", {
+            workspace: preview.workspaceName,
+          }),
+        });
+        return;
+      }
+      setNanobotCleanupState({
+        status: "running",
+        ok: true,
+        message: null,
+      });
       const result = await onClearNanobotThreads();
       const message =
         result.cleared > 0
