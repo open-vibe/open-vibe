@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tauri::menu::{Menu, MenuEvent, MenuItemBuilder};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, RunEvent, WindowEvent, Wry};
@@ -107,7 +107,6 @@ pub fn run() {
                         }
                     }
                     TRAY_QUIT_ID => {
-                        EXITING.store(true, Ordering::SeqCst);
                         app.exit(0);
                     }
                     _ => {}
@@ -302,6 +301,13 @@ pub fn run() {
                 api.prevent_exit();
                 let app_handle = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
+                    // Best-effort: close all webview windows before tearing down the runtime.
+                    // This reduces noisy WebView2 shutdown logs like:
+                    // "Failed to unregister class Chrome_WidgetWin_0. Error = 1412".
+                    for window in app_handle.webview_windows().values() {
+                        let _ = window.close();
+                    }
+                    tokio::time::sleep(Duration::from_millis(150)).await;
                     shutdown_children(&app_handle).await;
                     app_handle.exit(0);
                 });
