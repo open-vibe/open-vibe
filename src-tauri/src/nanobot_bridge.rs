@@ -4,7 +4,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -18,6 +18,11 @@ use crate::state::AppState;
 use crate::types::AppSettings;
 
 const DAEMON_ARG: &str = "--nanobot-bridge-daemon";
+const PROVIDER_THREAD_START_TIMEOUT_SECS: u64 = 30;
+const PROVIDER_TURN_START_TIMEOUT_SECS: u64 = 45;
+const PROVIDER_TURN_FIRST_EVENT_TIMEOUT_SECS: u64 = 20;
+const PROVIDER_TURN_STREAM_TIMEOUT_SECS: u64 = 120;
+const NANOBOT_PROVIDER_STATE_FILE: &str = "nanobot-provider-state.json";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct NanobotBridgeConfig {
@@ -43,6 +48,7 @@ pub(crate) struct NanobotBridgeState {
     stdin: Option<ChildStdin>,
     config: Option<NanobotBridgeConfig>,
     provider_thread_by_key: HashMap<String, String>,
+    provider_hashes_by_key: HashMap<String, Vec<String>>,
     provider_turn_lock_by_key: HashMap<String, Arc<TokioMutex<()>>>,
 }
 
@@ -53,9 +59,18 @@ impl Default for NanobotBridgeState {
             stdin: None,
             config: None,
             provider_thread_by_key: HashMap::new(),
+            provider_hashes_by_key: HashMap::new(),
             provider_turn_lock_by_key: HashMap::new(),
         }
     }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct PersistedProviderState {
+    #[serde(default)]
+    provider_threads: HashMap<String, String>,
+    #[serde(default)]
+    provider_hashes: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -119,6 +134,47 @@ fn unix_time_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
     now.as_millis() as i64
+}
+
+fn provider_state_path(app: &AppHandle) -> PathBuf {
+    app.path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| ".".into()))
+        .join(NANOBOT_PROVIDER_STATE_FILE)
+}
+
+fn load_persisted_provider_state(app: &AppHandle) -> PersistedProviderState {
+    let path = provider_state_path(app);
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return PersistedProviderState::default();
+    };
+    serde_json::from_str::<PersistedProviderState>(&raw).unwrap_or_default()
+}
+
+async fn persist_provider_state(app: &AppHandle) -> Result<(), String> {
+    let (provider_threads, provider_hashes) = {
+        let state = app.state::<AppState>();
+        let guard = state.nanobot_bridge.lock().await;
+        (
+            guard.provider_thread_by_key.clone(),
+            guard.provider_hashes_by_key.clone(),
+        )
+    };
+    let payload = PersistedProviderState {
+        provider_threads,
+        provider_hashes,
+    };
+    let path = provider_state_path(app);
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|error| format!("Failed to create provider state directory: {error}"))?;
+    }
+    let serialized = serde_json::to_string_pretty(&payload)
+        .map_err(|error| format!("Failed to serialize provider state: {error}"))?;
+    tokio::fs::write(path, serialized)
+        .await
+        .map_err(|error| format!("Failed to write provider state: {error}"))
 }
 
 fn extract_error_message(result: &Value) -> Option<String> {
@@ -197,7 +253,7 @@ fn extract_agent_text_from_item(item: &Value) -> Option<String> {
     None
 }
 
-fn build_provider_prompt(
+fn build_provider_snapshot_prompt(
     messages: &[Value],
     tools: &[Value],
     model: Option<&str>,
@@ -231,6 +287,191 @@ Temperature hint: {temperature}\n\n\
 Messages:\n{messages_text}\n\n\
 Tools:\n{tools_text}\n"
     )
+}
+
+fn build_provider_delta_prompt(
+    delta_messages: &[Value],
+    tools: &[Value],
+    model: Option<&str>,
+    max_tokens: u32,
+    temperature: f32,
+) -> String {
+    let messages_text =
+        serde_json::to_string_pretty(delta_messages).unwrap_or_else(|_| "[]".to_string());
+    let tools_text = serde_json::to_string_pretty(tools).unwrap_or_else(|_| "[]".to_string());
+    let model_text = model.unwrap_or("default");
+    format!(
+        "You are OpenVibe's nanobot provider adapter.\n\
+Given appended chat events for an existing ongoing session, return exactly one JSON object.\n\
+Do NOT execute tools. Decide only the next assistant step.\n\n\
+Required JSON schema:\n\
+{{\n\
+  \"content\": string | null,\n\
+  \"tool_calls\": [\n\
+    {{\"id\": \"call_x\", \"name\": \"tool_name\", \"arguments\": {{...}}}}\n\
+  ],\n\
+  \"finish_reason\": \"stop\" | \"tool_calls\",\n\
+  \"reasoning_content\": string | null\n\
+}}\n\n\
+Rules:\n\
+- This thread already contains prior context; process only appended events below.\n\
+- If a tool is needed, set tool_calls and finish_reason=\"tool_calls\".\n\
+- If no tool is needed, set tool_calls=[] and finish_reason=\"stop\".\n\
+- Keep content concise.\n\
+- Output strict JSON only, no markdown.\n\n\
+Model hint: {model_text}\n\
+Max tokens hint: {max_tokens}\n\
+Temperature hint: {temperature}\n\n\
+Appended messages:\n{messages_text}\n\n\
+Tools:\n{tools_text}\n"
+    )
+}
+
+fn is_system_message(message: &Value) -> bool {
+    message
+        .get("role")
+        .and_then(Value::as_str)
+        .map(|role| role.eq_ignore_ascii_case("system"))
+        .unwrap_or(false)
+}
+
+fn normalize_provider_messages(messages: &[Value]) -> Vec<Value> {
+    let start = if messages.first().map(is_system_message).unwrap_or(false) {
+        1
+    } else {
+        0
+    };
+    messages[start..].to_vec()
+}
+
+fn fingerprint_provider_message(message: &Value) -> String {
+    let serialized = serde_json::to_string(message).unwrap_or_else(|_| String::new());
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in serialized.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}")
+}
+
+fn fingerprint_provider_messages(messages: &[Value]) -> Vec<String> {
+    messages
+        .iter()
+        .map(fingerprint_provider_message)
+        .collect::<Vec<_>>()
+}
+
+fn find_prefix_subsequence_overlap(previous: &[String], current: &[String]) -> usize {
+    if previous.is_empty() || current.is_empty() {
+        return 0;
+    }
+    let mut matched = 0usize;
+    for entry in previous {
+        if matched >= current.len() {
+            break;
+        }
+        if entry == &current[matched] {
+            matched += 1;
+        }
+    }
+    matched
+}
+
+fn build_provider_prompt_for_turn(
+    previous_hashes: &[String],
+    current_messages: &[Value],
+    current_hashes: &[String],
+    tools: &[Value],
+    model: Option<&str>,
+    max_tokens: u32,
+    temperature: f32,
+) -> String {
+    if previous_hashes.is_empty() {
+        return build_provider_snapshot_prompt(
+            current_messages,
+            tools,
+            model,
+            max_tokens,
+            temperature,
+        );
+    }
+    let overlap = find_prefix_subsequence_overlap(previous_hashes, current_hashes);
+    let delta_messages = if overlap < current_messages.len() {
+        &current_messages[overlap..]
+    } else {
+        &[]
+    };
+    if delta_messages.is_empty() {
+        return build_provider_snapshot_prompt(
+            current_messages,
+            tools,
+            model,
+            max_tokens,
+            temperature,
+        );
+    }
+    build_provider_delta_prompt(delta_messages, tools, model, max_tokens, temperature)
+}
+
+fn build_provider_assistant_message(response: &Value) -> Option<Value> {
+    let obj = response.as_object()?;
+    let content = obj
+        .get("content")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
+    let reasoning = obj
+        .get("reasoning_content")
+        .or_else(|| obj.get("reasoningContent"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned);
+    let raw_tool_calls = obj
+        .get("tool_calls")
+        .or_else(|| obj.get("toolCalls"))
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+
+    let mut tool_calls = Vec::new();
+    for entry in raw_tool_calls {
+        let Some(call) = entry.as_object() else {
+            continue;
+        };
+        let Some(id) = call.get("id").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(name) = call.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        let arguments = call
+            .get("arguments")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        let arguments_text = serde_json::to_string(&arguments).unwrap_or_else(|_| "{}".to_string());
+        tool_calls.push(json!({
+            "id": id,
+            "type": "function",
+            "function": {
+                "name": name,
+                "arguments": arguments_text,
+            }
+        }));
+    }
+
+    let mut assistant = json!({
+        "role": "assistant",
+        "content": content,
+    });
+    if !tool_calls.is_empty() {
+        assistant["tool_calls"] = Value::Array(tool_calls);
+    }
+    if let Some(reasoning) = reasoning {
+        assistant["reasoning_content"] = json!(reasoning);
+    }
+    Some(assistant)
 }
 
 fn normalize_provider_response(raw: &str) -> Value {
@@ -411,7 +652,6 @@ async fn send_command_with_guard(
         if guard.child.is_some() {
             guard.child = None;
             guard.stdin = None;
-            guard.provider_thread_by_key.clear();
             guard.provider_turn_lock_by_key.clear();
             return Err("Nanobot bridge daemon stopped".to_string());
         }
@@ -446,15 +686,18 @@ async fn create_provider_bridge_thread(
     session: &std::sync::Arc<crate::codex::WorkspaceSession>,
     cwd: &str,
 ) -> Result<String, String> {
-    let thread_result = session
-        .send_request(
+    let thread_result = timeout(
+        Duration::from_secs(PROVIDER_THREAD_START_TIMEOUT_SECS),
+        session.send_request(
             "thread/start",
             json!({
                 "cwd": cwd,
                 "approvalPolicy": "never",
             }),
-        )
-        .await?;
+        ),
+    )
+    .await
+    .map_err(|_| "provider thread/start timed out".to_string())??;
     if let Some(error) = extract_error_message(&thread_result) {
         return Err(error);
     }
@@ -464,8 +707,28 @@ async fn create_provider_bridge_thread(
 
 async fn clear_provider_thread_for_key(app: &AppHandle, key: &str) {
     let state = app.state::<AppState>();
-    let mut guard = state.nanobot_bridge.lock().await;
-    guard.provider_thread_by_key.remove(key);
+    {
+        let mut guard = state.nanobot_bridge.lock().await;
+        guard.provider_thread_by_key.remove(key);
+        guard.provider_hashes_by_key.remove(key);
+    }
+    if let Err(error) = persist_provider_state(app).await {
+        eprintln!("[nanobot-bridge] failed to persist provider state after clear: {error}");
+    }
+}
+
+async fn archive_provider_thread(
+    session: &std::sync::Arc<crate::codex::WorkspaceSession>,
+    thread_id: &str,
+) {
+    let _ = session
+        .send_request(
+            "thread/archive",
+            json!({
+                "threadId": thread_id,
+            }),
+        )
+        .await;
 }
 
 async fn get_provider_turn_lock_for_key(
@@ -485,7 +748,10 @@ async fn run_provider_completion(
     app: &AppHandle,
     provider_key: &str,
     workspace_id: &str,
-    prompt: String,
+    provider_messages: Vec<Value>,
+    tools: Vec<Value>,
+    max_tokens: u32,
+    temperature: f32,
     model: Option<String>,
     effort: Option<String>,
     access_mode: String,
@@ -537,9 +803,30 @@ async fn run_provider_completion(
                     .provider_thread_by_key
                     .insert(provider_key.to_string(), created.clone());
             }
+            if let Err(error) = persist_provider_state(app).await {
+                eprintln!("[nanobot-bridge] failed to persist provider thread mapping: {error}");
+            }
             provider_thread_id = Some(created);
         }
         let thread_id = provider_thread_id.clone().unwrap_or_default();
+        let previous_hashes = {
+            let guard = state.nanobot_bridge.lock().await;
+            guard
+                .provider_hashes_by_key
+                .get(provider_key)
+                .cloned()
+                .unwrap_or_default()
+        };
+        let current_hashes = fingerprint_provider_messages(&provider_messages);
+        let prompt = build_provider_prompt_for_turn(
+            &previous_hashes,
+            &provider_messages,
+            &current_hashes,
+            &tools,
+            model.as_deref(),
+            max_tokens,
+            temperature,
+        );
 
         let (tx, mut rx) = mpsc::unbounded_channel::<Value>();
         {
@@ -581,81 +868,116 @@ async fn run_provider_completion(
             }
         }
 
-        let turn_result = session
-            .send_request("turn/start", Value::Object(turn_params))
-            .await;
+        let turn_result = timeout(
+            Duration::from_secs(PROVIDER_TURN_START_TIMEOUT_SECS),
+            session.send_request("turn/start", Value::Object(turn_params)),
+        )
+        .await;
         let turn_result = match turn_result {
-            Ok(value) => value,
-            Err(error) => {
+            Ok(Ok(value)) => value,
+            Ok(Err(error)) => {
                 let mut callbacks = session.background_thread_callbacks.lock().await;
                 callbacks.remove(&thread_id);
+                archive_provider_thread(&session, &thread_id).await;
+                clear_provider_thread_for_key(app, provider_key).await;
                 if attempt == 0 {
-                    clear_provider_thread_for_key(app, provider_key).await;
                     provider_thread_id = None;
                     continue;
                 }
                 return Err(error);
             }
+            Err(_) => {
+                let mut callbacks = session.background_thread_callbacks.lock().await;
+                callbacks.remove(&thread_id);
+                archive_provider_thread(&session, &thread_id).await;
+                clear_provider_thread_for_key(app, provider_key).await;
+                if attempt == 0 {
+                    provider_thread_id = None;
+                    continue;
+                }
+                return Err("provider turn/start timed out".to_string());
+            }
         };
         if let Some(error) = extract_error_message(&turn_result) {
             let mut callbacks = session.background_thread_callbacks.lock().await;
             callbacks.remove(&thread_id);
+            archive_provider_thread(&session, &thread_id).await;
+            clear_provider_thread_for_key(app, provider_key).await;
             if attempt == 0 {
-                clear_provider_thread_for_key(app, provider_key).await;
                 provider_thread_id = None;
                 continue;
             }
             return Err(error);
         }
 
-        let collect_result = timeout(Duration::from_secs(120), async {
-            let mut text = String::new();
-            while let Some(event) = rx.recv().await {
-                let method = event.get("method").and_then(Value::as_str).unwrap_or("");
-                match method {
-                    "item/agentMessage/delta" => {
-                        if let Some(delta) = event
-                            .get("params")
-                            .and_then(|params| params.get("delta"))
-                            .and_then(Value::as_str)
-                        {
-                            text.push_str(delta);
+        let collect_result = timeout(
+            Duration::from_secs(PROVIDER_TURN_STREAM_TIMEOUT_SECS),
+            async {
+                let mut text = String::new();
+                let first_event = timeout(
+                    Duration::from_secs(PROVIDER_TURN_FIRST_EVENT_TIMEOUT_SECS),
+                    rx.recv(),
+                )
+                .await
+                .map_err(|_| "provider turn stalled waiting for output".to_string())?
+                .ok_or_else(|| "provider turn stream closed".to_string())?;
+
+                let mut pending = Some(first_event);
+                loop {
+                    let event = if let Some(value) = pending.take() {
+                        value
+                    } else {
+                        match rx.recv().await {
+                            Some(value) => value,
+                            None => break,
                         }
-                    }
-                    "item/completed" => {
-                        if !text.trim().is_empty() {
-                            continue;
-                        }
-                        let item = event
-                            .get("params")
-                            .and_then(|params| params.get("item"))
-                            .cloned()
-                            .unwrap_or_else(|| json!({}));
-                        if item.get("type").and_then(Value::as_str) == Some("agentMessage") {
-                            if let Some(completed_text) = extract_agent_text_from_item(&item) {
-                                text = completed_text;
+                    };
+                    let method = event.get("method").and_then(Value::as_str).unwrap_or("");
+                    match method {
+                        "item/agentMessage/delta" => {
+                            if let Some(delta) = event
+                                .get("params")
+                                .and_then(|params| params.get("delta"))
+                                .and_then(Value::as_str)
+                            {
+                                text.push_str(delta);
                             }
                         }
+                        "item/completed" => {
+                            if !text.trim().is_empty() {
+                                continue;
+                            }
+                            let item = event
+                                .get("params")
+                                .and_then(|params| params.get("item"))
+                                .cloned()
+                                .unwrap_or_else(|| json!({}));
+                            if item.get("type").and_then(Value::as_str) == Some("agentMessage") {
+                                if let Some(completed_text) = extract_agent_text_from_item(&item) {
+                                    text = completed_text;
+                                }
+                            }
+                        }
+                        "turn/completed" => break,
+                        "turn/error" | "error" => {
+                            let message = event
+                                .get("params")
+                                .and_then(|params| params.get("error"))
+                                .and_then(|err| err.get("message"))
+                                .and_then(Value::as_str)
+                                .unwrap_or("provider turn failed")
+                                .to_string();
+                            return Err(message);
+                        }
+                        _ => {}
                     }
-                    "turn/completed" => break,
-                    "turn/error" | "error" => {
-                        let message = event
-                            .get("params")
-                            .and_then(|params| params.get("error"))
-                            .and_then(|err| err.get("message"))
-                            .and_then(Value::as_str)
-                            .unwrap_or("provider turn failed")
-                            .to_string();
-                        return Err(message);
-                    }
-                    _ => {}
                 }
-            }
-            if text.trim().is_empty() {
-                return Err("provider returned empty response".to_string());
-            }
-            Ok(text)
-        })
+                if text.trim().is_empty() {
+                    return Err("provider returned empty response".to_string());
+                }
+                Ok(text)
+            },
+        )
         .await;
 
         {
@@ -664,18 +986,36 @@ async fn run_provider_completion(
         }
 
         match collect_result {
-            Ok(Ok(text)) => return Ok(normalize_provider_response(&text)),
+            Ok(Ok(text)) => {
+                let normalized = normalize_provider_response(&text);
+                let mut mirrored_hashes = current_hashes.clone();
+                if let Some(assistant) = build_provider_assistant_message(&normalized) {
+                    mirrored_hashes.push(fingerprint_provider_message(&assistant));
+                }
+                {
+                    let mut guard = state.nanobot_bridge.lock().await;
+                    guard
+                        .provider_hashes_by_key
+                        .insert(provider_key.to_string(), mirrored_hashes);
+                }
+                if let Err(error) = persist_provider_state(app).await {
+                    eprintln!("[nanobot-bridge] failed to persist provider cursor hashes: {error}");
+                }
+                return Ok(normalized);
+            }
             Ok(Err(error)) => {
+                archive_provider_thread(&session, &thread_id).await;
+                clear_provider_thread_for_key(app, provider_key).await;
                 if attempt == 0 {
-                    clear_provider_thread_for_key(app, provider_key).await;
                     provider_thread_id = None;
                     continue;
                 }
                 return Err(error);
             }
             Err(_) => {
+                archive_provider_thread(&session, &thread_id).await;
+                clear_provider_thread_for_key(app, provider_key).await;
                 if attempt == 0 {
-                    clear_provider_thread_for_key(app, provider_key).await;
                     provider_thread_id = None;
                     continue;
                 }
@@ -733,13 +1073,14 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         .and_then(Value::as_f64)
         .unwrap_or(0.7) as f32;
 
-    let prompt =
-        build_provider_prompt(&messages, &tools, overrides.model.as_deref(), max_tokens, temperature);
     let result = run_provider_completion(
         app,
         &provider_key,
         &workspace_id,
-        prompt,
+        normalize_provider_messages(&messages),
+        tools.clone(),
+        max_tokens,
+        temperature,
         overrides.model,
         overrides.effort,
         overrides.access_mode,
@@ -876,7 +1217,12 @@ pub(crate) async fn apply_settings(
     settings: &AppSettings,
 ) -> Result<(), String> {
     let config = NanobotBridgeConfig::from_settings(settings);
+    let persisted = load_persisted_provider_state(app);
     let mut guard = state.nanobot_bridge.lock().await;
+    if guard.provider_thread_by_key.is_empty() && guard.provider_hashes_by_key.is_empty() {
+        guard.provider_thread_by_key = persisted.provider_threads;
+        guard.provider_hashes_by_key = persisted.provider_hashes;
+    }
     if guard.config.as_ref() == Some(&config) {
         return Ok(());
     }
@@ -885,7 +1231,6 @@ pub(crate) async fn apply_settings(
         stop_child(&mut child).await;
     }
     guard.stdin = None;
-    guard.provider_thread_by_key.clear();
     guard.provider_turn_lock_by_key.clear();
     guard.config = Some(config.clone());
 
@@ -928,7 +1273,6 @@ pub(crate) async fn shutdown(state: &AppState) {
         stop_child(&mut child).await;
     }
     guard.stdin = None;
-    guard.provider_thread_by_key.clear();
     guard.provider_turn_lock_by_key.clear();
     guard.config = None;
 }

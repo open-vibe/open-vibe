@@ -737,6 +737,24 @@ function MainApp() {
     nanobotWorkspacePath,
     setActiveWorkspaceId,
   ]);
+  useEffect(() => {
+    if (!hasLoaded || !nanobotEnabled || !nanobotWorkspaceId) {
+      return;
+    }
+    const workspace = workspacesById.get(nanobotWorkspaceId);
+    if (!workspace || workspace.connected) {
+      return;
+    }
+    void connectWorkspace(workspace).catch(() => {
+      // Keep startup resilient; session routing will retry on inbound messages.
+    });
+  }, [
+    connectWorkspace,
+    hasLoaded,
+    nanobotEnabled,
+    nanobotWorkspaceId,
+    workspacesById,
+  ]);
   const {
     snapshot: nanobotStatusSnapshot,
     logEntries: nanobotLogEntries,

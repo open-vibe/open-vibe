@@ -88,6 +88,10 @@ type ThreadListResponse = {
   nextCursor: string | null;
 };
 
+const NANOBOT_PROVIDER_PROMPT_PREFIX = "you are openvibe's nanobot provider adapter";
+const NANOBOT_PROVIDER_THREAD_NAME_PREFIX = "you are openvibe's nan";
+const NANOBOT_PROVIDER_THREAD_NAME_MATCH = "nanobot provider adapter";
+
 function getNowMs() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
     return performance.now();
@@ -110,6 +114,41 @@ function parseThreadListResponse(response: unknown): ThreadListResponse {
   const rawCursor = result.nextCursor ?? result.next_cursor ?? null;
   const nextCursor = typeof rawCursor === "string" ? rawCursor : null;
   return { data, nextCursor };
+}
+
+function isNanobotProviderThread(thread: Record<string, unknown>): boolean {
+  const cwd = normalizeRootPath(String(thread?.cwd ?? ""));
+  if (cwd.includes("/.openvibe/nanobot-provider")) {
+    return true;
+  }
+
+  const path = asString(thread?.path ?? "")
+    .trim()
+    .replace(/\\/g, "/")
+    .toLowerCase();
+  if (path.includes("/.openvibe/nanobot-provider/")) {
+    return true;
+  }
+
+  const preview = asString(thread?.preview ?? "")
+    .trim()
+    .toLowerCase();
+  if (preview.startsWith(NANOBOT_PROVIDER_PROMPT_PREFIX)) {
+    return true;
+  }
+
+  return false;
+}
+
+function isNanobotProviderSummary(summary: ThreadSummary): boolean {
+  const name = summary.name.trim().toLowerCase();
+  if (!name) {
+    return false;
+  }
+  return (
+    name.startsWith(NANOBOT_PROVIDER_THREAD_NAME_PREFIX) ||
+    name.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH)
+  );
 }
 
 function yieldToMainThread() {
@@ -619,12 +658,18 @@ export function useThreadActions({
     async (workspace: WorkspaceInfo) => {
       const workspacePath = normalizeRootPath(workspace.path);
       const cachedThreads = loadThreadSummariesForWorkspace(workspace.id);
+      const filteredCachedThreads = cachedThreads.filter(
+        (thread) => !isNanobotProviderSummary(thread),
+      );
+      if (filteredCachedThreads.length !== cachedThreads.length) {
+        saveThreadSummariesForWorkspace(workspace.id, filteredCachedThreads);
+      }
       const existingThreads = threadsByWorkspace[workspace.id] ?? [];
-      if (existingThreads.length === 0 && cachedThreads.length > 0) {
+      if (existingThreads.length === 0 && filteredCachedThreads.length > 0) {
         dispatch({
           type: "setThreads",
           workspaceId: workspace.id,
-          threads: cachedThreads,
+          threads: filteredCachedThreads,
         });
       }
       dispatch({
@@ -659,6 +704,10 @@ export function useThreadActions({
           (thread) =>
             normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath,
         );
+        const filteredThreads = matchingThreads.filter(
+          (thread) => !isNanobotProviderThread(thread),
+        );
+        const hiddenProviderThreads = matchingThreads.length - filteredThreads.length;
         onDebug?.({
           id: `${Date.now()}-client-thread-list-summary`,
           timestamp: Date.now(),
@@ -669,6 +718,8 @@ export function useThreadActions({
             workspacePath,
             totalFetched: data.length,
             matched: matchingThreads.length,
+            filtered: filteredThreads.length,
+            hiddenProviderThreads,
             sampleCwds,
             fetchDurationMs,
           },
@@ -679,6 +730,8 @@ export function useThreadActions({
             workspacePath,
             totalFetched: data.length,
             matched: matchingThreads.length,
+            filtered: filteredThreads.length,
+            hiddenProviderThreads,
             sampleCwds,
             fetchDurationMs,
           });
@@ -686,7 +739,7 @@ export function useThreadActions({
 
         const applyStarted = getNowMs();
         const uniqueById = new Map<string, Record<string, unknown>>();
-        matchingThreads.forEach((thread) => {
+        filteredThreads.forEach((thread) => {
           const id = String(thread?.id ?? "");
           if (id && !uniqueById.has(id)) {
             uniqueById.set(id, thread);
@@ -769,7 +822,8 @@ export function useThreadActions({
         if (typeof console !== "undefined") {
           console.info("[thread/list apply]", {
             workspaceId: workspace.id,
-            matched: matchingThreads.length,
+            matched: filteredThreads.length,
+            hiddenProviderThreads,
             durationMs: applyDurationMs,
           });
         }
@@ -872,7 +926,8 @@ export function useThreadActions({
           matchingThreads.push(
             ...data.filter(
               (thread) =>
-                normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath,
+                normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath &&
+                !isNanobotProviderThread(thread),
             ),
           );
           cursor = next;

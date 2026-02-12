@@ -1,8 +1,8 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tauri::{Manager, RunEvent};
-#[cfg(target_os = "macos")]
-use tauri::WindowEvent;
+use tauri::menu::{Menu, MenuEvent, MenuItemBuilder};
+use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+use tauri::{AppHandle, Manager, RunEvent, WindowEvent, Wry};
 
 mod backend;
 mod codex;
@@ -44,6 +44,15 @@ mod window;
 mod workspaces;
 
 static EXITING: AtomicBool = AtomicBool::new(false);
+const TRAY_SHOW_ID: &str = "tray_show";
+const TRAY_QUIT_ID: &str = "tray_quit";
+
+fn tray_labels(language: &str) -> (&'static str, &'static str) {
+    match language {
+        "zh-CN" => ("显示", "退出"),
+        _ => ("Show", "Quit"),
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -64,15 +73,59 @@ pub fn run() {
             if window.label() != "main" {
                 return;
             }
-            #[cfg(target_os = "macos")]
             if let WindowEvent::CloseRequested { api, .. } = event {
+                if EXITING.load(Ordering::SeqCst) {
+                    return;
+                }
                 api.prevent_close();
                 let _ = window.hide();
             }
         })
         .setup(|app| {
             let state = state::AppState::load(&app.handle());
+            let settings = tauri::async_runtime::block_on(async {
+                state.app_settings.lock().await.clone()
+            });
             app.manage(state);
+            let (show_label, quit_label) = tray_labels(settings.language.as_str());
+            let show_item = MenuItemBuilder::with_id(TRAY_SHOW_ID, show_label).build(app)?;
+            let quit_item = MenuItemBuilder::with_id(TRAY_QUIT_ID, quit_label).build(app)?;
+            let tray_menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+            let icon = app
+                .default_window_icon()
+                .cloned()
+                .ok_or("Missing app icon for tray")?;
+            TrayIconBuilder::<Wry>::new()
+                .icon(icon)
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app: &AppHandle<Wry>, event: MenuEvent| match event.id().as_ref() {
+                    TRAY_SHOW_ID => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    TRAY_QUIT_ID => {
+                        EXITING.store(true, Ordering::SeqCst);
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<state::AppState>();
