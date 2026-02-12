@@ -91,6 +91,7 @@ type ThreadListResponse = {
 const NANOBOT_PROVIDER_PROMPT_PREFIX = "you are openvibe's nanobot provider adapter";
 const NANOBOT_PROVIDER_THREAD_NAME_PREFIX = "you are openvibe's nan";
 const NANOBOT_PROVIDER_THREAD_NAME_MATCH = "nanobot provider adapter";
+const NANOBOT_FALLBACK_THREAD_PREFIX = "agent ";
 
 function getNowMs() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -149,6 +150,15 @@ function isNanobotProviderSummary(summary: ThreadSummary): boolean {
     name.startsWith(NANOBOT_PROVIDER_THREAD_NAME_PREFIX) ||
     name.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH)
   );
+}
+
+function isNanobotEmptySummary(summary: ThreadSummary): boolean {
+  const name = summary.name.trim().toLowerCase();
+  return name.startsWith(NANOBOT_FALLBACK_THREAD_PREFIX);
+}
+
+function isEmptyThreadPreview(thread: Record<string, unknown>): boolean {
+  return asString(thread?.preview ?? "").trim().length === 0;
 }
 
 function yieldToMainThread() {
@@ -657,10 +667,14 @@ export function useThreadActions({
   const listThreadsForWorkspace = useCallback(
     async (workspace: WorkspaceInfo) => {
       const workspacePath = normalizeRootPath(workspace.path);
+      const isNanobotWorkspace = (workspace.kind ?? "main") === "nanobot";
       const cachedThreads = loadThreadSummariesForWorkspace(workspace.id);
-      const filteredCachedThreads = cachedThreads.filter(
-        (thread) => !isNanobotProviderSummary(thread),
-      );
+      const filteredCachedThreads = cachedThreads.filter((thread) => {
+        if (isNanobotWorkspace && isNanobotEmptySummary(thread)) {
+          return false;
+        }
+        return !isNanobotProviderSummary(thread);
+      });
       if (filteredCachedThreads.length !== cachedThreads.length) {
         saveThreadSummariesForWorkspace(workspace.id, filteredCachedThreads);
       }
@@ -704,9 +718,12 @@ export function useThreadActions({
           (thread) =>
             normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath,
         );
-        const filteredThreads = matchingThreads.filter(
-          (thread) => !isNanobotProviderThread(thread),
-        );
+        const filteredThreads = matchingThreads.filter((thread) => {
+          if (isNanobotWorkspace && isEmptyThreadPreview(thread)) {
+            return false;
+          }
+          return !isNanobotProviderThread(thread);
+        });
         const hiddenProviderThreads = matchingThreads.length - filteredThreads.length;
         onDebug?.({
           id: `${Date.now()}-client-thread-list-summary`,
@@ -895,6 +912,7 @@ export function useThreadActions({
         const maxPagesWithoutMatch = 10;
         let pagesFetched = 0;
         let cursor: string | null = nextCursor;
+        const isNanobotWorkspace = (workspace.kind ?? "main") === "nanobot";
         do {
           pagesFetched += 1;
           const response =
@@ -924,11 +942,15 @@ export function useThreadActions({
           const next =
             (result?.nextCursor ?? result?.next_cursor ?? null) as string | null;
           matchingThreads.push(
-            ...data.filter(
-              (thread) =>
-                normalizeRootPath(String(thread?.cwd ?? "")) === workspacePath &&
-                !isNanobotProviderThread(thread),
-            ),
+            ...data.filter((thread) => {
+              if (normalizeRootPath(String(thread?.cwd ?? "")) !== workspacePath) {
+                return false;
+              }
+              if (isNanobotWorkspace && isEmptyThreadPreview(thread)) {
+                return false;
+              }
+              return !isNanobotProviderThread(thread);
+            }),
           );
           cursor = next;
           if (matchingThreads.length === 0 && pagesFetched >= maxPagesWithoutMatch) {
