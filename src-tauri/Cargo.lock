@@ -814,7 +814,7 @@ dependencies = [
  "bitflags 2.10.0",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "regex",
@@ -4284,9 +4284,9 @@ checksum = "e94e1e6445d314f972ff7395df2de295fe51b71821694f0b0e1e79c4f12c8577"
 
 [[package]]
 name = "nanobot"
-version = "0.2.10"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f91be4ec60e97b838d8165aa89f67f2867b82310c364c59e9600f4be250cc21c"
+checksum = "e586993f52b6d16b78bea16b6389589bae5f960e575d4a2c0ca73bbf6f497851"
 dependencies = [
  "anyhow",
  "async-trait",

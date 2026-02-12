@@ -599,11 +599,7 @@ async fn run_daemon() -> Result<(), String> {
             config.workspace_path(),
             Some(config.agents.defaults.model.clone()),
             config.agents.defaults.max_tool_iterations,
-            if config.tools.web.search.api_key.is_empty() {
-                None
-            } else {
-                Some(config.tools.web.search.api_key.clone())
-            },
+            config.tools.web.search.clone(),
             config.tools.exec.timeout,
             config.tools.restrict_to_workspace,
             Some(cron.clone()),

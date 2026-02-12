@@ -41,7 +41,7 @@ libc = "0.2"
 chrono = { version = "0.4", features = ["clock"] }
 shell-words = "1.1"
 toml = "0.8"
-nanobot = { version = "0.2.10", features = ["dingtalk-stream", "qq-botrs"] }
+nanobot = { version = "0.2.13", features = ["dingtalk-stream", "qq-botrs"] }
 async-trait = "0.1"
 anyhow = "1"
 btleplug = "0.11"
