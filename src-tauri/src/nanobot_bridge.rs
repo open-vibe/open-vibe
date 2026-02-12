@@ -49,6 +49,8 @@ pub(crate) struct NanobotBridgeState {
     config: Option<NanobotBridgeConfig>,
     provider_thread_by_key: HashMap<String, String>,
     provider_hashes_by_key: HashMap<String, Vec<String>>,
+    provider_system_hash_by_key: HashMap<String, String>,
+    provider_tools_hash_by_key: HashMap<String, String>,
     provider_turn_lock_by_key: HashMap<String, Arc<TokioMutex<()>>>,
 }
 
@@ -60,6 +62,8 @@ impl Default for NanobotBridgeState {
             config: None,
             provider_thread_by_key: HashMap::new(),
             provider_hashes_by_key: HashMap::new(),
+            provider_system_hash_by_key: HashMap::new(),
+            provider_tools_hash_by_key: HashMap::new(),
             provider_turn_lock_by_key: HashMap::new(),
         }
     }
@@ -71,6 +75,10 @@ struct PersistedProviderState {
     provider_threads: HashMap<String, String>,
     #[serde(default)]
     provider_hashes: HashMap<String, Vec<String>>,
+    #[serde(default)]
+    provider_system_hashes: HashMap<String, String>,
+    #[serde(default)]
+    provider_tools_hashes: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -160,9 +168,19 @@ async fn persist_provider_state(app: &AppHandle) -> Result<(), String> {
             guard.provider_hashes_by_key.clone(),
         )
     };
+    let (provider_system_hashes, provider_tools_hashes) = {
+        let state = app.state::<AppState>();
+        let guard = state.nanobot_bridge.lock().await;
+        (
+            guard.provider_system_hash_by_key.clone(),
+            guard.provider_tools_hash_by_key.clone(),
+        )
+    };
     let payload = PersistedProviderState {
         provider_threads,
         provider_hashes,
+        provider_system_hashes,
+        provider_tools_hashes,
     };
     let path = provider_state_path(app);
     if let Some(parent) = path.parent() {
@@ -253,56 +271,70 @@ fn extract_agent_text_from_item(item: &Value) -> Option<String> {
     None
 }
 
-fn build_provider_snapshot_prompt(
-    messages: &[Value],
-    tools: &[Value],
-    model: Option<&str>,
-    max_tokens: u32,
-    temperature: f32,
-) -> String {
-    let messages_text = serde_json::to_string_pretty(messages).unwrap_or_else(|_| "[]".to_string());
-    let tools_text = serde_json::to_string_pretty(tools).unwrap_or_else(|_| "[]".to_string());
-    let model_text = model.unwrap_or("default");
-    format!(
-        "You are OpenVibe's nanobot provider adapter.\n\
-Given chat history and tool definitions, return exactly one JSON object.\n\
-Do NOT execute tools. Decide only the next assistant step.\n\n\
-Required JSON schema:\n\
-{{\n\
-  \"content\": string | null,\n\
-  \"tool_calls\": [\n\
-    {{\"id\": \"call_x\", \"name\": \"tool_name\", \"arguments\": {{...}}}}\n\
-  ],\n\
-  \"finish_reason\": \"stop\" | \"tool_calls\",\n\
-  \"reasoning_content\": string | null\n\
-}}\n\n\
-Rules:\n\
-- If a tool is needed, set tool_calls and finish_reason=\"tool_calls\".\n\
-- If no tool is needed, set tool_calls=[] and finish_reason=\"stop\".\n\
-- Keep content concise.\n\
-- Output strict JSON only, no markdown.\n\n\
-Model hint: {model_text}\n\
-Max tokens hint: {max_tokens}\n\
-Temperature hint: {temperature}\n\n\
-Messages:\n{messages_text}\n\n\
-Tools:\n{tools_text}\n"
-    )
+fn sanitize_nanobot_system_prompt(raw: &str) -> String {
+    // nanobot's system prompt includes a time header that changes every message; strip it so
+    // we can treat the rest as stable session context for a stateful provider thread.
+    let mut out = Vec::new();
+    let mut skipping_time = false;
+    for line in raw.lines() {
+        if line.trim() == "## Current Time" {
+            skipping_time = true;
+            continue;
+        }
+        if skipping_time {
+            if line.trim() == "## Runtime" {
+                skipping_time = false;
+                out.push(line);
+            }
+            continue;
+        }
+        out.push(line);
+    }
+    out.join("\n").trim().to_string()
 }
 
-fn build_provider_delta_prompt(
-    delta_messages: &[Value],
-    tools: &[Value],
+fn hash_value(value: &Value) -> String {
+    let serialized = serde_json::to_string(value).unwrap_or_default();
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in serialized.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}")
+}
+
+fn hash_text(value: &str) -> String {
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in value.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}")
+}
+
+fn build_provider_prompt(
+    mode_label: &str,
+    system_context: Option<&str>,
+    messages: &[Value],
+    tools: Option<&[Value]>,
     model: Option<&str>,
     max_tokens: u32,
     temperature: f32,
 ) -> String {
-    let messages_text =
-        serde_json::to_string_pretty(delta_messages).unwrap_or_else(|_| "[]".to_string());
-    let tools_text = serde_json::to_string_pretty(tools).unwrap_or_else(|_| "[]".to_string());
+    let messages_text = serde_json::to_string(messages).unwrap_or_else(|_| "[]".to_string());
+    let tools_text = tools
+        .map(|value| serde_json::to_string(value).unwrap_or_else(|_| "[]".to_string()))
+        .unwrap_or_else(|| "[]".to_string());
     let model_text = model.unwrap_or("default");
+    let system_text = system_context.unwrap_or("").trim();
+    let system_block = if system_text.is_empty() {
+        String::new()
+    } else {
+        format!("Nanobot session context (do not repeat):\n{system_text}\n\n")
+    };
     format!(
         "You are OpenVibe's nanobot provider adapter.\n\
-Given appended chat events for an existing ongoing session, return exactly one JSON object.\n\
+Given {mode_label} messages and optional tool definitions, return exactly one JSON object.\n\
 Do NOT execute tools. Decide only the next assistant step.\n\n\
 Required JSON schema:\n\
 {{\n\
@@ -314,7 +346,6 @@ Required JSON schema:\n\
   \"reasoning_content\": string | null\n\
 }}\n\n\
 Rules:\n\
-- This thread already contains prior context; process only appended events below.\n\
 - If a tool is needed, set tool_calls and finish_reason=\"tool_calls\".\n\
 - If no tool is needed, set tool_calls=[] and finish_reason=\"stop\".\n\
 - Keep content concise.\n\
@@ -322,8 +353,8 @@ Rules:\n\
 Model hint: {model_text}\n\
 Max tokens hint: {max_tokens}\n\
 Temperature hint: {temperature}\n\n\
-Appended messages:\n{messages_text}\n\n\
-Tools:\n{tools_text}\n"
+{system_block}Messages JSON:\n{messages_text}\n\n\
+Tools JSON:\n{tools_text}\n"
     )
 }
 
@@ -342,136 +373,6 @@ fn normalize_provider_messages(messages: &[Value]) -> Vec<Value> {
         0
     };
     messages[start..].to_vec()
-}
-
-fn fingerprint_provider_message(message: &Value) -> String {
-    let serialized = serde_json::to_string(message).unwrap_or_else(|_| String::new());
-    let mut hash = 0xcbf29ce484222325_u64;
-    for byte in serialized.as_bytes() {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    format!("{hash:016x}")
-}
-
-fn fingerprint_provider_messages(messages: &[Value]) -> Vec<String> {
-    messages
-        .iter()
-        .map(fingerprint_provider_message)
-        .collect::<Vec<_>>()
-}
-
-fn find_prefix_subsequence_overlap(previous: &[String], current: &[String]) -> usize {
-    if previous.is_empty() || current.is_empty() {
-        return 0;
-    }
-    let mut matched = 0usize;
-    for entry in previous {
-        if matched >= current.len() {
-            break;
-        }
-        if entry == &current[matched] {
-            matched += 1;
-        }
-    }
-    matched
-}
-
-fn build_provider_prompt_for_turn(
-    previous_hashes: &[String],
-    current_messages: &[Value],
-    current_hashes: &[String],
-    tools: &[Value],
-    model: Option<&str>,
-    max_tokens: u32,
-    temperature: f32,
-) -> String {
-    if previous_hashes.is_empty() {
-        return build_provider_snapshot_prompt(
-            current_messages,
-            tools,
-            model,
-            max_tokens,
-            temperature,
-        );
-    }
-    let overlap = find_prefix_subsequence_overlap(previous_hashes, current_hashes);
-    let delta_messages = if overlap < current_messages.len() {
-        &current_messages[overlap..]
-    } else {
-        &[]
-    };
-    if delta_messages.is_empty() {
-        return build_provider_snapshot_prompt(
-            current_messages,
-            tools,
-            model,
-            max_tokens,
-            temperature,
-        );
-    }
-    build_provider_delta_prompt(delta_messages, tools, model, max_tokens, temperature)
-}
-
-fn build_provider_assistant_message(response: &Value) -> Option<Value> {
-    let obj = response.as_object()?;
-    let content = obj
-        .get("content")
-        .and_then(Value::as_str)
-        .unwrap_or("")
-        .to_string();
-    let reasoning = obj
-        .get("reasoning_content")
-        .or_else(|| obj.get("reasoningContent"))
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToOwned::to_owned);
-    let raw_tool_calls = obj
-        .get("tool_calls")
-        .or_else(|| obj.get("toolCalls"))
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
-
-    let mut tool_calls = Vec::new();
-    for entry in raw_tool_calls {
-        let Some(call) = entry.as_object() else {
-            continue;
-        };
-        let Some(id) = call.get("id").and_then(Value::as_str) else {
-            continue;
-        };
-        let Some(name) = call.get("name").and_then(Value::as_str) else {
-            continue;
-        };
-        let arguments = call
-            .get("arguments")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or_default();
-        let arguments_text = serde_json::to_string(&arguments).unwrap_or_else(|_| "{}".to_string());
-        tool_calls.push(json!({
-            "id": id,
-            "type": "function",
-            "function": {
-                "name": name,
-                "arguments": arguments_text,
-            }
-        }));
-    }
-
-    let mut assistant = json!({
-        "role": "assistant",
-        "content": content,
-    });
-    if !tool_calls.is_empty() {
-        assistant["tool_calls"] = Value::Array(tool_calls);
-    }
-    if let Some(reasoning) = reasoning {
-        assistant["reasoning_content"] = json!(reasoning);
-    }
-    Some(assistant)
 }
 
 fn normalize_provider_response(raw: &str) -> Value {
@@ -711,6 +612,8 @@ async fn clear_provider_thread_for_key(app: &AppHandle, key: &str) {
         let mut guard = state.nanobot_bridge.lock().await;
         guard.provider_thread_by_key.remove(key);
         guard.provider_hashes_by_key.remove(key);
+        guard.provider_system_hash_by_key.remove(key);
+        guard.provider_tools_hash_by_key.remove(key);
     }
     if let Err(error) = persist_provider_state(app).await {
         eprintln!("[nanobot-bridge] failed to persist provider state after clear: {error}");
@@ -748,13 +651,16 @@ async fn run_provider_completion(
     app: &AppHandle,
     provider_key: &str,
     workspace_id: &str,
+    system_context: Option<String>,
     provider_messages: Vec<Value>,
+    messages_cursor: usize,
     tools: Vec<Value>,
+    tools_hash: String,
     max_tokens: u32,
     temperature: f32,
     model: Option<String>,
     effort: Option<String>,
-    access_mode: String,
+    _access_mode: String,
 ) -> Result<Value, String> {
     let session_turn_lock = get_provider_turn_lock_for_key(app, provider_key).await;
     let _session_turn_guard = session_turn_lock.lock().await;
@@ -776,13 +682,15 @@ async fn run_provider_completion(
             .unwrap_or_else(|| session.entry.path.clone())
     };
     let provider_cwd = {
-        let isolated = PathBuf::from(&workspace_cwd)
-            .join(".openvibe")
-            .join("nanobot-provider");
-        if std::fs::create_dir_all(&isolated).is_ok() {
-            isolated.to_string_lossy().to_string()
+        let nanobot_root = nanobot::utils::get_data_path().unwrap_or_else(|_| PathBuf::from(&workspace_cwd));
+        let isolated = nanobot_root.join(".openvibe").join("nanobot-provider");
+        if std::fs::create_dir_all(&isolated).is_err() {
+            // Fall back to a temp dir to avoid polluting a user workspace with internal provider threads.
+            let tmp = std::env::temp_dir().join("openvibe").join("nanobot-provider");
+            let _ = std::fs::create_dir_all(&tmp);
+            tmp.to_string_lossy().to_string()
         } else {
-            workspace_cwd
+            isolated.to_string_lossy().to_string()
         }
     };
 
@@ -795,6 +703,7 @@ async fn run_provider_completion(
     };
 
     for attempt in 0..2 {
+        let mut created_new_thread = false;
         if provider_thread_id.is_none() {
             let created = create_provider_bridge_thread(&session, &provider_cwd).await?;
             {
@@ -807,22 +716,75 @@ async fn run_provider_completion(
                 eprintln!("[nanobot-bridge] failed to persist provider thread mapping: {error}");
             }
             provider_thread_id = Some(created);
+            created_new_thread = true;
         }
         let thread_id = provider_thread_id.clone().unwrap_or_default();
-        let previous_hashes = {
+
+        let sanitized_system = system_context
+            .as_deref()
+            .map(sanitize_nanobot_system_prompt)
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        let system_hash = sanitized_system
+            .as_deref()
+            .map(hash_text)
+            .unwrap_or_default();
+
+        // Decide what to include this turn:
+        // - system/tools are only sent when the stable hash changes (or when the provider thread was rebuilt)
+        // - messages are sent using a cursor to avoid re-sending full conversation history every request.
+        let (include_system, include_tools) = {
             let guard = state.nanobot_bridge.lock().await;
-            guard
-                .provider_hashes_by_key
-                .get(provider_key)
-                .cloned()
-                .unwrap_or_default()
+            let include_system = !system_hash.is_empty()
+                && (created_new_thread
+                    || guard
+                        .provider_system_hash_by_key
+                        .get(provider_key)
+                        .map(|stored| stored != &system_hash)
+                        .unwrap_or(true));
+            let include_tools = !tools_hash.is_empty()
+                && (created_new_thread
+                    || guard
+                        .provider_tools_hash_by_key
+                        .get(provider_key)
+                        .map(|stored| stored != &tools_hash)
+                        .unwrap_or(true));
+            (include_system, include_tools)
         };
-        let current_hashes = fingerprint_provider_messages(&provider_messages);
-        let prompt = build_provider_prompt_for_turn(
-            &previous_hashes,
-            &provider_messages,
-            &current_hashes,
-            &tools,
+
+        let system_for_prompt = if include_system {
+            sanitized_system.as_deref()
+        } else {
+            None
+        };
+        let tools_for_prompt = if include_tools { Some(tools.as_slice()) } else { None };
+
+        let mut snapshot = created_new_thread;
+        if !snapshot {
+            if messages_cursor == 0 {
+                snapshot = true;
+            } else if messages_cursor > provider_messages.len() {
+                snapshot = true;
+            }
+        }
+
+        let messages_for_prompt: Vec<Value> = if snapshot {
+            provider_messages.clone()
+        } else {
+            provider_messages[messages_cursor..].to_vec()
+        };
+        let messages_for_prompt = if messages_for_prompt.is_empty() && !provider_messages.is_empty() {
+            // Defensive: avoid sending an empty delta due to cursor mismatches.
+            vec![provider_messages[provider_messages.len() - 1].clone()]
+        } else {
+            messages_for_prompt
+        };
+
+        let prompt = build_provider_prompt(
+            if snapshot { "a full snapshot of" } else { "appended" },
+            system_for_prompt,
+            &messages_for_prompt,
+            tools_for_prompt,
             model.as_deref(),
             max_tokens,
             temperature,
@@ -841,20 +803,9 @@ async fn run_provider_completion(
             json!([{ "type": "text", "text": prompt }]),
         );
         turn_params.insert("cwd".to_string(), json!(provider_cwd.clone()));
-        let (approval_policy, sandbox_policy) = match access_mode.as_str() {
-            "read-only" => ("on-request", json!({ "type": "readOnly" })),
-            "current" => (
-                "on-request",
-                json!({
-                    "type": "workspaceWrite",
-                    "writableRoots": [provider_cwd.clone()],
-                    "networkAccess": true
-                }),
-            ),
-            _ => ("never", json!({ "type": "dangerFullAccess" })),
-        };
-        turn_params.insert("approvalPolicy".to_string(), json!(approval_policy));
-        turn_params.insert("sandboxPolicy".to_string(), sandbox_policy);
+        // Provider threads must never execute tools; treat the app-server as a pure model adapter.
+        turn_params.insert("approvalPolicy".to_string(), json!("never"));
+        turn_params.insert("sandboxPolicy".to_string(), json!({ "type": "readOnly" }));
         if let Some(model) = model.clone() {
             let trimmed = model.trim().to_string();
             if !trimmed.is_empty() {
@@ -988,15 +939,23 @@ async fn run_provider_completion(
         match collect_result {
             Ok(Ok(text)) => {
                 let normalized = normalize_provider_response(&text);
-                let mut mirrored_hashes = current_hashes.clone();
-                if let Some(assistant) = build_provider_assistant_message(&normalized) {
-                    mirrored_hashes.push(fingerprint_provider_message(&assistant));
-                }
                 {
                     let mut guard = state.nanobot_bridge.lock().await;
-                    guard
-                        .provider_hashes_by_key
-                        .insert(provider_key.to_string(), mirrored_hashes);
+                    if include_system && !system_hash.is_empty() {
+                        guard
+                            .provider_system_hash_by_key
+                            .insert(provider_key.to_string(), system_hash);
+                    } else if system_hash.is_empty() {
+                        guard.provider_system_hash_by_key.remove(provider_key);
+                    }
+
+                    if include_tools && !tools_hash.is_empty() {
+                        guard
+                            .provider_tools_hash_by_key
+                            .insert(provider_key.to_string(), tools_hash.clone());
+                    } else if tools_hash.is_empty() {
+                        guard.provider_tools_hash_by_key.remove(provider_key);
+                    }
                 }
                 if let Err(error) = persist_provider_state(app).await {
                     eprintln!("[nanobot-bridge] failed to persist provider cursor hashes: {error}");
@@ -1046,11 +1005,26 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
+    let system_context = messages
+        .first()
+        .filter(|value| is_system_message(value))
+        .and_then(extract_agent_text_from_item);
     let tools = payload
         .get("tools")
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
+    let tools_hash = payload
+        .get("toolsHash")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| hash_value(&Value::Array(tools.clone())));
+    let messages_cursor = payload
+        .get("messagesCursor")
+        .and_then(Value::as_u64)
+        .unwrap_or(0) as usize;
     let requested_model = payload
         .get("model")
         .and_then(Value::as_str)
@@ -1077,8 +1051,11 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         app,
         &provider_key,
         &workspace_id,
+        system_context,
         normalize_provider_messages(&messages),
+        messages_cursor,
         tools.clone(),
+        tools_hash,
         max_tokens,
         temperature,
         overrides.model,
@@ -1219,9 +1196,15 @@ pub(crate) async fn apply_settings(
     let config = NanobotBridgeConfig::from_settings(settings);
     let persisted = load_persisted_provider_state(app);
     let mut guard = state.nanobot_bridge.lock().await;
-    if guard.provider_thread_by_key.is_empty() && guard.provider_hashes_by_key.is_empty() {
+    if guard.provider_thread_by_key.is_empty()
+        && guard.provider_hashes_by_key.is_empty()
+        && guard.provider_system_hash_by_key.is_empty()
+        && guard.provider_tools_hash_by_key.is_empty()
+    {
         guard.provider_thread_by_key = persisted.provider_threads;
         guard.provider_hashes_by_key = persisted.provider_hashes;
+        guard.provider_system_hash_by_key = persisted.provider_system_hashes;
+        guard.provider_tools_hash_by_key = persisted.provider_tools_hashes;
     }
     if guard.config.as_ref() == Some(&config) {
         return Ok(());

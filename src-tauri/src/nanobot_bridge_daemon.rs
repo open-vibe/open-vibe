@@ -44,12 +44,22 @@ struct RouteState {
     session_key_by_thread: HashMap<String, String>,
     session_mode_by_session: HashMap<String, SessionMode>,
     recent_outbound_by_session: HashMap<String, (String, i64)>,
+    provider_cursor_by_session: HashMap<String, usize>,
+    provider_tools_hash_by_session: HashMap<String, String>,
 }
 
 #[derive(Default)]
 struct ProviderPendingState {
     next_id: u64,
     waiters: HashMap<String, oneshot::Sender<Result<LLMResponse, String>>>,
+    meta: HashMap<String, PendingProviderMeta>,
+}
+
+#[derive(Clone, Debug)]
+struct PendingProviderMeta {
+    session_key: String,
+    next_cursor: usize,
+    tools_hash: String,
 }
 
 #[derive(Clone)]
@@ -76,6 +86,38 @@ impl OpenVibeProvider {
     }
 }
 
+fn is_system_message(message: &Value) -> bool {
+    message
+        .get("role")
+        .and_then(Value::as_str)
+        .map(|role| role.eq_ignore_ascii_case("system"))
+        .unwrap_or(false)
+}
+
+fn normalize_cursor(messages: &[Value], cursor: usize) -> (usize, usize) {
+    let start = if messages.first().map(is_system_message).unwrap_or(false) {
+        1
+    } else {
+        0
+    };
+    let normalized_len = messages.len().saturating_sub(start);
+    (cursor.min(normalized_len), normalized_len)
+}
+
+fn fnv1a_64(bytes: &[u8]) -> u64 {
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
+}
+
+fn hash_json(value: &Value) -> String {
+    let serialized = serde_json::to_string(value).unwrap_or_default();
+    format!("{:016x}", fnv1a_64(serialized.as_bytes()))
+}
+
 #[async_trait]
 impl LLMProvider for OpenVibeProvider {
     async fn chat(
@@ -100,12 +142,33 @@ impl LLMProvider for OpenVibeProvider {
             ));
         };
 
+        let tools_vec = tools.unwrap_or_default().to_vec();
+        let tools_hash = hash_json(&Value::Array(tools_vec.clone()));
+        let (cursor, next_cursor) = {
+            let routes = self.routes.lock().await;
+            let stored = routes
+                .provider_cursor_by_session
+                .get(&session_key)
+                .cloned()
+                .unwrap_or(0);
+            let (cursor, normalized_len) = normalize_cursor(messages, stored);
+            (cursor, normalized_len)
+        };
+
         let (request_id, rx) = {
             let mut guard = self.pending.lock().await;
             guard.next_id = guard.next_id.saturating_add(1);
             let request_id = format!("provider-{}", guard.next_id);
             let (tx, rx) = oneshot::channel::<Result<LLMResponse, String>>();
             guard.waiters.insert(request_id.clone(), tx);
+            guard.meta.insert(
+                request_id.clone(),
+                PendingProviderMeta {
+                    session_key: session_key.clone(),
+                    next_cursor,
+                    tools_hash: tools_hash.clone(),
+                },
+            );
             (request_id, rx)
         };
 
@@ -118,7 +181,9 @@ impl LLMProvider for OpenVibeProvider {
                 "workspaceId": route.workspace_id,
                 "threadId": route.thread_id,
                 "messages": messages,
-                "tools": tools.unwrap_or_default(),
+                "tools": tools_vec,
+                "toolsHash": tools_hash,
+                "messagesCursor": cursor,
                 "model": model,
                 "maxTokens": max_tokens,
                 "temperature": temperature,
@@ -133,6 +198,7 @@ impl LLMProvider for OpenVibeProvider {
             Err(_) => {
                 let mut guard = self.pending.lock().await;
                 guard.waiters.remove(&request_id);
+                guard.meta.remove(&request_id);
                 Err(anyhow!("provider request timed out"))
             }
         }
@@ -884,10 +950,27 @@ async fn run_daemon() -> Result<(), String> {
                         continue;
                     }
                 };
-                let waiter = {
+                let (waiter, meta) = {
                     let mut guard = provider_pending.lock().await;
-                    guard.waiters.remove(&request_id)
+                    (
+                        guard.waiters.remove(&request_id),
+                        guard.meta.remove(&request_id),
+                    )
                 };
+                if let Some(meta) = meta {
+                    let mut guard = routes.lock().await;
+                    if ok {
+                        guard
+                            .provider_cursor_by_session
+                            .insert(meta.session_key.clone(), meta.next_cursor);
+                        guard
+                            .provider_tools_hash_by_session
+                            .insert(meta.session_key, meta.tools_hash);
+                    } else {
+                        guard.provider_cursor_by_session.remove(&meta.session_key);
+                        guard.provider_tools_hash_by_session.remove(&meta.session_key);
+                    }
+                }
                 if let Some(waiter) = waiter {
                     let result = if ok {
                         let payload = response.unwrap_or_else(|| json!({}));
