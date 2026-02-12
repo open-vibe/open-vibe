@@ -91,6 +91,7 @@ type ThreadListResponse = {
 const NANOBOT_PROVIDER_PROMPT_PREFIX = "you are openvibe's nanobot provider adapter";
 const NANOBOT_PROVIDER_THREAD_NAME_PREFIX = "you are openvibe's nan";
 const NANOBOT_PROVIDER_THREAD_NAME_MATCH = "nanobot provider adapter";
+const NANOBOT_PROVIDER_THREAD_NAME_MATCH_ALT = "openvibe's nanobot provider";
 const NANOBOT_FALLBACK_THREAD_PREFIX = "agent ";
 
 function getNowMs() {
@@ -134,7 +135,23 @@ function isNanobotProviderThread(thread: Record<string, unknown>): boolean {
   const preview = asString(thread?.preview ?? "")
     .trim()
     .toLowerCase();
-  if (preview.startsWith(NANOBOT_PROVIDER_PROMPT_PREFIX)) {
+  // Codex can surface either the first user prompt or a derived preview. Be liberal.
+  if (
+    preview.startsWith(NANOBOT_PROVIDER_PROMPT_PREFIX) ||
+    preview.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH) ||
+    preview.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH_ALT)
+  ) {
+    return true;
+  }
+
+  const title = asString(thread?.title ?? thread?.name ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    title.startsWith(NANOBOT_PROVIDER_THREAD_NAME_PREFIX) ||
+    title.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH) ||
+    title.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH_ALT)
+  ) {
     return true;
   }
 
@@ -148,7 +165,8 @@ function isNanobotProviderSummary(summary: ThreadSummary): boolean {
   }
   return (
     name.startsWith(NANOBOT_PROVIDER_THREAD_NAME_PREFIX) ||
-    name.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH)
+    name.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH) ||
+    name.includes(NANOBOT_PROVIDER_THREAD_NAME_MATCH_ALT)
   );
 }
 
