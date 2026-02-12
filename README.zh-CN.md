@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white" alt="Rust">
     <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-4C8BF5" alt="Platform">
     <img src="https://img.shields.io/badge/License-MIT-22C55E" alt="License">
-    <a href="https://github.com/citizenll/nanobot-rs"><img src="https://img.shields.io/badge/Nanobot-Integrated-16A34A" alt="Nanobot"></a>
+    <a href="https://github.com/open-vibe/nanobot-rs"><img src="https://img.shields.io/badge/Nanobot-Integrated-16A34A" alt="Nanobot"></a>
   </p>
 </div>
 
@@ -18,7 +18,7 @@ English version: [README.md](README.md)
 
 > **nanobot 是一个超轻量的个人 AI 助手，灵感来自 [Clawdbot](https://github.com/openclaw/openclaw)。**
 >
-> Open Vibe 已集成 Rust 版本实现：**[citizenll/nanobot-rs](https://github.com/citizenll/nanobot-rs)**。
+> Open Vibe 已集成 Rust 版本实现：**[open-vibe/nanobot-rs](https://github.com/open-vibe/nanobot-rs)**。
 
 ## ✨ 为什么是 Open Vibe
 

@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white" alt="Rust">
     <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-4C8BF5" alt="Platform">
     <img src="https://img.shields.io/badge/License-MIT-22C55E" alt="License">
-    <a href="https://github.com/citizenll/nanobot-rs"><img src="https://img.shields.io/badge/Nanobot-Integrated-16A34A" alt="Nanobot"></a>
+    <a href="https://github.com/open-vibe/nanobot-rs"><img src="https://img.shields.io/badge/Nanobot-Integrated-16A34A" alt="Nanobot"></a>
   </p>
 </div>
 
@@ -18,7 +18,7 @@
 
 > **nanobot is an ultra-lightweight personal AI assistant inspired by [Clawdbot](https://github.com/openclaw/openclaw).**
 >
-> Open Vibe now integrates the Rust implementation: **[citizenll/nanobot-rs](https://github.com/citizenll/nanobot-rs)**.
+> Open Vibe now integrates the Rust implementation: **[open-vibe/nanobot-rs](https://github.com/open-vibe/nanobot-rs)**.
 
 ## ✨ Why Open Vibe
 
