@@ -96,8 +96,8 @@ const buildIconPath = (workspacePath: string) => {
   return `${workspacePath.replace(/[\\/]+$/, "")}${separator}icon.png`;
 };
 
-const resolveModelLabel = (model: ModelOption | null) =>
-  model?.displayName?.trim() || model?.model?.trim() || "Default model";
+const resolveModelLabel = (model: ModelOption | null, fallbackLabel: string) =>
+  model?.displayName?.trim() || model?.model?.trim() || fallbackLabel;
 
 const CARET_ANCHOR_GAP = 8;
 
@@ -355,7 +355,10 @@ export function WorkspaceHome({
   const selectedModel = selectedModelId
     ? models.find((model) => model.id === selectedModelId) ?? null
     : null;
-  const selectedModelLabel = resolveModelLabel(selectedModel);
+  const defaultModelLabel = t("workspace.home.models.defaultModel");
+  const resolveWorkspaceModelLabel = (model: ModelOption | null) =>
+    resolveModelLabel(model, defaultModelLabel);
+  const selectedModelLabel = resolveWorkspaceModelLabel(selectedModel);
   const totalInstances = Object.values(modelSelections).reduce(
     (sum, count) => sum + count,
     0,
@@ -363,34 +366,45 @@ export function WorkspaceHome({
   const selectedModels = models.filter((model) => modelSelections[model.id]);
   const modelSummary = (() => {
     if (selectedModels.length === 0) {
-      return "Select models";
+      return t("workspace.home.models.select");
     }
     if (selectedModels.length === 1) {
       const model = selectedModels[0];
       const count = modelSelections[model.id] ?? 1;
-      return `${resolveModelLabel(model)} · ${count}x`;
+      return t("workspace.home.models.single", {
+        model: resolveWorkspaceModelLabel(model),
+        count,
+      });
     }
-    return `${selectedModels.length} models · ${totalInstances} runs`;
+    return t("workspace.home.models.multi", {
+      count: selectedModels.length,
+      runs: totalInstances,
+    });
   })();
   const showRunMode = (workspace.kind ?? "main") !== "worktree";
-  const runModeLabel = runMode === "local" ? "Local" : "Worktree";
+  const runModeLabel =
+    runMode === "local"
+      ? t("workspace.home.mode.local")
+      : t("workspace.home.mode.worktree");
   const RunModeIcon = runMode === "local" ? Laptop : GitBranch;
   const agentMdStatus = agentMdLoading
-    ? "Loading…"
+    ? t("workspace.home.agent.status.loading")
     : agentMdSaving
-      ? "Saving…"
+      ? t("workspace.home.agent.status.saving")
       : agentMdExists
         ? ""
-        : "Not found";
+        : t("workspace.home.agent.status.notFound");
   const agentMdMetaParts: string[] = [];
   if (agentMdStatus) {
     agentMdMetaParts.push(agentMdStatus);
   }
   if (agentMdTruncated) {
-    agentMdMetaParts.push("Truncated");
+    agentMdMetaParts.push(t("workspace.home.agent.status.truncated"));
   }
   const agentMdMeta = agentMdMetaParts.join(" · ");
-  const agentMdSaveLabel = agentMdExists ? "Save" : "Create";
+  const agentMdSaveLabel = agentMdExists
+    ? t("workspace.home.agent.save")
+    : t("workspace.home.agent.create");
   const agentMdSaveDisabled = agentMdLoading || agentMdSaving || !agentMdDirty;
   const agentMdRefreshDisabled = agentMdLoading || agentMdSaving;
 
@@ -401,10 +415,10 @@ export function WorkspaceHome({
         {instances.map((instance) => {
           const status = threadStatusById[instance.threadId];
           const statusLabel = status?.isProcessing
-            ? "Running"
+            ? t("workspace.home.instance.status.running")
             : status?.isReviewing
-              ? "Reviewing"
-              : "Idle";
+              ? t("workspace.home.instance.status.reviewing")
+              : t("workspace.home.instance.status.idle");
           const stateClass = status?.isProcessing
             ? "is-running"
             : status?.isReviewing
@@ -464,7 +478,7 @@ export function WorkspaceHome({
           <ComposerInput
             text={prompt}
             disabled={isSubmitting}
-            sendLabel="Send"
+            sendLabel={t("workspace.home.composer.send")}
             canStop={false}
             canSend={prompt.trim().length > 0 || activeImages.length > 0}
             isProcessing={isSubmitting}
@@ -516,7 +530,7 @@ export function WorkspaceHome({
                   setRunModeOpen((prev) => !prev);
                   setModelsOpen(false);
                 }}
-                aria-label="Select run mode"
+                aria-label={t("workspace.home.mode.select")}
                 data-tauri-drag-region="false"
               >
                 <span className="open-app-label">
@@ -533,7 +547,7 @@ export function WorkspaceHome({
                 }}
                 aria-haspopup="menu"
                 aria-expanded={runModeOpen}
-                aria-label="Toggle run mode menu"
+                aria-label={t("workspace.home.mode.toggleMenu")}
                 data-tauri-drag-region="false"
               >
                 <ChevronDown size={14} aria-hidden />
@@ -553,7 +567,7 @@ export function WorkspaceHome({
                   }}
                 >
                   <Laptop className="workspace-home-mode-icon" aria-hidden />
-                  Local
+                  {t("workspace.home.mode.local")}
                 </button>
                 <button
                   type="button"
@@ -567,7 +581,7 @@ export function WorkspaceHome({
                   }}
                 >
                   <GitBranch className="workspace-home-mode-icon" aria-hidden />
-                  Worktree
+                  {t("workspace.home.mode.worktree")}
                 </button>
               </div>
             )}
@@ -583,7 +597,7 @@ export function WorkspaceHome({
                 setModelsOpen((prev) => !prev);
                 setRunModeOpen(false);
               }}
-              aria-label="Select models"
+              aria-label={t("workspace.home.models.select")}
               data-tauri-drag-region="false"
             >
               <span className="open-app-label">
@@ -599,7 +613,7 @@ export function WorkspaceHome({
               }}
               aria-haspopup="menu"
               aria-expanded={modelsOpen}
-              aria-label="Toggle models menu"
+              aria-label={t("workspace.home.models.toggleMenu")}
               data-tauri-drag-region="false"
             >
               <ChevronDown size={14} aria-hidden />
@@ -612,7 +626,7 @@ export function WorkspaceHome({
             >
               {models.length === 0 && (
                 <div className="workspace-home-empty">
-                  Connect this workspace to load available models.
+                  {t("workspace.home.models.empty")}
                 </div>
               )}
               {models.map((model) => {
@@ -642,7 +656,7 @@ export function WorkspaceHome({
                         onToggleModel(model.id);
                       }}
                     >
-                      <span>{resolveModelLabel(model)}</span>
+                      <span>{resolveWorkspaceModelLabel(model)}</span>
                     </button>
                     {runMode === "worktree" && (
                       <>
@@ -680,7 +694,7 @@ export function WorkspaceHome({
       <div className="workspace-home-agent">
         {agentMdTruncated && (
           <div className="workspace-home-agent-warning">
-            Showing the first part of a large file.
+            {t("workspace.home.agent.truncatedWarning")}
           </div>
         )}
         <FileEditorCard
@@ -688,7 +702,7 @@ export function WorkspaceHome({
           meta={agentMdMeta}
           error={agentMdError}
           value={agentMdContent}
-          placeholder="Add workspace instructions for the agent…"
+          placeholder={t("workspace.home.agent.placeholder")}
           disabled={agentMdLoading}
           refreshDisabled={agentMdRefreshDisabled}
           saveDisabled={agentMdSaveDisabled}
@@ -712,11 +726,13 @@ export function WorkspaceHome({
 
       <div className="workspace-home-runs">
         <div className="workspace-home-section-header">
-          <div className="workspace-home-section-title">Recent runs</div>
+          <div className="workspace-home-section-title">
+            {t("workspace.home.runs.title")}
+          </div>
         </div>
         {runs.length === 0 ? (
           <div className="workspace-home-empty">
-            Start a run to see its instances tracked here.
+            {t("workspace.home.runs.empty")}
           </div>
         ) : (
           <div className="workspace-home-run-grid">
@@ -728,11 +744,25 @@ export function WorkspaceHome({
                     <div>
                       <div className="workspace-home-run-title">{run.title}</div>
                       <div className="workspace-home-run-meta">
-                        {run.mode === "local" ? "Local" : "Worktree"} ·{" "}
-                        {run.instances.length} instance
-                        {run.instances.length === 1 ? "" : "s"}
-                        {run.status === "failed" && " · Failed"}
-                        {run.status === "partial" && " · Partial"}
+                        {[
+                          run.mode === "local"
+                            ? t("workspace.home.mode.local")
+                            : t("workspace.home.mode.worktree"),
+                          run.instances.length === 1
+                            ? t("workspace.home.runs.instance.one", {
+                                count: run.instances.length,
+                              })
+                            : t("workspace.home.runs.instance.other", {
+                                count: run.instances.length,
+                              }),
+                          run.status === "failed"
+                            ? t("workspace.home.runs.status.failed")
+                            : run.status === "partial"
+                              ? t("workspace.home.runs.status.partial")
+                              : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </div>
                     </div>
                     <div className="workspace-home-run-time">
@@ -751,7 +781,9 @@ export function WorkspaceHome({
                       ))}
                       {run.instanceErrors.length > 2 && (
                         <div className="workspace-home-run-error-item">
-                          +{run.instanceErrors.length - 2} more
+                          {t("workspace.home.runs.moreErrors", {
+                            count: run.instanceErrors.length - 2,
+                          })}
                         </div>
                       )}
                     </div>
@@ -760,13 +792,13 @@ export function WorkspaceHome({
                     renderInstanceList(run.instances)
                   ) : run.status === "failed" ? (
                     <div className="workspace-home-empty">
-                      No instances were started.
+                      {t("workspace.home.runs.noInstances")}
                     </div>
                   ) : (
                     <div className="workspace-home-empty workspace-home-pending">
                       <span className="working-spinner" aria-hidden />
                       <span className="workspace-home-pending-text">
-                        Instances are preparing...
+                        {t("workspace.home.runs.preparing")}
                       </span>
                     </div>
                   )}
@@ -779,21 +811,30 @@ export function WorkspaceHome({
 
       <div className="workspace-home-runs">
         <div className="workspace-home-section-header">
-          <div className="workspace-home-section-title">Recent threads</div>
+          <div className="workspace-home-section-title">
+            {t("workspace.home.threads.title")}
+          </div>
         </div>
         {recentThreadInstances.length === 0 ? (
           <div className="workspace-home-empty">
-            Threads from the sidebar will appear here.
+            {t("workspace.home.threads.empty")}
           </div>
         ) : (
           <div className="workspace-home-run-grid">
             <div className="workspace-home-run-card">
               <div className="workspace-home-run-header">
                 <div>
-                  <div className="workspace-home-run-title">Agents activity</div>
+                  <div className="workspace-home-run-title">
+                    {t("workspace.home.threads.activity")}
+                  </div>
                   <div className="workspace-home-run-meta">
-                    {recentThreadInstances.length} thread
-                    {recentThreadInstances.length === 1 ? "" : "s"}
+                    {recentThreadInstances.length === 1
+                      ? t("workspace.home.threads.count.one", {
+                          count: recentThreadInstances.length,
+                        })
+                      : t("workspace.home.threads.count.other", {
+                          count: recentThreadInstances.length,
+                        })}
                   </div>
                 </div>
                 {recentThreadsUpdatedAt ? (

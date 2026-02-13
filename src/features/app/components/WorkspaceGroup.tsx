@@ -1,6 +1,5 @@
-import { ChevronDown } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -45,13 +44,11 @@ export function WorkspaceGroup({
           aria-expanded={!isCollapsed}
         >
           <span className="truncate">{name}</span>
-          <ChevronDown
-            className={cn(
-              "h-3 w-3 text-[var(--text-faint)] transition-transform",
-              !isCollapsed && "rotate-180",
-            )}
-            aria-hidden
-          />
+          {isCollapsed ? (
+            <EyeOff className="h-3.5 w-3.5 text-[var(--text-faint)]" aria-hidden />
+          ) : (
+            <Eye className="h-3.5 w-3.5 text-[var(--text-faint)]" aria-hidden />
+          )}
         </button>
       ) : (
         <div className="flex w-full items-center">

@@ -94,6 +94,17 @@ const NANOBOT_PROVIDER_THREAD_NAME_MATCH = "nanobot provider adapter";
 const NANOBOT_PROVIDER_THREAD_NAME_MATCH_ALT = "openvibe's nanobot provider";
 const NANOBOT_FALLBACK_THREAD_PREFIX = "agent ";
 
+function normalizeProviderMarker(value: unknown): string {
+  return asString(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[’‘`]/g, "'")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+const NANOBOT_PROVIDER_MARKER_COMPACT = "nanobotprovideradapter";
+const OPENVIBE_MARKER_COMPACT = "openvibe";
+
 function getNowMs() {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
     return performance.now();
@@ -144,6 +155,14 @@ function isNanobotProviderThread(thread: Record<string, unknown>): boolean {
     return true;
   }
 
+  const previewCompact = normalizeProviderMarker(thread?.preview);
+  if (
+    previewCompact.includes(NANOBOT_PROVIDER_MARKER_COMPACT) &&
+    previewCompact.includes(OPENVIBE_MARKER_COMPACT)
+  ) {
+    return true;
+  }
+
   const title = asString(thread?.title ?? thread?.name ?? "")
     .trim()
     .toLowerCase();
@@ -155,6 +174,14 @@ function isNanobotProviderThread(thread: Record<string, unknown>): boolean {
     return true;
   }
 
+  const titleCompact = normalizeProviderMarker(thread?.title ?? thread?.name);
+  if (
+    titleCompact.includes(NANOBOT_PROVIDER_MARKER_COMPACT) &&
+    titleCompact.includes(OPENVIBE_MARKER_COMPACT)
+  ) {
+    return true;
+  }
+
   return false;
 }
 
@@ -162,6 +189,13 @@ function isNanobotProviderSummary(summary: ThreadSummary): boolean {
   const name = summary.name.trim().toLowerCase();
   if (!name) {
     return false;
+  }
+  const compact = normalizeProviderMarker(summary.name);
+  if (
+    compact.includes(NANOBOT_PROVIDER_MARKER_COMPACT) &&
+    compact.includes(OPENVIBE_MARKER_COMPACT)
+  ) {
+    return true;
   }
   return (
     name.startsWith(NANOBOT_PROVIDER_THREAD_NAME_PREFIX) ||

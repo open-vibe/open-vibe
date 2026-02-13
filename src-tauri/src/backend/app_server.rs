@@ -17,18 +17,43 @@ use crate::codex_args::apply_codex_args;
 use crate::types::WorkspaceEntry;
 
 fn extract_thread_id(value: &Value) -> Option<String> {
-    let params = value.get("params")?;
-    params
-        .get("threadId")
-        .or_else(|| params.get("thread_id"))
-        .and_then(|t| t.as_str())
-        .map(|s| s.to_string())
+    fn from_object(object: &serde_json::Map<String, Value>) -> Option<String> {
+        object
+            .get("threadId")
+            .or_else(|| object.get("thread_id"))
+            .or_else(|| object.get("conversationId"))
+            .or_else(|| object.get("conversation_id"))
+            .and_then(Value::as_str)
+            .map(|value| value.to_string())
+            .or_else(|| {
+                object
+                    .get("thread")
+                    .and_then(Value::as_object)
+                    .and_then(|thread| thread.get("id"))
+                    .and_then(Value::as_str)
+                    .map(|value| value.to_string())
+            })
+    }
+
+    let params = value.get("params")?.as_object()?;
+    from_object(params)
         .or_else(|| {
             params
-                .get("thread")
-                .and_then(|thread| thread.get("id"))
-                .and_then(|t| t.as_str())
-                .map(|s| s.to_string())
+                .get("msg")
+                .and_then(Value::as_object)
+                .and_then(from_object)
+        })
+        .or_else(|| {
+            params
+                .get("turn")
+                .and_then(Value::as_object)
+                .and_then(from_object)
+        })
+        .or_else(|| {
+            params
+                .get("info")
+                .and_then(Value::as_object)
+                .and_then(from_object)
         })
 }
 
@@ -448,6 +473,24 @@ mod tests {
     fn extract_thread_id_reads_snake_case() {
         let value = json!({ "params": { "thread_id": "thread-456" } });
         assert_eq!(extract_thread_id(&value), Some("thread-456".to_string()));
+    }
+
+    #[test]
+    fn extract_thread_id_reads_nested_turn() {
+        let value = json!({ "params": { "turn": { "threadId": "thread-789" } } });
+        assert_eq!(extract_thread_id(&value), Some("thread-789".to_string()));
+    }
+
+    #[test]
+    fn extract_thread_id_reads_nested_msg() {
+        let value = json!({ "params": { "msg": { "thread_id": "thread-abc" } } });
+        assert_eq!(extract_thread_id(&value), Some("thread-abc".to_string()));
+    }
+
+    #[test]
+    fn extract_thread_id_reads_nested_thread_object() {
+        let value = json!({ "params": { "thread": { "id": "thread-def" } } });
+        assert_eq!(extract_thread_id(&value), Some("thread-def".to_string()));
     }
 
     #[test]
