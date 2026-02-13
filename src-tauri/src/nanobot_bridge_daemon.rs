@@ -599,6 +599,7 @@ async fn run_daemon() -> Result<(), String> {
             config.workspace_path(),
             Some(config.agents.defaults.model.clone()),
             config.agents.defaults.max_tool_iterations,
+            config.agents.defaults.memory_window,
             config.tools.web.search.clone(),
             config.tools.exec.timeout,
             config.tools.restrict_to_workspace,
