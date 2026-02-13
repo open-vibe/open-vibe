@@ -23,6 +23,7 @@ type ThreadTabsBarProps = {
   onCloseTabsToLeft: (tabId: string) => void;
   onCloseTabsToRight: (tabId: string) => void;
   onCloseAllTabs: () => void;
+  onOpenInWindow: (tabId: string) => void;
 };
 
 const MAX_TITLE_LENGTH = 20;
@@ -45,6 +46,7 @@ export function ThreadTabsBar({
   onCloseTabsToLeft,
   onCloseTabsToRight,
   onCloseAllTabs,
+  onOpenInWindow,
 }: ThreadTabsBarProps) {
   const { t } = useI18n();
   const tabsListRef = useRef<HTMLDivElement | null>(null);
@@ -181,6 +183,20 @@ export function ThreadTabsBar({
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent sideOffset={6} align="start" className="w-52">
+                {contextTab.kind === "thread" ? (
+                  <>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        onOpenInWindow(contextTab.id);
+                        setContextTabId(null);
+                        setContextPosition(null);
+                      }}
+                    >
+                      {t("threadTabs.menu.openInWindow")}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
                 <DropdownMenuItem
                   onSelect={() => {
                     onCloseTab(contextTab.id);

@@ -157,7 +157,7 @@ export function useNanobotMonitor({
     [appendLog],
   );
 
-  useTauriEvent(subscribeNanobotBridgeEvents, handleNanobotEvent, { enabled: true });
+  useTauriEvent(subscribeNanobotBridgeEvents, handleNanobotEvent, { enabled });
 
   const clearLogEntries = useCallback(() => {
     setLogEntries([]);

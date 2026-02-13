@@ -18,6 +18,7 @@ type ThreadActivityStatus = {
 };
 
 type UseNanobotAwayNotifyOptions = {
+  enabled?: boolean;
   appSettings: AppSettings;
   nanobotStatus: {
     enabled: boolean;
@@ -62,6 +63,7 @@ function stringifyError(error: unknown) {
 }
 
 export function useNanobotAwayNotify({
+  enabled = true,
   appSettings,
   nanobotStatus,
   threadStatusById,
@@ -235,6 +237,9 @@ export function useNanobotAwayNotify({
   }, [pollBluetoothPresence]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const onActivity = () => {
       lastInteractionAtRef.current = Date.now();
       setWindowAway(false);
@@ -266,9 +271,13 @@ export function useNanobotAwayNotify({
       document.removeEventListener("visibilitychange", onActivity);
       window.clearInterval(timer);
     };
-  }, [appSettings.nanobotAwayIdleSeconds]);
+  }, [appSettings.nanobotAwayIdleSeconds, enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      stopBluetoothScan();
+      return;
+    }
     if (!appSettings.nanobotAwayBluetoothEnabled || !appSettings.nanobotAwayNotifyEnabled) {
       stopBluetoothScan();
       setBluetoothState((prev) => ({
@@ -287,6 +296,7 @@ export function useNanobotAwayNotify({
   }, [
     appSettings.nanobotAwayBluetoothEnabled,
     appSettings.nanobotAwayNotifyEnabled,
+    enabled,
     startBluetoothScan,
     stopBluetoothScan,
   ]);
@@ -309,7 +319,7 @@ export function useNanobotAwayNotify({
         updatedAt: Date.now(),
       };
     }, []),
-    { enabled: true },
+    { enabled },
   );
 
   const threadLookup = useMemo(() => {
@@ -329,11 +339,16 @@ export function useNanobotAwayNotify({
 
   // Treat Bluetooth as an extra signal while unfocused/idle; avoid forcing "away"
   // when the user is actively using the app but BLE name matching misses.
-  const isAway = appSettings.nanobotAwayBluetoothEnabled
-    ? windowAway && bluetoothState.nearby !== true
-    : windowAway;
+  const isAway = enabled
+    ? appSettings.nanobotAwayBluetoothEnabled
+      ? windowAway && bluetoothState.nearby !== true
+      : windowAway
+    : false;
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const completedThreadIds: string[] = [];
     const nextMap = new Map<string, boolean>();
     Object.entries(threadStatusById).forEach(([threadId, status]) => {
@@ -430,6 +445,7 @@ export function useNanobotAwayNotify({
     appSettings.nanobotAwayCooldownSeconds,
     appSettings.nanobotAwayBluetoothEnabled,
     appSettings.nanobotAwayNotifyEnabled,
+    enabled,
     hasNanobotChannel,
     isAway,
     nanobotStatus.connected,

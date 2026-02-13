@@ -35,6 +35,7 @@ type UseThreadTabsOptions = {
   homeTabTitle: string;
   debugLogTabTitle: string;
   nanobotLogTabTitle: string;
+  persist?: boolean;
 };
 
 const parseStoredTabs = (raw: string | null): ThreadTab[] => {
@@ -136,10 +137,13 @@ export function useThreadTabs({
   homeTabTitle,
   debugLogTabTitle,
   nanobotLogTabTitle,
+  persist = true,
 }: UseThreadTabsOptions) {
-  const [tabs, setTabs] = useState<ThreadTab[]>(() => loadStoredTabs());
+  const [tabs, setTabs] = useState<ThreadTab[]>(() =>
+    persist ? loadStoredTabs() : [],
+  );
   const [activeTabId, setActiveTabId] = useState<string | null>(() =>
-    loadStoredActiveTab(),
+    persist ? loadStoredActiveTab() : null,
   );
 
   const workspaceIds = useMemo(
@@ -210,13 +214,19 @@ export function useThreadTabs({
   }, [activeTabId, tabs]);
 
   useEffect(() => {
+    if (!persist) {
+      return;
+    }
     if (typeof window === "undefined") {
       return;
     }
     window.localStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs));
-  }, [tabs]);
+  }, [persist, tabs]);
 
   useEffect(() => {
+    if (!persist) {
+      return;
+    }
     if (typeof window === "undefined") {
       return;
     }
@@ -225,7 +235,7 @@ export function useThreadTabs({
     } else {
       window.localStorage.removeItem(ACTIVE_TAB_STORAGE_KEY);
     }
-  }, [activeTabId]);
+  }, [activeTabId, persist]);
 
   const openTab = useCallback(
     (workspaceId: string, threadId: string, title: string) => {

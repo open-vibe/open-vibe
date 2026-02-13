@@ -112,6 +112,7 @@ type ThreadTabViewProps = {
   onError: (error: unknown) => void;
   onComposerOverridesChange?: (overrides: ComposerOverrides) => void;
   onTopbarOverridesChange?: (overrides: ThreadTopbarOverrides) => void;
+  forceChatMode?: boolean;
 };
 
 export function ThreadTabView({
@@ -156,6 +157,7 @@ export function ThreadTabView({
   onError,
   onComposerOverridesChange,
   onTopbarOverridesChange,
+  forceChatMode = false,
 }: ThreadTabViewProps) {
   const { t } = useI18n();
   const diffLayerRef = useRef<HTMLDivElement | null>(null);
@@ -573,6 +575,14 @@ export function ThreadTabView({
     onTopbarOverridesChange,
     setGitDiffViewStyle,
   ]);
+
+  useEffect(() => {
+    if (!forceChatMode || centerMode === "chat") {
+      return;
+    }
+    setCenterMode("chat");
+    setSelectedDiffPath(null);
+  }, [centerMode, forceChatMode, setCenterMode, setSelectedDiffPath]);
 
   useEffect(() => {
     const diffLayer = diffLayerRef.current;

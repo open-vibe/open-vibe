@@ -28,6 +28,7 @@ import "./styles/compact-phone.css";
 import "./styles/compact-tablet.css";
 import "./styles/yunyi-card.css";
 import "./styles/thread-tabs.css";
+import "./styles/detached-tab.css";
 import {
   defaultNotificationErrorSoundUrl,
   defaultNotificationSuccessSoundUrl,
@@ -61,6 +62,9 @@ import { useRenameWorktreePrompt } from "./features/workspaces/hooks/useRenameWo
 import { useLayoutController } from "./features/app/hooks/useLayoutController";
 import { useWindowLabel } from "./features/layout/hooks/useWindowLabel";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Menu } from "@tauri-apps/api/menu";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAppSettingsController } from "./features/app/hooks/useAppSettingsController";
@@ -126,6 +130,14 @@ import type {
 } from "./types";
 import { OPEN_APP_STORAGE_KEY } from "./features/app/constants";
 import { useOpenAppIcons } from "./features/app/hooks/useOpenAppIcons";
+import {
+  DETACHED_TAB_CLOSED_EVENT,
+  openDetachedTabWindow,
+  parseDetachedTabFromSearch,
+  toDetachedTabPayload,
+  type DetachedTabPayload,
+  type DetachedTabClosedPayload,
+} from "./features/app/utils/detachedTabs";
 
 const AboutView = lazy(() =>
   import("./features/about/components/AboutView").then((module) => ({
@@ -145,8 +157,12 @@ const GitHubPanelData = lazy(() =>
   })),
 );
 
+type MainAppProps = {
+  detachedTab?: DetachedTabPayload | null;
+};
 
-function MainApp() {
+function MainApp({ detachedTab = null }: MainAppProps = {}) {
+  const isDetachedWindow = detachedTab !== null;
   const {
     appSettings,
     setAppSettings,
@@ -686,7 +702,7 @@ function MainApp() {
     Boolean(appSettings.happySecret?.trim());
   const nanobotEnabled = appSettings.nanobotEnabled;
   useEffect(() => {
-    if (!nanobotEnabled) {
+    if (isDetachedWindow || !nanobotEnabled) {
       return;
     }
     void (async () => {
@@ -702,9 +718,15 @@ function MainApp() {
         // Ignore lookup failures.
       }
     })();
-  }, [nanobotEnabled]);
+  }, [isDetachedWindow, nanobotEnabled]);
   useEffect(() => {
-    if (!hasLoaded || !nanobotEnabled || !nanobotWorkspacePath || nanobotWorkspaceId) {
+    if (
+      isDetachedWindow ||
+      !hasLoaded ||
+      !nanobotEnabled ||
+      !nanobotWorkspacePath ||
+      nanobotWorkspaceId
+    ) {
       return;
     }
     if (nanobotWorkspaceBootstrapRef.current) {
@@ -732,13 +754,14 @@ function MainApp() {
     activeWorkspaceId,
     addWorkspaceFromPath,
     hasLoaded,
+    isDetachedWindow,
     nanobotEnabled,
     nanobotWorkspaceId,
     nanobotWorkspacePath,
     setActiveWorkspaceId,
   ]);
   useEffect(() => {
-    if (!hasLoaded || !nanobotEnabled || !nanobotWorkspaceId) {
+    if (isDetachedWindow || !hasLoaded || !nanobotEnabled || !nanobotWorkspaceId) {
       return;
     }
     const workspace = workspacesById.get(nanobotWorkspaceId);
@@ -751,6 +774,7 @@ function MainApp() {
   }, [
     connectWorkspace,
     hasLoaded,
+    isDetachedWindow,
     nanobotEnabled,
     nanobotWorkspaceId,
     workspacesById,
@@ -761,7 +785,7 @@ function MainApp() {
     clearLogEntries: clearNanobotLogEntries,
     copyLogEntries: copyNanobotLogEntries,
   } = useNanobotMonitor({
-    enabled: appSettings.nanobotEnabled,
+    enabled: !isDetachedWindow && appSettings.nanobotEnabled,
     mode: appSettings.nanobotMode,
     dingtalkEnabled: appSettings.nanobotDingTalkEnabled,
     emailEnabled: appSettings.nanobotEmailEnabled,
@@ -844,6 +868,7 @@ function MainApp() {
     startBluetoothScan: startNanobotBluetoothScan,
     stopBluetoothScan: stopNanobotBluetoothScan,
   } = useNanobotAwayNotify({
+    enabled: !isDetachedWindow,
     appSettings,
     nanobotStatus: nanobotStatusSnapshot,
     threadStatusById,
@@ -877,7 +902,49 @@ function MainApp() {
     homeTabTitle: t("sidebar.home"),
     debugLogTabTitle: debugLogTitle,
     nanobotLogTabTitle: nanobotLogTitle,
+    persist: !isDetachedWindow,
   });
+  const detachedTabInitRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isDetachedWindow || !detachedTab) {
+      detachedTabInitRef.current = null;
+      return;
+    }
+    if (
+      detachedTab.kind !== "thread" ||
+      !detachedTab.threadId ||
+      detachedTabInitRef.current === detachedTab.id ||
+      !hasLoaded
+    ) {
+      return;
+    }
+    const workspace = workspacesById.get(detachedTab.workspaceId);
+    if (!workspace) {
+      return;
+    }
+    detachedTabInitRef.current = detachedTab.id;
+    setActiveTab("codex");
+    setHomeView(false);
+    openThreadTab(detachedTab.workspaceId, detachedTab.threadId, detachedTab.title);
+    void listThreadsForWorkspace(workspace).catch(() => {
+      // Detached mode does best-effort thread hydration.
+    });
+    if (!workspace.connected) {
+      void connectWorkspace(workspace).catch(() => {
+        // Detached mode does best-effort connection.
+      });
+    }
+  }, [
+    detachedTab,
+    isDetachedWindow,
+    hasLoaded,
+    connectWorkspace,
+    listThreadsForWorkspace,
+    openThreadTab,
+    setHomeView,
+    setActiveTab,
+    workspacesById,
+  ]);
   const openThreadIds = useMemo(
     () =>
       new Set(
@@ -964,13 +1031,13 @@ function MainApp() {
     [appSettings, queueSaveSettings],
   );
   useHappyBridgeEvents({
-    enabled: happyEnabled,
+    enabled: !isDetachedWindow && happyEnabled,
     workspaces,
     getWorkspaceIdForThread,
     sendUserMessageToThread,
   });
   useNanobotBridgeEvents({
-    enabled: nanobotEnabled,
+    enabled: !isDetachedWindow && nanobotEnabled,
     sessionMemoryEnabled: appSettings.nanobotSessionMemoryEnabled,
     defaultMode: appSettings.nanobotMode,
     workspaces,
@@ -1002,6 +1069,39 @@ function MainApp() {
         : null,
     [activeThreadTabId, threadTabs],
   );
+  useEffect(() => {
+    if (!isDetachedWindow) {
+      return;
+    }
+    const title = activeThreadTab?.title ?? detachedTab?.title ?? "";
+    if (!title) {
+      return;
+    }
+    void getCurrentWindow().setTitle(title).catch(() => {
+      // Ignore non-Tauri/test environments.
+    });
+  }, [activeThreadTab?.title, detachedTab?.title, isDetachedWindow]);
+  useEffect(() => {
+    if (!isDetachedWindow) {
+      return;
+    }
+    let active = true;
+    const applyDetachedMenu = async () => {
+      try {
+        const emptyMenu = await Menu.new({ items: [] });
+        if (!active) {
+          return;
+        }
+        await emptyMenu.setAsWindowMenu(getCurrentWindow());
+      } catch {
+        // Ignore unsupported environments/platforms.
+      }
+    };
+    void applyDetachedMenu();
+    return () => {
+      active = false;
+    };
+  }, [appSettings.language, isDetachedWindow]);
   const activeThreadName = useMemo(() => {
     if (!activeWorkspaceId || !activeThreadId) {
       return null;
@@ -1275,6 +1375,56 @@ function MainApp() {
   const handleCloseAllTabs = useCallback(() => {
     closeThreadTabsByIds(threadTabs.map((tab) => tab.id));
   }, [closeThreadTabsByIds, threadTabs]);
+  const handleOpenTabInWindow = useCallback(
+    async (tabId: string) => {
+      if (isDetachedWindow) {
+        return;
+      }
+      const tab = threadTabs.find((entry) => entry.id === tabId);
+      if (!tab || tab.kind !== "thread") {
+        return;
+      }
+      try {
+        await openDetachedTabWindow(toDetachedTabPayload(tab));
+        handleCloseThreadTab(tab.id);
+      } catch (error) {
+        alertError(error);
+      }
+    },
+    [alertError, handleCloseThreadTab, isDetachedWindow, threadTabs],
+  );
+  useEffect(() => {
+    if (isDetachedWindow) {
+      return;
+    }
+    let active = true;
+    let unlisten: (() => void) | null = null;
+    const subscribe = async () => {
+      try {
+        unlisten = await listen<DetachedTabClosedPayload>(
+          DETACHED_TAB_CLOSED_EVENT,
+          (event) => {
+            const tabId = event.payload?.tabId;
+            if (!tabId) {
+              return;
+            }
+            handleCloseThreadTab(tabId);
+          },
+        );
+      } catch (error) {
+        if (active) {
+          console.error("[detached-tab] close listener failed", error);
+        }
+      }
+    };
+    void subscribe();
+    return () => {
+      active = false;
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, [handleCloseThreadTab, isDetachedWindow]);
 
   useAutoExitEmptyDiff({
     centerMode,
@@ -2002,14 +2152,14 @@ function MainApp() {
   useWindowDrag("titlebar");
   useWorkspaceRestore({
     workspaces,
-    hasLoaded,
+    hasLoaded: hasLoaded && !isDetachedWindow,
     listThreadsForWorkspace,
   });
   useWorkspaceRefreshOnFocus({
     workspaces,
     refreshWorkspaces,
     listThreadsForWorkspace,
-    enabled: appSettings.refreshThreadsOnFocus,
+    enabled: !isDetachedWindow && appSettings.refreshThreadsOnFocus,
   });
 
   const {
@@ -2606,12 +2756,16 @@ function MainApp() {
   useMenuAcceleratorController({ appSettings, onDebug: addDebugEntry });
   const dropOverlayActive = isWorkspaceDropActive;
   const dropOverlayText = "Drop Project Here";
-  const appClassName = `app ${isCompact ? "layout-compact" : "layout-desktop"}${
+  const appBaseClassName = `app ${isCompact ? "layout-compact" : "layout-desktop"}${
     isPhone ? " layout-phone" : ""
   }${isTablet ? " layout-tablet" : ""}${
     reduceTransparency ? " reduced-transparency" : ""
-  }${!isCompact && sidebarCollapsed ? " sidebar-collapsed" : ""}${
-    !isCompact && rightPanelCollapsed ? " right-panel-collapsed" : ""
+  }`;
+  const appClassName = `${appBaseClassName}${
+    !isCompact && sidebarCollapsed ? " sidebar-collapsed" : ""
+  }${!isCompact && rightPanelCollapsed ? " right-panel-collapsed" : ""}`;
+  const detachedAppClassName = `app layout-desktop${
+    reduceTransparency ? " reduced-transparency" : ""
   }`;
   const sidebarColumnWidth = sidebarCollapsed ? 48 : sidebarWidth;
   const {
@@ -3145,13 +3299,16 @@ function MainApp() {
           desktopTopbarLeftNode
         );
 
-  const showThreadTabs = !isCompact && threadTabs.length > 0;
+  const showThreadTabsBar = !isDetachedWindow && !isCompact && threadTabs.length > 0;
+  const showThreadTabsContent = isDetachedWindow
+    ? threadTabs.length > 0
+    : showThreadTabsBar;
   useEffect(() => {
-    if (!showThreadTabs) {
+    if (!showThreadTabsBar) {
       handleTopbarOverridesChange(null);
     }
-  }, [handleTopbarOverridesChange, showThreadTabs]);
-  const threadTabsBarNode = showThreadTabs ? (
+  }, [handleTopbarOverridesChange, showThreadTabsBar]);
+  const threadTabsBarNode = showThreadTabsBar ? (
     <ThreadTabsBar
       tabs={threadTabs}
       activeTabId={activeThreadTabId}
@@ -3172,10 +3329,11 @@ function MainApp() {
       onCloseTabsToLeft={handleCloseTabsToLeft}
       onCloseTabsToRight={handleCloseTabsToRight}
       onCloseAllTabs={handleCloseAllTabs}
+      onOpenInWindow={handleOpenTabInWindow}
     />
   ) : null;
 
-  const threadTabsNode = showThreadTabs ? (
+  const threadTabsNode = showThreadTabsContent ? (
     <ThreadTabsContent
       tabs={threadTabs}
       activeTabId={activeThreadTabId}
@@ -3231,32 +3389,46 @@ function MainApp() {
     />
   ) : null;
 
-  const threadTabsHeight = showThreadTabs ? "36px" : "0px";
-  const mainTopbarHeight = "45px";
+  const threadTabsHeight = showThreadTabsBar ? "36px" : "0px";
+  const effectiveRightPanelCollapsed = isDetachedWindow ? false : rightPanelCollapsed;
+  const mainTopbarHeight = isDetachedWindow ? "0px" : "45px";
+  const appStyle = {
+    "--sidebar-width": `${isCompact ? sidebarWidth : sidebarColumnWidth}px`,
+    "--right-panel-width": `${
+      isCompact ? rightPanelWidth : effectiveRightPanelCollapsed ? 0 : rightPanelWidth
+    }px`,
+    "--plan-panel-height": `${planPanelHeight}px`,
+    "--terminal-panel-height": `${terminalPanelHeight}px`,
+    "--debug-panel-height": `${debugPanelHeight}px`,
+    "--thread-tabs-height": threadTabsHeight,
+    "--main-topbar-height": mainTopbarHeight,
+    "--ui-font-family": appSettings.uiFontFamily,
+    "--code-font-family": appSettings.codeFontFamily,
+    "--code-font-size": `${appSettings.codeFontSize}px`,
+  } as React.CSSProperties;
+
+  if (isDetachedWindow) {
+    return (
+      <I18nProvider language={appSettings.language}>
+        <div className={`${detachedAppClassName} detached-tab-window`} style={appStyle}>
+          <main className="main detached-main">
+            {approvalToastsNode}
+            {threadTabsNode ?? (
+              <div className="detached-tab-empty">{t("threadTabs.detached.empty")}</div>
+            )}
+            {composerNode}
+            {terminalDockNode}
+            {debugPanelNode}
+          </main>
+          {errorToastsNode}
+        </div>
+      </I18nProvider>
+    );
+  }
 
   return (
     <I18nProvider language={appSettings.language}>
-      <div
-        className={appClassName}
-        style={
-          {
-            "--sidebar-width": `${
-              isCompact ? sidebarWidth : sidebarColumnWidth
-            }px`,
-            "--right-panel-width": `${
-              isCompact ? rightPanelWidth : rightPanelCollapsed ? 0 : rightPanelWidth
-            }px`,
-            "--plan-panel-height": `${planPanelHeight}px`,
-            "--terminal-panel-height": `${terminalPanelHeight}px`,
-            "--debug-panel-height": `${debugPanelHeight}px`,
-            "--thread-tabs-height": threadTabsHeight,
-            "--main-topbar-height": mainTopbarHeight,
-            "--ui-font-family": appSettings.uiFontFamily,
-            "--code-font-family": appSettings.codeFontFamily,
-            "--code-font-size": `${appSettings.codeFontSize}px`
-          } as React.CSSProperties
-        }
-      >
+      <div className={appClassName} style={appStyle}>
         <div className="drag-strip" id="titlebar" data-tauri-drag-region />
         {shouldLoadGitHubPanelData ? (
           <Suspense fallback={null}>
@@ -3394,6 +3566,13 @@ function MainApp() {
 
 function App() {
   const windowLabel = useWindowLabel();
+  const detachedTab = useMemo(
+    () =>
+      typeof window === "undefined"
+        ? null
+        : parseDetachedTabFromSearch(window.location.search),
+    [],
+  );
   if (windowLabel === "about") {
     return (
       <DebugErrorBoundary>
@@ -3405,7 +3584,7 @@ function App() {
   }
   return (
     <DebugErrorBoundary>
-      <MainApp />
+      <MainApp detachedTab={detachedTab} />
     </DebugErrorBoundary>
   );
 }

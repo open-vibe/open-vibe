@@ -2,9 +2,10 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main", "about"],
+  "windows": ["main", "about", "detached-tab-*"],
   "permissions": [
     "core:default",
+    "core:webview:allow-create-webview-window",
     "core:webview:allow-set-webview-zoom",
     "opener:default",
     "dialog:default",

@@ -1,0 +1,39 @@
+.app.detached-tab-window {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+  padding: 8px;
+  background: transparent;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.app.detached-tab-window .main.detached-main {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-main);
+  border: 1px solid var(--border-subtle);
+}
+
+.app.detached-tab-window .thread-tab-view {
+  display: contents;
+}
+
+.app.detached-tab-window .thread-tab-view.is-hidden {
+  display: none;
+}
+
+.detached-tab-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
