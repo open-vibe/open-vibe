@@ -9,11 +9,10 @@ mod codex;
 mod codex_args;
 mod codex_config;
 mod codex_home;
-mod file_io;
-mod file_ops;
-mod file_policy;
-mod files;
-#[cfg(all(not(target_os = "windows"), not(any(target_os = "android", target_os = "ios"))))]
+#[cfg(all(
+    not(target_os = "windows"),
+    not(any(target_os = "android", target_os = "ios"))
+))]
 #[path = "dictation.rs"]
 mod dictation;
 #[cfg(target_os = "windows")]
@@ -23,6 +22,10 @@ mod dictation;
 #[path = "dictation_stub.rs"]
 mod dictation;
 mod event_sink;
+mod file_io;
+mod file_ops;
+mod file_policy;
+mod files;
 mod git;
 mod git_utils;
 mod happy_bridge;
@@ -83,9 +86,8 @@ pub fn run() {
         })
         .setup(|app| {
             let state = state::AppState::load(&app.handle());
-            let settings = tauri::async_runtime::block_on(async {
-                state.app_settings.lock().await.clone()
-            });
+            let settings =
+                tauri::async_runtime::block_on(async { state.app_settings.lock().await.clone() });
             app.manage(state);
             let (show_label, quit_label) = tray_labels(settings.language.as_str());
             let show_item = MenuItemBuilder::with_id(TRAY_SHOW_ID, show_label).build(app)?;
@@ -99,18 +101,20 @@ pub fn run() {
                 .icon(icon)
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app: &AppHandle<Wry>, event: MenuEvent| match event.id().as_ref() {
-                    TRAY_SHOW_ID => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                .on_menu_event(
+                    |app: &AppHandle<Wry>, event: MenuEvent| match event.id().as_ref() {
+                        TRAY_SHOW_ID => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
                         }
-                    }
-                    TRAY_QUIT_ID => {
-                        app.exit(0);
-                    }
-                    _ => {}
-                })
+                        TRAY_QUIT_ID => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    },
+                )
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: tauri::tray::MouseButton::Left,

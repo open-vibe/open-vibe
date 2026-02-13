@@ -22,7 +22,10 @@ impl HappyBridgeConfig {
         Self {
             enabled: settings.happy_enabled,
             server_url: settings.happy_server_url.trim().to_string(),
-            token: settings.happy_token.as_ref().map(|value| value.trim().to_string()),
+            token: settings
+                .happy_token
+                .as_ref()
+                .map(|value| value.trim().to_string()),
             secret: settings
                 .happy_secret
                 .as_ref()

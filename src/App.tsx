@@ -773,6 +773,12 @@ function MainApp() {
       null,
     [workspaces],
   );
+  const isNanobotWorkspaceId = useCallback(
+    (workspaceId: string) =>
+      (workspaces.find((workspace) => workspace.id === workspaceId)?.kind ?? "main") ===
+      "nanobot",
+    [workspaces],
+  );
 
   const {
     setActiveThreadId,
@@ -829,6 +835,7 @@ function MainApp() {
     happyEnabled,
     nanobotBridgeEnabled: nanobotEnabled,
     getWorkspacePath,
+    isNanobotWorkspaceId,
   });
   const {
     isAway: nanobotAwayDetected,

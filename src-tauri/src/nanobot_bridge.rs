@@ -5,11 +5,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-use tokio::sync::{Mutex as TokioMutex, mpsc};
+use tokio::sync::{mpsc, Mutex as TokioMutex};
 use tokio::time::timeout;
 use uuid::Uuid;
 
@@ -524,9 +524,7 @@ async fn resolve_provider_turn_overrides(
                 .unwrap_or_else(|| "full-access".to_string()),
         )
     };
-    let model = agent_model_override
-        .or(preferred_model)
-        .or_else(|| {
+    let model = agent_model_override.or(preferred_model).or_else(|| {
         requested_model
             .map(str::trim)
             .filter(|value| !value.is_empty())
@@ -634,10 +632,7 @@ async fn archive_provider_thread(
         .await;
 }
 
-async fn get_provider_turn_lock_for_key(
-    app: &AppHandle,
-    key: &str,
-) -> Arc<TokioMutex<()>> {
+async fn get_provider_turn_lock_for_key(app: &AppHandle, key: &str) -> Arc<TokioMutex<()>> {
     let state = app.state::<AppState>();
     let mut guard = state.nanobot_bridge.lock().await;
     guard
@@ -682,11 +677,14 @@ async fn run_provider_completion(
             .unwrap_or_else(|| session.entry.path.clone())
     };
     let provider_cwd = {
-        let nanobot_root = nanobot::utils::get_data_path().unwrap_or_else(|_| PathBuf::from(&workspace_cwd));
+        let nanobot_root =
+            nanobot::utils::get_data_path().unwrap_or_else(|_| PathBuf::from(&workspace_cwd));
         let isolated = nanobot_root.join(".openvibe").join("nanobot-provider");
         if std::fs::create_dir_all(&isolated).is_err() {
             // Fall back to a temp dir to avoid polluting a user workspace with internal provider threads.
-            let tmp = std::env::temp_dir().join("openvibe").join("nanobot-provider");
+            let tmp = std::env::temp_dir()
+                .join("openvibe")
+                .join("nanobot-provider");
             let _ = std::fs::create_dir_all(&tmp);
             tmp.to_string_lossy().to_string()
         } else {
@@ -696,10 +694,7 @@ async fn run_provider_completion(
 
     let mut provider_thread_id = {
         let guard = state.nanobot_bridge.lock().await;
-        guard
-            .provider_thread_by_key
-            .get(provider_key)
-            .cloned()
+        guard.provider_thread_by_key.get(provider_key).cloned()
     };
 
     for attempt in 0..2 {
@@ -757,7 +752,11 @@ async fn run_provider_completion(
         } else {
             None
         };
-        let tools_for_prompt = if include_tools { Some(tools.as_slice()) } else { None };
+        let tools_for_prompt = if include_tools {
+            Some(tools.as_slice())
+        } else {
+            None
+        };
 
         let mut snapshot = created_new_thread;
         if !snapshot {
@@ -773,7 +772,8 @@ async fn run_provider_completion(
         } else {
             provider_messages[messages_cursor..].to_vec()
         };
-        let messages_for_prompt = if messages_for_prompt.is_empty() && !provider_messages.is_empty() {
+        let messages_for_prompt = if messages_for_prompt.is_empty() && !provider_messages.is_empty()
+        {
             // Defensive: avoid sending an empty delta due to cursor mismatches.
             vec![provider_messages[provider_messages.len() - 1].clone()]
         } else {
@@ -781,7 +781,11 @@ async fn run_provider_completion(
         };
 
         let prompt = build_provider_prompt(
-            if snapshot { "a full snapshot of" } else { "appended" },
+            if snapshot {
+                "a full snapshot of"
+            } else {
+                "appended"
+            },
             system_for_prompt,
             &messages_for_prompt,
             tools_for_prompt,
@@ -1036,8 +1040,7 @@ async fn handle_provider_request(app: &AppHandle, payload: &Value) -> Result<(),
         .filter(|value| !value.is_empty())
         .unwrap_or(session_key.as_str())
         .to_string();
-    let overrides =
-        resolve_provider_turn_overrides(app, requested_model.as_deref()).await;
+    let overrides = resolve_provider_turn_overrides(app, requested_model.as_deref()).await;
     let max_tokens = payload
         .get("maxTokens")
         .and_then(Value::as_u64)

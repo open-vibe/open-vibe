@@ -15,6 +15,7 @@ import type { ThreadAction } from "./useThreadsReducer";
 type ThreadEventHandlersOptions = {
   activeThreadId: string | null;
   dispatch: Dispatch<ThreadAction>;
+  shouldEnsureThread?: (workspaceId: string, threadId: string) => boolean;
   getCustomName: (workspaceId: string, threadId: string) => string | undefined;
   markProcessing: (threadId: string, isProcessing: boolean) => void;
   markReviewing: (threadId: string, isReviewing: boolean) => void;
@@ -49,6 +50,7 @@ type ThreadEventHandlersOptions = {
 export function useThreadEventHandlers({
   activeThreadId,
   dispatch,
+  shouldEnsureThread,
   getCustomName,
   markProcessing,
   markReviewing,
@@ -88,6 +90,7 @@ export function useThreadEventHandlers({
   } = useThreadItemEvents({
     activeThreadId,
     dispatch,
+    shouldEnsureThread,
     getCustomName,
     markProcessing,
     markReviewing,
@@ -109,6 +112,7 @@ export function useThreadEventHandlers({
     onTurnError,
   } = useThreadTurnEvents({
     dispatch,
+    shouldEnsureThread,
     markProcessing,
     markReviewing,
     setActiveTurnId,

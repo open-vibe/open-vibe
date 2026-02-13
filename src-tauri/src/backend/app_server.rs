@@ -163,7 +163,11 @@ pub(crate) fn build_codex_path_env(codex_bin: Option<&str>) -> Option<String> {
     }
 
     let joined = env::join_paths(paths).ok()?.to_string_lossy().to_string();
-    if joined.is_empty() { None } else { Some(joined) }
+    if joined.is_empty() {
+        None
+    } else {
+        Some(joined)
+    }
 }
 
 pub(crate) fn build_codex_command_with_bin(codex_bin: Option<String>) -> Command {
@@ -228,9 +232,8 @@ fn should_run_via_cmd_on_windows(path: &str) -> bool {
         return false;
     }
 
-    let has_path_hint = normalized.contains('\\')
-        || normalized.contains('/')
-        || normalized.contains(':');
+    let has_path_hint =
+        normalized.contains('\\') || normalized.contains('/') || normalized.contains(':');
     !has_path_hint
 }
 
@@ -245,8 +248,7 @@ pub(crate) async fn check_codex_installation(
     let output = match timeout(Duration::from_secs(5), command.output()).await {
         Ok(result) => result.map_err(|e| {
             if e.kind() == ErrorKind::NotFound {
-                "Codex CLI not found. Install Codex and ensure `codex` is on your PATH."
-                    .to_string()
+                "Codex CLI not found. Install Codex and ensure `codex` is on your PATH.".to_string()
             } else {
                 e.to_string()
             }
@@ -269,8 +271,7 @@ pub(crate) async fn check_codex_installation(
         };
         if detail.is_empty() {
             return Err(
-                "Codex CLI failed to start. Try running `codex --version` in Terminal."
-                    .to_string(),
+                "Codex CLI failed to start. Try running `codex --version` in Terminal.".to_string(),
             );
         }
         return Err(format!(
@@ -279,7 +280,11 @@ pub(crate) async fn check_codex_installation(
     }
 
     let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Ok(if version.is_empty() { None } else { Some(version) })
+    Ok(if version.is_empty() {
+        None
+    } else {
+        Some(version)
+    })
 }
 
 pub(crate) async fn spawn_workspace_session<E: EventSink>(

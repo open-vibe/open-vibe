@@ -22,8 +22,7 @@ pub(crate) async fn get_app_settings(
     if let Ok(Some(collab_enabled)) = codex_config::read_collab_enabled() {
         settings.experimental_collab_enabled = collab_enabled;
     }
-    if let Ok(Some(collaboration_modes_enabled)) =
-        codex_config::read_collaboration_modes_enabled()
+    if let Ok(Some(collaboration_modes_enabled)) = codex_config::read_collaboration_modes_enabled()
     {
         settings.experimental_collaboration_modes_enabled = collaboration_modes_enabled;
     }

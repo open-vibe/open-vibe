@@ -12,6 +12,7 @@ import type { ThreadAction } from "./useThreadsReducer";
 type UseThreadItemEventsOptions = {
   activeThreadId: string | null;
   dispatch: Dispatch<ThreadAction>;
+  shouldEnsureThread?: (workspaceId: string, threadId: string) => boolean;
   getCustomName: (workspaceId: string, threadId: string) => string | undefined;
   markProcessing: (threadId: string, isProcessing: boolean) => void;
   markReviewing: (threadId: string, isReviewing: boolean) => void;
@@ -39,6 +40,7 @@ type UseThreadItemEventsOptions = {
 export function useThreadItemEvents({
   activeThreadId,
   dispatch,
+  shouldEnsureThread,
   getCustomName,
   markProcessing,
   markReviewing,
@@ -77,6 +79,9 @@ export function useThreadItemEvents({
       item: Record<string, unknown>,
       shouldMarkProcessing: boolean,
     ) => {
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       dispatch({ type: "ensureThread", workspaceId, threadId });
       if (shouldMarkProcessing) {
         markProcessing(threadId, true);
@@ -117,6 +122,7 @@ export function useThreadItemEvents({
       markReviewing,
       onUserMessageItem,
       safeMessageActivity,
+      shouldEnsureThread,
     ],
   );
 
@@ -153,6 +159,9 @@ export function useThreadItemEvents({
       itemId: string;
       delta: string;
     }) => {
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       agentMessageBufferRef.current[itemId] = mergeAgentDelta(
         agentMessageBufferRef.current[itemId] ?? "",
         delta,
@@ -169,7 +178,7 @@ export function useThreadItemEvents({
         hasCustomName,
       });
     },
-    [dispatch, getCustomName, markProcessing, mergeAgentDelta],
+    [dispatch, getCustomName, markProcessing, mergeAgentDelta, shouldEnsureThread],
   );
 
   const onAgentMessageCompleted = useCallback(
@@ -184,6 +193,9 @@ export function useThreadItemEvents({
       itemId: string;
       text: string;
     }) => {
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       const timestamp = Date.now();
       const bufferedText = agentMessageBufferRef.current[itemId] ?? "";
       const resolvedText = text.trim() ? text : bufferedText;
@@ -251,6 +263,7 @@ export function useThreadItemEvents({
       markProcessing,
       recordThreadActivity,
       safeMessageActivity,
+      shouldEnsureThread,
     ],
   );
 
@@ -313,6 +326,9 @@ export function useThreadItemEvents({
       if (!items.length) {
         return;
       }
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       const existing = historyStreamRef.current[threadId];
       if (!existing || existing.streamId !== streamId) {
         historyStreamRef.current[threadId] = {
@@ -328,7 +344,7 @@ export function useThreadItemEvents({
       dispatch({ type: "setThreadLoading", threadId, isLoading: false });
       safeMessageActivity();
     },
-    [dispatch, safeMessageActivity],
+    [dispatch, safeMessageActivity, shouldEnsureThread],
   );
 
   const onThreadHistoryCompleted = useCallback(

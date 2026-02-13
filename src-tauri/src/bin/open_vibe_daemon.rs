@@ -5,10 +5,10 @@
 mod backend;
 #[path = "../codex_args.rs"]
 mod codex_args;
-#[path = "../codex_home.rs"]
-mod codex_home;
 #[path = "../codex_config.rs"]
 mod codex_config;
+#[path = "../codex_home.rs"]
+mod codex_home;
 #[path = "../file_io.rs"]
 mod file_io;
 #[path = "../file_ops.rs"]
@@ -19,11 +19,11 @@ mod file_policy;
 mod rules;
 #[path = "../storage.rs"]
 mod storage;
-#[path = "../utils.rs"]
-mod utils;
 #[allow(dead_code)]
 #[path = "../types.rs"]
 mod types;
+#[path = "../utils.rs"]
+mod utils;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -41,8 +41,8 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::process::Command;
 use tokio::sync::{broadcast, mpsc, Mutex, OnceCell};
-use uuid::Uuid;
 use utils::{git_env_path, resolve_git_binary};
+use uuid::Uuid;
 
 use backend::app_server::{spawn_workspace_session, WorkspaceSession};
 use backend::events::{AppServerEvent, EventSink, TerminalExit, TerminalOutput};
@@ -281,10 +281,19 @@ impl DaemonState {
                 &["worktree", "add", &worktree_path_string, &branch],
             )
             .await?;
-        } else if let Some(remote_ref) = git_find_remote_tracking_branch(&repo_path, &branch).await? {
+        } else if let Some(remote_ref) =
+            git_find_remote_tracking_branch(&repo_path, &branch).await?
+        {
             run_git_command(
                 &repo_path,
-                &["worktree", "add", "-b", &branch, &worktree_path_string, &remote_ref],
+                &[
+                    "worktree",
+                    "add",
+                    "-b",
+                    &branch,
+                    &worktree_path_string,
+                    &remote_ref,
+                ],
             )
             .await?;
         } else {
@@ -358,7 +367,10 @@ impl DaemonState {
         })
     }
 
-    async fn worktree_setup_status(&self, workspace_id: String) -> Result<WorktreeSetupStatus, String> {
+    async fn worktree_setup_status(
+        &self,
+        workspace_id: String,
+    ) -> Result<WorktreeSetupStatus, String> {
         let entry = {
             let workspaces = self.workspaces.lock().await;
             workspaces
@@ -425,11 +437,9 @@ impl DaemonState {
         for child in &child_worktrees {
             let child_path = PathBuf::from(&child.path);
             if child_path.exists() {
-                if let Err(err) = run_git_command(
-                    &repo_path,
-                    &["worktree", "remove", "--force", &child.path],
-                )
-                .await
+                if let Err(err) =
+                    run_git_command(&repo_path, &["worktree", "remove", "--force", &child.path])
+                        .await
                 {
                     if is_missing_worktree_error(&err) {
                         if let Err(fs_err) = std::fs::remove_dir_all(&child_path) {
@@ -566,17 +576,12 @@ impl DaemonState {
 
         let parent_root = PathBuf::from(&parent.path);
 
-        let (final_branch, _was_suffixed) =
-            unique_branch_name(&parent_root, trimmed, None).await?;
+        let (final_branch, _was_suffixed) = unique_branch_name(&parent_root, trimmed, None).await?;
         if final_branch == old_branch {
             return Err("Branch name is unchanged.".to_string());
         }
 
-        run_git_command(
-            &parent_root,
-            &["branch", "-m", &old_branch, &final_branch],
-        )
-        .await?;
+        run_git_command(&parent_root, &["branch", "-m", &old_branch, &final_branch]).await?;
 
         let worktree_root = self.data_dir.join("worktrees").join(&parent.id);
         std::fs::create_dir_all(&worktree_root)
@@ -584,8 +589,7 @@ impl DaemonState {
 
         let safe_name = sanitize_worktree_name(&final_branch);
         let current_path = PathBuf::from(&entry.path);
-        let next_path =
-            unique_worktree_path_for_rename(&worktree_root, &safe_name, &current_path)?;
+        let next_path = unique_worktree_path_for_rename(&worktree_root, &safe_name, &current_path)?;
         let next_path_string = next_path.to_string_lossy().to_string();
         if next_path_string != entry.path {
             if let Err(error) = run_git_command(
@@ -594,11 +598,9 @@ impl DaemonState {
             )
             .await
             {
-                let _ = run_git_command(
-                    &parent_root,
-                    &["branch", "-m", &final_branch, &old_branch],
-                )
-                .await;
+                let _ =
+                    run_git_command(&parent_root, &["branch", "-m", &final_branch, &old_branch])
+                        .await;
                 return Err(error);
             }
         }
@@ -735,11 +737,7 @@ impl DaemonState {
         if remote_for_old.is_some() {
             run_git_command(
                 &parent_root,
-                &[
-                    "push",
-                    &remote_name,
-                    &format!("{new_branch}:{new_branch}"),
-                ],
+                &["push", &remote_name, &format!("{new_branch}:{new_branch}")],
             )
             .await?;
             run_git_command(
@@ -790,7 +788,8 @@ impl DaemonState {
                 .ok_or_else(|| "workspace not found".to_string())?;
             let previous_codex_home = previous_entry.settings.codex_home.clone();
             let previous_codex_args = previous_entry.settings.codex_args.clone();
-            let previous_worktree_setup_script = previous_entry.settings.worktree_setup_script.clone();
+            let previous_worktree_setup_script =
+                previous_entry.settings.worktree_setup_script.clone();
             let entry_snapshot = match workspaces.get_mut(&id) {
                 Some(entry) => {
                     entry.settings = settings.clone();
@@ -888,8 +887,7 @@ impl DaemonState {
                     Some(&entry_snapshot),
                     Some(&app_settings),
                 );
-                if previous_child_home == next_child_home
-                    && previous_child_args == next_child_args
+                if previous_child_home == next_child_home && previous_child_args == next_child_args
                 {
                     continue;
                 }
@@ -1058,10 +1056,7 @@ impl DaemonState {
 
         let entry = {
             let workspaces = self.workspaces.lock().await;
-            workspaces
-                .get(&id)
-                .cloned()
-                .ok_or("workspace not found")?
+            workspaces.get(&id).cloned().ok_or("workspace not found")?
         };
 
         let parent_entry = if entry.kind.is_worktree() {
@@ -1111,7 +1106,8 @@ impl DaemonState {
             settings.experimental_collaboration_modes_enabled,
         );
         let _ = codex_config::write_steer_enabled(settings.experimental_steer_enabled);
-        let _ = codex_config::write_unified_exec_enabled(settings.experimental_unified_exec_enabled);
+        let _ =
+            codex_config::write_unified_exec_enabled(settings.experimental_unified_exec_enabled);
         write_settings(&self.settings_path, &settings)?;
         let mut current = self.app_settings.lock().await;
         *current = settings.clone();
@@ -1268,7 +1264,11 @@ impl DaemonState {
         session.send_request("thread/start", params).await
     }
 
-    async fn resume_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
+    async fn resume_thread(
+        &self,
+        workspace_id: String,
+        thread_id: String,
+    ) -> Result<Value, String> {
         let session = self.get_session(&workspace_id).await?;
         let params = json!({
             "threadId": thread_id
@@ -1334,7 +1334,11 @@ impl DaemonState {
         }))
     }
 
-    async fn archive_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
+    async fn archive_thread(
+        &self,
+        workspace_id: String,
+        thread_id: String,
+    ) -> Result<Value, String> {
         let session = self.get_session(&workspace_id).await?;
         let params = json!({ "threadId": thread_id });
         session.send_request("thread/archive", params).await
@@ -1512,7 +1516,10 @@ impl DaemonState {
         Ok(json!({ "model": model }))
     }
 
-    async fn resolve_codex_home_for_workspace(&self, workspace_id: &str) -> Result<PathBuf, String> {
+    async fn resolve_codex_home_for_workspace(
+        &self,
+        workspace_id: &str,
+    ) -> Result<PathBuf, String> {
         let (entry, parent_entry) = {
             let workspaces = self.workspaces.lock().await;
             let entry = workspaces
@@ -1629,8 +1636,7 @@ fn read_workspace_file_inner(
         buffer.truncate(MAX_WORKSPACE_FILE_BYTES as usize);
     }
 
-    let content =
-        String::from_utf8(buffer).map_err(|_| "File is not valid UTF-8".to_string())?;
+    let content = String::from_utf8(buffer).map_err(|_| "File is not valid UTF-8".to_string())?;
     Ok(WorkspaceFileResponse { content, truncated })
 }
 
@@ -1733,7 +1739,11 @@ async fn git_remote_branch_exists_live(
     }
 }
 
-async fn git_remote_branch_exists(repo_path: &PathBuf, remote: &str, branch: &str) -> Result<bool, String> {
+async fn git_remote_branch_exists(
+    repo_path: &PathBuf,
+    remote: &str,
+    branch: &str,
+) -> Result<bool, String> {
     let git_bin = resolve_git_binary().map_err(|e| format!("Failed to run git: {e}"))?;
     let mut command = Command::new(git_bin);
     crate::utils::apply_background_command_flags_tokio(&mut command);
@@ -1814,7 +1824,10 @@ async fn git_find_remote_for_branch(
     Ok(None)
 }
 
-async fn git_find_remote_tracking_branch(repo_path: &PathBuf, branch: &str) -> Result<Option<String>, String> {
+async fn git_find_remote_tracking_branch(
+    repo_path: &PathBuf,
+    branch: &str,
+) -> Result<Option<String>, String> {
     if git_remote_branch_exists(repo_path, "origin", branch).await? {
         return Ok(Some(format!("origin/{branch}")));
     }
@@ -1980,15 +1993,19 @@ fn build_error_response(id: Option<u64>, message: &str) -> Option<String> {
             "id": id,
             "error": { "message": message }
         }))
-        .unwrap_or_else(|_| "{\"id\":0,\"error\":{\"message\":\"serialization failed\"}}".to_string()),
+        .unwrap_or_else(|_| {
+            "{\"id\":0,\"error\":{\"message\":\"serialization failed\"}}".to_string()
+        }),
     )
 }
 
 fn build_result_response(id: Option<u64>, result: Value) -> Option<String> {
     let id = id?;
-    Some(serde_json::to_string(&json!({ "id": id, "result": result })).unwrap_or_else(|_| {
-        "{\"id\":0,\"error\":{\"message\":\"serialization failed\"}}".to_string()
-    }))
+    Some(
+        serde_json::to_string(&json!({ "id": id, "result": result })).unwrap_or_else(|_| {
+            "{\"id\":0,\"error\":{\"message\":\"serialization failed\"}}".to_string()
+        }),
+    )
 }
 
 fn build_event_notification(event: DaemonEvent) -> Option<String> {
@@ -2052,12 +2069,15 @@ fn parse_optional_u32(value: &Value, key: &str) -> Option<u32> {
 
 fn parse_optional_string_array(value: &Value, key: &str) -> Option<Vec<String>> {
     match value {
-        Value::Object(map) => map.get(key).and_then(|value| value.as_array()).map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.as_str().map(|value| value.to_string()))
-                .collect::<Vec<_>>()
-        }),
+        Value::Object(map) => map
+            .get(key)
+            .and_then(|value| value.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(|value| value.to_string()))
+                    .collect::<Vec<_>>()
+            }),
         _ => None,
     }
 }
@@ -2323,7 +2343,9 @@ async fn handle_rpc_request(
                 .cloned()
                 .ok_or("missing `target`")?;
             let delivery = parse_optional_string(&params, "delivery");
-            state.start_review(workspace_id, thread_id, target, delivery).await
+            state
+                .start_review(workspace_id, thread_id, target, delivery)
+                .await
         }
         "model_list" => {
             let workspace_id = parse_string(&params, "workspaceId")?;

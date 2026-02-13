@@ -7,16 +7,16 @@ use async_trait::async_trait;
 use nanobot::agent::AgentLoop;
 use nanobot::bus::{MessageBus, OutboundMessage};
 use nanobot::channels::manager::ChannelManager;
-use nanobot::config::{Config, load_config};
+use nanobot::config::{load_config, Config};
 use nanobot::cron::CronService;
 use nanobot::providers::base::{LLMProvider, LLMResponse, ToolCallRequest};
 use nanobot::session::SessionManager;
 use nanobot::utils::get_data_path;
 use serde::Deserialize;
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::sync::{Mutex, mpsc, oneshot};
-use tokio::time::{Duration, timeout};
+use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::time::{timeout, Duration};
 
 const DAEMON_ARG: &str = "--nanobot-bridge-daemon";
 
@@ -47,6 +47,8 @@ struct RouteState {
     provider_cursor_by_session: HashMap<String, usize>,
     provider_tools_hash_by_session: HashMap<String, String>,
 }
+
+type SessionTurnLocks = Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>;
 
 #[derive(Default)]
 struct ProviderPendingState {
@@ -190,7 +192,7 @@ impl LLMProvider for OpenVibeProvider {
             }),
         );
 
-        let result = timeout(Duration::from_secs(180), rx).await;
+        let result = timeout(Duration::from_secs(360), rx).await;
         match result {
             Ok(Ok(Ok(response))) => Ok(response),
             Ok(Ok(Err(error))) => Err(anyhow!(error)),
@@ -457,6 +459,7 @@ fn spawn_agent_turn(
     routes: Arc<Mutex<RouteState>>,
     out_tx: mpsc::UnboundedSender<String>,
     agent: Arc<AgentLoop>,
+    session_turn_locks: SessionTurnLocks,
 ) {
     emit_event(
         &out_tx,
@@ -472,15 +475,20 @@ fn spawn_agent_turn(
     );
 
     tokio::spawn(async move {
+        // Force one in-flight turn per IM session to keep provider calls linear.
+        let session_lock = {
+            let mut guard = session_turn_locks.lock().await;
+            guard
+                .entry(session_key.clone())
+                .or_insert_with(|| Arc::new(Mutex::new(())))
+                .clone()
+        };
+        let _session_guard = session_lock.lock().await;
+
         let response = ACTIVE_SESSION_KEY
             .scope(session_key.clone(), async {
                 agent
-                    .process_direct(
-                        &content,
-                        Some(&session_key),
-                        Some(&channel),
-                        Some(&chat_id),
-                    )
+                    .process_direct(&content, Some(&session_key), Some(&channel), Some(&chat_id))
                     .await
             })
             .await;
@@ -585,6 +593,7 @@ async fn run_daemon() -> Result<(), String> {
         Some(session_manager.clone()),
     ));
     let routes = Arc::new(Mutex::new(RouteState::default()));
+    let session_turn_locks: SessionTurnLocks = Arc::new(Mutex::new(HashMap::new()));
     let provider_pending = Arc::new(Mutex::new(ProviderPendingState::default()));
     let provider = Arc::new(OpenVibeProvider::new(
         out_tx.clone(),
@@ -612,11 +621,13 @@ async fn run_daemon() -> Result<(), String> {
     let bus_for_cron = bus.clone();
     let agent_for_cron = agent.clone();
     let routes_for_cron = routes.clone();
+    let session_turn_locks_for_cron = session_turn_locks.clone();
     let out_tx_for_cron = out_tx.clone();
     cron.set_on_job(Arc::new(move |job| {
         let bus = bus_for_cron.clone();
         let agent = agent_for_cron.clone();
         let routes = routes_for_cron.clone();
+        let session_turn_locks = session_turn_locks_for_cron.clone();
         let out_tx = out_tx_for_cron.clone();
         Box::pin(async move {
             let message = job.payload.message.clone();
@@ -631,7 +642,9 @@ async fn run_daemon() -> Result<(), String> {
                 let guard = routes.lock().await;
                 guard.by_session_key.get(&session_key).cloned()
             };
-            let workspace_id = mapped_route.as_ref().map(|route| route.workspace_id.clone());
+            let workspace_id = mapped_route
+                .as_ref()
+                .map(|route| route.workspace_id.clone());
             let thread_id = mapped_route.as_ref().map(|route| route.thread_id.clone());
             emit_event(
                 &out_tx,
@@ -645,6 +658,15 @@ async fn run_daemon() -> Result<(), String> {
                     "createdAt": unix_time_ms(),
                 }),
             );
+
+            let session_lock = {
+                let mut guard = session_turn_locks.lock().await;
+                guard
+                    .entry(session_key.clone())
+                    .or_insert_with(|| Arc::new(Mutex::new(())))
+                    .clone()
+            };
+            let _session_guard = session_lock.lock().await;
 
             let response = ACTIVE_SESSION_KEY
                 .scope(session_key.clone(), async {
@@ -673,7 +695,8 @@ async fn run_daemon() -> Result<(), String> {
             );
 
             if job.payload.deliver {
-                if let (Some(channel), Some(to)) = (job.payload.channel.clone(), job.payload.to.clone())
+                if let (Some(channel), Some(to)) =
+                    (job.payload.channel.clone(), job.payload.to.clone())
                 {
                     bus.publish_outbound(OutboundMessage::new(channel, to, response.clone()))
                         .await?;
@@ -802,14 +825,15 @@ async fn run_daemon() -> Result<(), String> {
                 };
                 let session_key_for_mode = session_key.clone();
                 let mut guard = routes.lock().await;
-                if let Some(previous_session_key) =
-                    guard
-                        .session_key_by_thread
-                        .insert(thread_id, session_key.clone())
+                if let Some(previous_session_key) = guard
+                    .session_key_by_thread
+                    .insert(thread_id, session_key.clone())
                 {
                     guard.by_session_key.remove(&previous_session_key);
                     guard.session_mode_by_session.remove(&previous_session_key);
-                    guard.recent_outbound_by_session.remove(&previous_session_key);
+                    guard
+                        .recent_outbound_by_session
+                        .remove(&previous_session_key);
                 }
                 guard.by_session_key.insert(session_key, route);
                 guard
@@ -858,7 +882,9 @@ async fn run_daemon() -> Result<(), String> {
                 };
                 let parsed_mode = parse_session_mode(&mode);
                 let mut guard = routes.lock().await;
-                guard.session_mode_by_session.insert(session_key, parsed_mode);
+                guard
+                    .session_mode_by_session
+                    .insert(session_key, parsed_mode);
             }
             BridgeCommand::AgentMessage {
                 session_key,
@@ -932,6 +958,7 @@ async fn run_daemon() -> Result<(), String> {
                     routes.clone(),
                     out_tx.clone(),
                     agent.clone(),
+                    session_turn_locks.clone(),
                 );
             }
             BridgeCommand::ProviderResponse {
@@ -965,7 +992,9 @@ async fn run_daemon() -> Result<(), String> {
                             .insert(meta.session_key, meta.tools_hash);
                     } else {
                         guard.provider_cursor_by_session.remove(&meta.session_key);
-                        guard.provider_tools_hash_by_session.remove(&meta.session_key);
+                        guard
+                            .provider_tools_hash_by_session
+                            .remove(&meta.session_key);
                     }
                 }
                 if let Some(waiter) = waiter {

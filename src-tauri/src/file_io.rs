@@ -71,13 +71,13 @@ pub(crate) fn read_text_file_within(
         return Err(format!("Invalid {file_context} path"));
     }
 
-    let mut file =
-        File::open(&canonical_path).map_err(|err| format!("Failed to open {file_context}: {err}"))?;
+    let mut file = File::open(&canonical_path)
+        .map_err(|err| format!("Failed to open {file_context}: {err}"))?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
         .map_err(|err| format!("Failed to read {file_context}: {err}"))?;
-    let content = String::from_utf8(buffer)
-        .map_err(|_| format!("{file_context} is not valid UTF-8"))?;
+    let content =
+        String::from_utf8(buffer).map_err(|_| format!("{file_context} is not valid UTF-8"))?;
 
     Ok(TextFileResponse {
         exists: true,
@@ -146,9 +146,8 @@ mod tests {
         let root = temp_dir();
         write_text_file_within(&root, "AGENTS.md", "hello", true, "CODEX_HOME", "AGENTS.md")
             .expect("write should succeed");
-        let response =
-            read_text_file_within(&root, "AGENTS.md", false, "CODEX_HOME", "AGENTS.md")
-                .expect("read should succeed");
+        let response = read_text_file_within(&root, "AGENTS.md", false, "CODEX_HOME", "AGENTS.md")
+            .expect("read should succeed");
         assert!(response.exists);
         assert_eq!(response.content, "hello");
     }
@@ -169,8 +168,15 @@ mod tests {
         let link_path = root.join("AGENTS.md");
         symlink(&outside_file, &link_path).expect("create symlink");
 
-        let error = write_text_file_within(&root, "AGENTS.md", "updated", false, "workspace root", "AGENTS.md")
-            .expect_err("should reject symlink escape");
+        let error = write_text_file_within(
+            &root,
+            "AGENTS.md",
+            "updated",
+            false,
+            "workspace root",
+            "AGENTS.md",
+        )
+        .expect_err("should reject symlink escape");
         assert!(error.contains("Invalid AGENTS.md path"));
     }
 
@@ -195,4 +201,3 @@ mod tests {
         assert!(error.contains("Invalid AGENTS.md path"));
     }
 }
-

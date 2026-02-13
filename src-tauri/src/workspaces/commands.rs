@@ -8,14 +8,14 @@ use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use uuid::Uuid;
 
-#[cfg(target_os = "macos")]
-use super::macos::get_open_app_icon_inner;
 use super::files::{list_workspace_files_inner, read_workspace_file_inner, WorkspaceFileResponse};
 use super::git::{
     git_branch_exists, git_find_remote_for_branch, git_get_origin_url, git_remote_branch_exists,
     git_remote_exists, is_missing_worktree_error, run_git_command, run_git_command_bytes,
     run_git_diff, unique_branch_name,
 };
+#[cfg(target_os = "macos")]
+use super::macos::get_open_app_icon_inner;
 use super::settings::{apply_workspace_settings_update, sort_workspaces};
 use super::worktree::{
     build_clone_destination_path, null_device_path, sanitize_worktree_name, unique_worktree_path,
@@ -101,13 +101,10 @@ pub(crate) async fn read_workspace_file(
     }
 
     let workspaces = state.workspaces.lock().await;
-    let entry = workspaces
-        .get(&workspace_id)
-        .ok_or("workspace not found")?;
+    let entry = workspaces.get(&workspace_id).ok_or("workspace not found")?;
     let root = PathBuf::from(&entry.path);
     read_workspace_file_inner(&root, &path)
 }
-
 
 #[tauri::command]
 pub(crate) async fn list_workspaces(
@@ -115,7 +112,8 @@ pub(crate) async fn list_workspaces(
     app: AppHandle,
 ) -> Result<Vec<WorkspaceInfo>, String> {
     if remote_backend::is_remote_mode(&*state).await {
-        let response = remote_backend::call_remote(&*state, app, "list_workspaces", json!({})).await?;
+        let response =
+            remote_backend::call_remote(&*state, app, "list_workspaces", json!({})).await?;
         return serde_json::from_value(response).map_err(|err| err.to_string());
     }
 
@@ -158,8 +156,7 @@ pub(crate) async fn list_workspaces(
         }
         for entry in workspaces.values_mut() {
             if !entry.kind.is_worktree() {
-                let target_kind =
-                    workspace_kind_for_path(&entry.path, nanobot_root_key.as_deref());
+                let target_kind = workspace_kind_for_path(&entry.path, nanobot_root_key.as_deref());
                 if entry.kind.is_nanobot() != target_kind.is_nanobot() {
                     entry.kind = target_kind.clone();
                     changed = true;
@@ -192,7 +189,6 @@ pub(crate) async fn list_workspaces(
     Ok(result)
 }
 
-
 #[tauri::command]
 pub(crate) async fn is_workspace_path_dir(
     path: String,
@@ -211,7 +207,6 @@ pub(crate) async fn is_workspace_path_dir(
     }
     Ok(PathBuf::from(&path).is_dir())
 }
-
 
 #[tauri::command]
 pub(crate) async fn add_workspace(
@@ -352,7 +347,6 @@ pub(crate) async fn add_workspace(
     })
 }
 
-
 #[tauri::command]
 pub(crate) async fn add_clone(
     source_workspace_id: String,
@@ -488,7 +482,6 @@ pub(crate) async fn add_clone(
         settings: entry.settings,
     })
 }
-
 
 #[tauri::command]
 pub(crate) async fn add_worktree(
@@ -685,7 +678,6 @@ pub(crate) async fn worktree_setup_mark_ran(
     Ok(())
 }
 
-
 #[tauri::command]
 pub(crate) async fn remove_workspace(
     id: String,
@@ -699,10 +691,7 @@ pub(crate) async fn remove_workspace(
 
     let (entry, child_worktrees) = {
         let workspaces = state.workspaces.lock().await;
-        let entry = workspaces
-            .get(&id)
-            .cloned()
-            .ok_or("workspace not found")?;
+        let entry = workspaces.get(&id).cloned().ok_or("workspace not found")?;
         if entry.kind.is_worktree() {
             return Err("Use remove_worktree for worktree agents.".to_string());
         }
@@ -730,9 +719,8 @@ pub(crate) async fn remove_workspace(
             {
                 if is_missing_worktree_error(&error) {
                     if child_path.exists() {
-                        std::fs::remove_dir_all(&child_path).map_err(|err| {
-                            format!("Failed to remove worktree folder: {err}")
-                        })?;
+                        std::fs::remove_dir_all(&child_path)
+                            .map_err(|err| format!("Failed to remove worktree folder: {err}"))?;
                     }
                 } else {
                     return Err(error);
@@ -760,7 +748,6 @@ pub(crate) async fn remove_workspace(
     Ok(())
 }
 
-
 #[tauri::command]
 pub(crate) async fn remove_worktree(
     id: String,
@@ -774,17 +761,11 @@ pub(crate) async fn remove_worktree(
 
     let (entry, parent) = {
         let workspaces = state.workspaces.lock().await;
-        let entry = workspaces
-            .get(&id)
-            .cloned()
-            .ok_or("workspace not found")?;
+        let entry = workspaces.get(&id).cloned().ok_or("workspace not found")?;
         if !entry.kind.is_worktree() {
             return Err("Not a worktree workspace.".to_string());
         }
-        let parent_id = entry
-            .parent_id
-            .clone()
-            .ok_or("worktree parent not found")?;
+        let parent_id = entry.parent_id.clone().ok_or("worktree parent not found")?;
         let parent = workspaces
             .get(&parent_id)
             .cloned()
@@ -808,9 +789,8 @@ pub(crate) async fn remove_worktree(
         {
             if is_missing_worktree_error(&error) {
                 if entry_path.exists() {
-                    std::fs::remove_dir_all(&entry_path).map_err(|err| {
-                        format!("Failed to remove worktree folder: {err}")
-                    })?;
+                    std::fs::remove_dir_all(&entry_path)
+                        .map_err(|err| format!("Failed to remove worktree folder: {err}"))?;
                 }
             } else {
                 return Err(error);
@@ -828,7 +808,6 @@ pub(crate) async fn remove_worktree(
 
     Ok(())
 }
-
 
 #[tauri::command]
 pub(crate) async fn rename_worktree(
@@ -855,17 +834,11 @@ pub(crate) async fn rename_worktree(
 
     let (entry, parent) = {
         let workspaces = state.workspaces.lock().await;
-        let entry = workspaces
-            .get(&id)
-            .cloned()
-            .ok_or("workspace not found")?;
+        let entry = workspaces.get(&id).cloned().ok_or("workspace not found")?;
         if !entry.kind.is_worktree() {
             return Err("Not a worktree workspace.".to_string());
         }
-        let parent_id = entry
-            .parent_id
-            .clone()
-            .ok_or("worktree parent not found")?;
+        let parent_id = entry.parent_id.clone().ok_or("worktree parent not found")?;
         let parent = workspaces
             .get(&parent_id)
             .cloned()
@@ -883,17 +856,12 @@ pub(crate) async fn rename_worktree(
     }
 
     let parent_root = resolve_git_root(&parent)?;
-    let (final_branch, _was_suffixed) =
-        unique_branch_name(&parent_root, trimmed, None).await?;
+    let (final_branch, _was_suffixed) = unique_branch_name(&parent_root, trimmed, None).await?;
     if final_branch == old_branch {
         return Err("Branch name is unchanged.".to_string());
     }
 
-    run_git_command(
-        &parent_root,
-        &["branch", "-m", &old_branch, &final_branch],
-    )
-    .await?;
+    run_git_command(&parent_root, &["branch", "-m", &old_branch, &final_branch]).await?;
 
     let worktree_root = app
         .path()
@@ -906,8 +874,7 @@ pub(crate) async fn rename_worktree(
 
     let safe_name = sanitize_worktree_name(&final_branch);
     let current_path = PathBuf::from(&entry.path);
-    let next_path =
-        unique_worktree_path_for_rename(&worktree_root, &safe_name, &current_path)?;
+    let next_path = unique_worktree_path_for_rename(&worktree_root, &safe_name, &current_path)?;
     let next_path_string = next_path.to_string_lossy().to_string();
     if next_path_string != entry.path {
         if let Err(error) = run_git_command(
@@ -916,11 +883,8 @@ pub(crate) async fn rename_worktree(
         )
         .await
         {
-            let _ = run_git_command(
-                &parent_root,
-                &["branch", "-m", &final_branch, &old_branch],
-            )
-            .await;
+            let _ =
+                run_git_command(&parent_root, &["branch", "-m", &final_branch, &old_branch]).await;
             return Err(error);
         }
     }
@@ -1002,7 +966,6 @@ pub(crate) async fn rename_worktree(
     })
 }
 
-
 #[tauri::command]
 pub(crate) async fn rename_worktree_upstream(
     id: String,
@@ -1033,17 +996,11 @@ pub(crate) async fn rename_worktree_upstream(
 
     let (_entry, parent) = {
         let workspaces = state.workspaces.lock().await;
-        let entry = workspaces
-            .get(&id)
-            .cloned()
-            .ok_or("workspace not found")?;
+        let entry = workspaces.get(&id).cloned().ok_or("workspace not found")?;
         if !entry.kind.is_worktree() {
             return Err("Not a worktree workspace.".to_string());
         }
-        let parent_id = entry
-            .parent_id
-            .clone()
-            .ok_or("worktree parent not found")?;
+        let parent_id = entry.parent_id.clone().ok_or("worktree parent not found")?;
         let parent = workspaces
             .get(&parent_id)
             .cloned()
@@ -1075,11 +1032,7 @@ pub(crate) async fn rename_worktree_upstream(
     if remote_for_old.is_some() {
         run_git_command(
             &parent_root,
-            &[
-                "push",
-                &remote_name,
-                &format!("{new_branch}:{new_branch}"),
-            ],
+            &["push", &remote_name, &format!("{new_branch}:{new_branch}")],
         )
         .await?;
         run_git_command(
@@ -1105,7 +1058,6 @@ pub(crate) async fn rename_worktree_upstream(
     Ok(())
 }
 
-
 #[tauri::command]
 pub(crate) async fn apply_worktree_changes(
     workspace_id: String,
@@ -1120,10 +1072,7 @@ pub(crate) async fn apply_worktree_changes(
         if !entry.kind.is_worktree() {
             return Err("Not a worktree workspace.".to_string());
         }
-        let parent_id = entry
-            .parent_id
-            .clone()
-            .ok_or("worktree parent not found")?;
+        let parent_id = entry.parent_id.clone().ok_or("worktree parent not found")?;
         let parent = workspaces
             .get(&parent_id)
             .cloned()
@@ -1134,8 +1083,7 @@ pub(crate) async fn apply_worktree_changes(
     let worktree_root = resolve_git_root(&entry)?;
     let parent_root = resolve_git_root(&parent)?;
 
-    let parent_status =
-        run_git_command_bytes(&parent_root, &["status", "--porcelain"]).await?;
+    let parent_status = run_git_command_bytes(&parent_root, &["status", "--porcelain"]).await?;
     if !String::from_utf8_lossy(&parent_status).trim().is_empty() {
         return Err(
             "Your current branch has uncommitted changes. Please commit, stash, or discard them before applying worktree changes."
@@ -1144,11 +1092,13 @@ pub(crate) async fn apply_worktree_changes(
     }
 
     let mut patch: Vec<u8> = Vec::new();
-    let staged_patch =
-        run_git_diff(&worktree_root, &["diff", "--binary", "--no-color", "--cached"]).await?;
+    let staged_patch = run_git_diff(
+        &worktree_root,
+        &["diff", "--binary", "--no-color", "--cached"],
+    )
+    .await?;
     patch.extend_from_slice(&staged_patch);
-    let unstaged_patch =
-        run_git_diff(&worktree_root, &["diff", "--binary", "--no-color"]).await?;
+    let unstaged_patch = run_git_diff(&worktree_root, &["diff", "--binary", "--no-color"]).await?;
     patch.extend_from_slice(&unstaged_patch);
 
     let untracked_output = run_git_command_bytes(
@@ -1237,7 +1187,6 @@ pub(crate) async fn apply_worktree_changes(
     Err(detail.to_string())
 }
 
-
 #[tauri::command]
 pub(crate) async fn update_workspace_settings(
     id: String,
@@ -1309,7 +1258,11 @@ pub(crate) async fn update_workspace_settings(
             let settings = state.app_settings.lock().await;
             (
                 settings.codex_bin.clone(),
-                resolve_workspace_codex_args(&entry_snapshot, parent_entry.as_ref(), Some(&settings)),
+                resolve_workspace_codex_args(
+                    &entry_snapshot,
+                    parent_entry.as_ref(),
+                    Some(&settings),
+                ),
             )
         };
         let codex_home = resolve_workspace_codex_home(&entry_snapshot, parent_entry.as_ref());
@@ -1418,7 +1371,6 @@ pub(crate) async fn update_workspace_settings(
     })
 }
 
-
 #[tauri::command]
 pub(crate) async fn update_workspace_codex_bin(
     id: String,
@@ -1469,7 +1421,11 @@ pub(crate) async fn update_workspace_codex_bin(
             let settings = state.app_settings.lock().await;
             (
                 settings.codex_bin.clone(),
-                resolve_workspace_codex_args(&entry_snapshot, parent_entry.as_ref(), Some(&settings)),
+                resolve_workspace_codex_args(
+                    &entry_snapshot,
+                    parent_entry.as_ref(),
+                    Some(&settings),
+                ),
             )
         };
         let codex_home = resolve_workspace_codex_home(&entry_snapshot, parent_entry.as_ref());
@@ -1512,7 +1468,6 @@ pub(crate) async fn update_workspace_codex_bin(
     })
 }
 
-
 async fn connect_workspace_inner(
     id: &str,
     state: &AppState,
@@ -1552,7 +1507,11 @@ async fn connect_workspace_inner(
     let codex_home = resolve_workspace_codex_home(&entry, parent_entry.as_ref());
     let session =
         spawn_workspace_session(entry.clone(), default_bin, codex_args, app, codex_home).await?;
-    let old_session = state.sessions.lock().await.insert(entry.id.clone(), session);
+    let old_session = state
+        .sessions
+        .lock()
+        .await
+        .insert(entry.id.clone(), session);
     if let Some(old_session) = old_session {
         let mut child = old_session.child.lock().await;
         let _ = child.kill().await;
@@ -1567,8 +1526,7 @@ pub(crate) async fn connect_workspace(
     app: AppHandle,
 ) -> Result<(), String> {
     if remote_backend::is_remote_mode(&*state).await {
-        remote_backend::call_remote(&*state, app, "connect_workspace", json!({ "id": id }))
-            .await?;
+        remote_backend::call_remote(&*state, app, "connect_workspace", json!({ "id": id })).await?;
         return Ok(());
     }
     connect_workspace_inner(&id, &state, app, false).await
@@ -1588,7 +1546,6 @@ pub(crate) async fn reconnect_workspace(
     connect_workspace_inner(&id, &state, app, true).await
 }
 
-
 #[tauri::command]
 pub(crate) async fn list_workspace_files(
     workspace_id: String,
@@ -1607,13 +1564,10 @@ pub(crate) async fn list_workspace_files(
     }
 
     let workspaces = state.workspaces.lock().await;
-    let entry = workspaces
-        .get(&workspace_id)
-        .ok_or("workspace not found")?;
+    let entry = workspaces.get(&workspace_id).ok_or("workspace not found")?;
     let root = PathBuf::from(&entry.path);
     Ok(list_workspace_files_inner(&root, usize::MAX))
 }
-
 
 #[tauri::command]
 pub(crate) async fn open_workspace_in(
@@ -1641,10 +1595,7 @@ pub(crate) async fn open_workspace_in(
                 if resolved.use_cmd {
                     let mut cmd = std::process::Command::new("cmd");
                     crate::utils::apply_background_command_flags_std(&mut cmd);
-                    cmd.arg("/C")
-                        .arg(resolved.program)
-                        .args(&args)
-                        .arg(&path);
+                    cmd.arg("/C").arg(resolved.program).args(&args).arg(&path);
                     cmd.status()
                 } else {
                     run_command(resolved.program.as_os_str())
@@ -1747,8 +1698,7 @@ fn build_windows_command_candidates(command: &str) -> Vec<String> {
     if Path::new(base).extension().is_some() {
         return vec![base.to_string()];
     }
-    let pathext = std::env::var("PATHEXT")
-        .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
+    let pathext = std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
     pathext
         .split(';')
         .filter_map(|ext| {
@@ -1833,7 +1783,6 @@ fn expand_windows_env_vars(value: &str) -> String {
     }
     out
 }
-
 
 #[tauri::command]
 pub(crate) async fn get_open_app_icon(app_name: String) -> Result<Option<String>, String> {

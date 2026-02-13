@@ -10,6 +10,7 @@ import type { ThreadAction } from "./useThreadsReducer";
 
 type UseThreadTurnEventsOptions = {
   dispatch: Dispatch<ThreadAction>;
+  shouldEnsureThread?: (workspaceId: string, threadId: string) => boolean;
   markProcessing: (threadId: string, isProcessing: boolean) => void;
   markReviewing: (threadId: string, isReviewing: boolean) => void;
   setActiveTurnId: (threadId: string, turnId: string | null) => void;
@@ -21,6 +22,7 @@ type UseThreadTurnEventsOptions = {
 
 export function useThreadTurnEvents({
   dispatch,
+  shouldEnsureThread,
   markProcessing,
   markReviewing,
   setActiveTurnId,
@@ -31,6 +33,9 @@ export function useThreadTurnEvents({
 }: UseThreadTurnEventsOptions) {
   const onTurnStarted = useCallback(
     (workspaceId: string, threadId: string, turnId: string) => {
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       dispatch({
         type: "ensureThread",
         workspaceId,
@@ -48,7 +53,13 @@ export function useThreadTurnEvents({
         setActiveTurnId(threadId, turnId);
       }
     },
-    [dispatch, markProcessing, pendingInterruptsRef, setActiveTurnId],
+    [
+      dispatch,
+      markProcessing,
+      pendingInterruptsRef,
+      setActiveTurnId,
+      shouldEnsureThread,
+    ],
   );
 
   const onTurnCompleted = useCallback(
@@ -72,6 +83,9 @@ export function useThreadTurnEvents({
       turnId: string,
       payload: { explanation: unknown; plan: unknown },
     ) => {
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       dispatch({ type: "ensureThread", workspaceId, threadId });
       const normalized = normalizePlanUpdate(
         turnId,
@@ -80,11 +94,14 @@ export function useThreadTurnEvents({
       );
       dispatch({ type: "setThreadPlan", threadId, plan: normalized });
     },
-    [dispatch],
+    [dispatch, shouldEnsureThread],
   );
 
   const onThreadTokenUsageUpdated = useCallback(
     (workspaceId: string, threadId: string, tokenUsage: Record<string, unknown>) => {
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       dispatch({ type: "ensureThread", workspaceId, threadId });
       dispatch({
         type: "setThreadTokenUsage",
@@ -92,7 +109,7 @@ export function useThreadTurnEvents({
         tokenUsage: normalizeTokenUsage(tokenUsage),
       });
     },
-    [dispatch],
+    [dispatch, shouldEnsureThread],
   );
 
   const onAccountRateLimitsUpdated = useCallback(
@@ -116,6 +133,9 @@ export function useThreadTurnEvents({
       if (payload.willRetry) {
         return;
       }
+      if (shouldEnsureThread && !shouldEnsureThread(workspaceId, threadId)) {
+        return;
+      }
       dispatch({ type: "ensureThread", workspaceId, threadId });
       markProcessing(threadId, false);
       markReviewing(threadId, false);
@@ -133,6 +153,7 @@ export function useThreadTurnEvents({
       pushThreadErrorMessage,
       safeMessageActivity,
       setActiveTurnId,
+      shouldEnsureThread,
     ],
   );
 

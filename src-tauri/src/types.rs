@@ -367,10 +367,7 @@ pub(crate) struct AppSettings {
         rename = "nanobotAwayBluetoothDeviceName"
     )]
     pub(crate) nanobot_away_bluetooth_device_name: String,
-    #[serde(
-        default = "default_nanobot_agent_model",
-        rename = "nanobotAgentModel"
-    )]
+    #[serde(default = "default_nanobot_agent_model", rename = "nanobotAgentModel")]
     pub(crate) nanobot_agent_model: String,
     #[serde(default, rename = "nanobotAgentReasoningEffort")]
     pub(crate) nanobot_agent_reasoning_effort: Option<String>,
@@ -484,20 +481,11 @@ pub(crate) struct AppSettings {
         rename = "nanobotEmailAllowFrom"
     )]
     pub(crate) nanobot_email_allow_from: String,
-    #[serde(
-        default = "default_nanobot_qq_enabled",
-        rename = "nanobotQqEnabled"
-    )]
+    #[serde(default = "default_nanobot_qq_enabled", rename = "nanobotQqEnabled")]
     pub(crate) nanobot_qq_enabled: bool,
-    #[serde(
-        default = "default_nanobot_qq_app_id",
-        rename = "nanobotQqAppId"
-    )]
+    #[serde(default = "default_nanobot_qq_app_id", rename = "nanobotQqAppId")]
     pub(crate) nanobot_qq_app_id: String,
-    #[serde(
-        default = "default_nanobot_qq_secret",
-        rename = "nanobotQqSecret"
-    )]
+    #[serde(default = "default_nanobot_qq_secret", rename = "nanobotQqSecret")]
     pub(crate) nanobot_qq_secret: String,
     #[serde(
         default = "default_nanobot_qq_allow_from",
@@ -683,19 +671,16 @@ pub(crate) struct AppSettings {
     pub(crate) experimental_yunyi_token: String,
     #[serde(default = "default_dictation_enabled", rename = "dictationEnabled")]
     pub(crate) dictation_enabled: bool,
-    #[serde(
-        default = "default_dictation_model_id",
-        rename = "dictationModelId"
-    )]
+    #[serde(default = "default_dictation_model_id", rename = "dictationModelId")]
     pub(crate) dictation_model_id: String,
     #[serde(default, rename = "dictationPreferredLanguage")]
     pub(crate) dictation_preferred_language: Option<String>,
-    #[serde(
-        default = "default_dictation_hold_key",
-        rename = "dictationHoldKey"
-    )]
+    #[serde(default = "default_dictation_hold_key", rename = "dictationHoldKey")]
     pub(crate) dictation_hold_key: Option<String>,
-    #[serde(default = "default_composer_editor_preset", rename = "composerEditorPreset")]
+    #[serde(
+        default = "default_composer_editor_preset",
+        rename = "composerEditorPreset"
+    )]
     pub(crate) composer_editor_preset: String,
     #[serde(
         default = "default_composer_send_behavior",
@@ -707,19 +692,40 @@ pub(crate) struct AppSettings {
         rename = "composerSendConfirmationEnabled"
     )]
     pub(crate) composer_send_confirmation_enabled: bool,
-    #[serde(default = "default_composer_fence_expand_on_space", rename = "composerFenceExpandOnSpace")]
+    #[serde(
+        default = "default_composer_fence_expand_on_space",
+        rename = "composerFenceExpandOnSpace"
+    )]
     pub(crate) composer_fence_expand_on_space: bool,
-    #[serde(default = "default_composer_fence_expand_on_enter", rename = "composerFenceExpandOnEnter")]
+    #[serde(
+        default = "default_composer_fence_expand_on_enter",
+        rename = "composerFenceExpandOnEnter"
+    )]
     pub(crate) composer_fence_expand_on_enter: bool,
-    #[serde(default = "default_composer_fence_language_tags", rename = "composerFenceLanguageTags")]
+    #[serde(
+        default = "default_composer_fence_language_tags",
+        rename = "composerFenceLanguageTags"
+    )]
     pub(crate) composer_fence_language_tags: bool,
-    #[serde(default = "default_composer_fence_wrap_selection", rename = "composerFenceWrapSelection")]
+    #[serde(
+        default = "default_composer_fence_wrap_selection",
+        rename = "composerFenceWrapSelection"
+    )]
     pub(crate) composer_fence_wrap_selection: bool,
-    #[serde(default = "default_composer_fence_auto_wrap_paste_multiline", rename = "composerFenceAutoWrapPasteMultiline")]
+    #[serde(
+        default = "default_composer_fence_auto_wrap_paste_multiline",
+        rename = "composerFenceAutoWrapPasteMultiline"
+    )]
     pub(crate) composer_fence_auto_wrap_paste_multiline: bool,
-    #[serde(default = "default_composer_fence_auto_wrap_paste_code_like", rename = "composerFenceAutoWrapPasteCodeLike")]
+    #[serde(
+        default = "default_composer_fence_auto_wrap_paste_code_like",
+        rename = "composerFenceAutoWrapPasteCodeLike"
+    )]
     pub(crate) composer_fence_auto_wrap_paste_code_like: bool,
-    #[serde(default = "default_composer_list_continuation", rename = "composerListContinuation")]
+    #[serde(
+        default = "default_composer_list_continuation",
+        rename = "composerListContinuation"
+    )]
     pub(crate) composer_list_continuation: bool,
     #[serde(
         default = "default_composer_code_block_copy_use_modifier",
@@ -932,8 +938,7 @@ fn default_language() -> String {
 }
 
 fn default_ui_font_family() -> String {
-    "\"SF Pro Text\", \"SF Pro Display\", -apple-system, \"Helvetica Neue\", sans-serif"
-        .to_string()
+    "\"SF Pro Text\", \"SF Pro Display\", -apple-system, \"Helvetica Neue\", sans-serif".to_string()
 }
 
 fn default_code_font_family() -> String {
@@ -1296,8 +1301,10 @@ impl Default for AppSettings {
             composer_fence_expand_on_enter: default_composer_fence_expand_on_enter(),
             composer_fence_language_tags: default_composer_fence_language_tags(),
             composer_fence_wrap_selection: default_composer_fence_wrap_selection(),
-            composer_fence_auto_wrap_paste_multiline: default_composer_fence_auto_wrap_paste_multiline(),
-            composer_fence_auto_wrap_paste_code_like: default_composer_fence_auto_wrap_paste_code_like(),
+            composer_fence_auto_wrap_paste_multiline:
+                default_composer_fence_auto_wrap_paste_multiline(),
+            composer_fence_auto_wrap_paste_code_like:
+                default_composer_fence_auto_wrap_paste_code_like(),
             composer_list_continuation: default_composer_list_continuation(),
             composer_code_block_copy_use_modifier: default_composer_code_block_copy_use_modifier(),
             workspace_groups: default_workspace_groups(),
@@ -1385,7 +1392,10 @@ mod tests {
         } else {
             "ctrl+shift+c"
         };
-        assert_eq!(settings.interrupt_shortcut.as_deref(), Some(expected_interrupt));
+        assert_eq!(
+            settings.interrupt_shortcut.as_deref(),
+            Some(expected_interrupt)
+        );
         assert_eq!(
             settings.archive_thread_shortcut.as_deref(),
             Some("cmd+ctrl+a")
@@ -1487,10 +1497,9 @@ mod tests {
 
     #[test]
     fn workspace_entry_defaults_from_minimal_json() {
-        let entry: WorkspaceEntry = serde_json::from_str(
-            r#"{"id":"1","name":"Test","path":"/tmp","codexBin":null}"#,
-        )
-        .expect("workspace deserialize");
+        let entry: WorkspaceEntry =
+            serde_json::from_str(r#"{"id":"1","name":"Test","path":"/tmp","codexBin":null}"#)
+                .expect("workspace deserialize");
         assert!(matches!(entry.kind, WorkspaceKind::Main));
         assert!(entry.parent_id.is_none());
         assert!(entry.worktree.is_none());

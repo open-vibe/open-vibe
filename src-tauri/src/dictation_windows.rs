@@ -134,8 +134,7 @@ fn status_to_message(status: SpeechRecognitionResultStatus) -> String {
 }
 
 fn build_recognizer() -> Result<SpeechRecognizer, String> {
-    let recognizer =
-        SpeechRecognizer::new().map_err(format_windows_error)?;
+    let recognizer = SpeechRecognizer::new().map_err(format_windows_error)?;
     let topic = SpeechRecognitionTopicConstraint::Create(
         SpeechRecognitionScenario::Dictation,
         &HSTRING::from("dictation"),
@@ -216,7 +215,12 @@ pub(crate) async fn dictation_start(
         let dictation = state.dictation.lock().await;
         if dictation.session_state != DictationSessionState::Idle {
             let message = "Dictation is already active.".to_string();
-            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            emit_event(
+                &app,
+                DictationEvent::Error {
+                    message: message.clone(),
+                },
+            );
             return Err(message);
         }
     }
@@ -224,7 +228,12 @@ pub(crate) async fn dictation_start(
     let recognizer = match build_recognizer() {
         Ok(recognizer) => recognizer,
         Err(message) => {
-            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            emit_event(
+                &app,
+                DictationEvent::Error {
+                    message: message.clone(),
+                },
+            );
             return Err(message);
         }
     };
@@ -232,7 +241,12 @@ pub(crate) async fn dictation_start(
         Ok(session) => session,
         Err(error) => {
             let message = format_windows_error(error);
-            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            emit_event(
+                &app,
+                DictationEvent::Error {
+                    message: message.clone(),
+                },
+            );
             return Err(message);
         }
     };
@@ -242,54 +256,63 @@ pub(crate) async fn dictation_start(
         _,
         SpeechContinuousRecognitionResultGeneratedEventArgs,
     >::new(move |_, args| {
-            if let Some(args) = args.as_ref() {
-                let result = args.Result()?;
-                if result.Status()? == SpeechRecognitionResultStatus::Success {
-                    let text = result.Text()?.to_string();
-                    if !text.trim().is_empty() {
-                        emit_event(&app_for_results, DictationEvent::Transcript { text });
-                    }
+        if let Some(args) = args.as_ref() {
+            let result = args.Result()?;
+            if result.Status()? == SpeechRecognitionResultStatus::Success {
+                let text = result.Text()?.to_string();
+                if !text.trim().is_empty() {
+                    emit_event(&app_for_results, DictationEvent::Transcript { text });
                 }
             }
-            Ok(())
-        })) {
+        }
+        Ok(())
+    })) {
         Ok(token) => token,
         Err(error) => {
             let message = format_windows_error(error);
-            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            emit_event(
+                &app,
+                DictationEvent::Error {
+                    message: message.clone(),
+                },
+            );
             return Err(message);
         }
     };
 
     let app_for_completed = app.clone();
-    let completed_token = match session.Completed(
-        &TypedEventHandler::<_, SpeechContinuousRecognitionCompletedEventArgs>::new(
-            move |_, args| {
-                if let Some(args) = args.as_ref() {
-                    let status = args.Status()?;
-                    if status != SpeechRecognitionResultStatus::Success {
-                        emit_event(
-                            &app_for_completed,
-                            DictationEvent::Error {
-                                message: status_to_message(status),
-                            },
-                        );
-                    }
-                }
+    let completed_token = match session.Completed(&TypedEventHandler::<
+        _,
+        SpeechContinuousRecognitionCompletedEventArgs,
+    >::new(move |_, args| {
+        if let Some(args) = args.as_ref() {
+            let status = args.Status()?;
+            if status != SpeechRecognitionResultStatus::Success {
                 emit_event(
                     &app_for_completed,
-                    DictationEvent::State {
-                        state: DictationSessionState::Idle,
+                    DictationEvent::Error {
+                        message: status_to_message(status),
                     },
                 );
-                Ok(())
+            }
+        }
+        emit_event(
+            &app_for_completed,
+            DictationEvent::State {
+                state: DictationSessionState::Idle,
             },
-        ),
-    ) {
+        );
+        Ok(())
+    })) {
         Ok(token) => token,
         Err(error) => {
             let message = format_windows_error(error);
-            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            emit_event(
+                &app,
+                DictationEvent::Error {
+                    message: message.clone(),
+                },
+            );
             return Err(message);
         }
     };
@@ -300,7 +323,12 @@ pub(crate) async fn dictation_start(
         .get()
         .map_err(format_windows_error)
     {
-        emit_event(&app, DictationEvent::Error { message: error.clone() });
+        emit_event(
+            &app,
+            DictationEvent::Error {
+                message: error.clone(),
+            },
+        );
         return Err(error);
     }
 
@@ -338,7 +366,12 @@ pub(crate) async fn dictation_stop(
         let mut dictation = state.dictation.lock().await;
         if dictation.session_state != DictationSessionState::Listening {
             let message = "Dictation is not currently listening.".to_string();
-            emit_event(&app, DictationEvent::Error { message: message.clone() });
+            emit_event(
+                &app,
+                DictationEvent::Error {
+                    message: message.clone(),
+                },
+            );
             return Err(message);
         }
         dictation.session_state = DictationSessionState::Processing;

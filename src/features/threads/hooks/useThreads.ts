@@ -33,6 +33,57 @@ import {
 } from "../utils/threadStorage";
 import { normalizeTokenUsage } from "../utils/threadNormalize";
 
+const NANOBOT_SESSION_STATE_STORAGE_KEY = "openvibe.nanobot.sessionState.v1";
+const NANOBOT_THREAD_IDS_STORAGE_KEY = "openvibe.nanobot.threadIds.v1";
+const NANOBOT_AGENT_THREAD_PREFIX = "nanobot-agent:";
+
+function readPersistedNanobotThreadIds(workspaceId: string) {
+  if (typeof window === "undefined") {
+    return new Set<string>();
+  }
+  try {
+    const raw = window.localStorage.getItem(NANOBOT_THREAD_IDS_STORAGE_KEY);
+    if (!raw) {
+      return new Set<string>();
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const entries = parsed[workspaceId];
+    if (!Array.isArray(entries)) {
+      return new Set<string>();
+    }
+    return new Set(
+      entries
+        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+        .filter(Boolean),
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function hasPersistedNanobotRoute(workspaceId: string, threadId: string) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    const raw = window.localStorage.getItem(NANOBOT_SESSION_STATE_STORAGE_KEY);
+    if (!raw) {
+      return false;
+    }
+    const parsed = JSON.parse(raw) as {
+      routes?: Record<string, { workspaceId?: string; threadId?: string }>;
+    };
+    return Object.values(parsed.routes ?? {}).some(
+      (route) =>
+        route?.workspaceId === workspaceId &&
+        typeof route.threadId === "string" &&
+        route.threadId.trim() === threadId,
+    );
+  } catch {
+    return false;
+  }
+}
+
 type UseThreadsOptions = {
   activeWorkspace: WorkspaceInfo | null;
   onWorkspaceConnected: (id: string) => void;
@@ -48,6 +99,7 @@ type UseThreadsOptions = {
   happyEnabled?: boolean;
   nanobotBridgeEnabled?: boolean;
   getWorkspacePath?: (workspaceId: string) => string | null;
+  isNanobotWorkspaceId?: (workspaceId: string) => boolean;
 };
 
 export function useThreads({
@@ -65,6 +117,7 @@ export function useThreads({
   happyEnabled = false,
   nanobotBridgeEnabled = false,
   getWorkspacePath,
+  isNanobotWorkspaceId,
 }: UseThreadsOptions) {
   const [state, dispatch] = useReducer(threadReducer, initialState);
   const [happyConnected, setHappyConnected] = useState(false);
@@ -349,10 +402,34 @@ export function useThreads({
     },
     [onWorkspaceConnected, refreshAccountRateLimits],
   );
+  const shouldEnsureThread = useCallback(
+    (workspaceId: string, threadId: string) => {
+      if (!threadId.trim()) {
+        return false;
+      }
+      if (!isNanobotWorkspaceId?.(workspaceId)) {
+        return true;
+      }
+      if (threadId.startsWith(NANOBOT_AGENT_THREAD_PREFIX)) {
+        return true;
+      }
+      const existing = state.threadsByWorkspace[workspaceId] ?? [];
+      if (existing.some((thread) => thread.id === threadId)) {
+        return true;
+      }
+      const persistedIds = readPersistedNanobotThreadIds(workspaceId);
+      if (persistedIds.has(threadId)) {
+        return true;
+      }
+      return hasPersistedNanobotRoute(workspaceId, threadId);
+    },
+    [isNanobotWorkspaceId, state.threadsByWorkspace],
+  );
 
   const handlers = useThreadEventHandlers({
     activeThreadId,
     dispatch,
+    shouldEnsureThread,
     getCustomName,
     markProcessing,
     markReviewing,

@@ -2,9 +2,9 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use ::nanobot::config::{get_config_path, load_config, save_config, Config};
 use btleplug::api::{Central as _, Manager as _, Peripheral as _, ScanFilter};
 use btleplug::platform::Manager;
-use ::nanobot::config::{get_config_path, load_config, save_config, Config};
 use serde_json::{json, Value};
 
 use crate::types::AppSettings;
@@ -14,7 +14,10 @@ const DINGTALK_V0_ACCESS_TOKEN_ENDPOINT: &str = "https://oapi.dingtalk.com/getto
 
 #[cfg(target_os = "windows")]
 fn utf16_buf_to_string(value: &[u16]) -> String {
-    let end = value.iter().position(|item| *item == 0).unwrap_or(value.len());
+    let end = value
+        .iter()
+        .position(|item| *item == 0)
+        .unwrap_or(value.len());
     String::from_utf16_lossy(&value[..end]).trim().to_string()
 }
 
@@ -124,7 +127,10 @@ fn load_nanobot_config_safe() -> Result<Config, String> {
     let result = std::panic::catch_unwind(|| load_config(None));
     match result {
         Ok(value) => value.map_err(|error| error.to_string()),
-        Err(payload) => Err(format!("nanobot config load panic: {}", panic_to_string(payload))),
+        Err(payload) => Err(format!(
+            "nanobot config load panic: {}",
+            panic_to_string(payload)
+        )),
     }
 }
 
@@ -133,7 +139,10 @@ fn save_nanobot_config_safe(config: &Config) -> Result<(), String> {
     let result = std::panic::catch_unwind(move || save_config(&owned, None));
     match result {
         Ok(value) => value.map_err(|error| error.to_string()),
-        Err(payload) => Err(format!("nanobot config save panic: {}", panic_to_string(payload))),
+        Err(payload) => Err(format!(
+            "nanobot config save panic: {}",
+            panic_to_string(payload)
+        )),
     }
 }
 
@@ -166,7 +175,8 @@ pub(crate) fn hydrate_settings_from_nanobot(settings: &mut AppSettings) -> Resul
     settings.nanobot_dingtalk_enabled = config.channels.dingtalk.enabled;
     settings.nanobot_dingtalk_client_id = config.channels.dingtalk.client_id;
     settings.nanobot_dingtalk_client_secret = config.channels.dingtalk.client_secret;
-    settings.nanobot_dingtalk_allow_from = serialize_allow_from(&config.channels.dingtalk.allow_from);
+    settings.nanobot_dingtalk_allow_from =
+        serialize_allow_from(&config.channels.dingtalk.allow_from);
     settings.nanobot_email_enabled = config.channels.email.enabled;
     settings.nanobot_email_consent_granted = config.channels.email.consent_granted;
     settings.nanobot_email_imap_host = config.channels.email.imap_host;
@@ -200,9 +210,11 @@ pub(crate) fn hydrate_settings_from_nanobot(settings: &mut AppSettings) -> Resul
 
 pub(crate) fn apply_settings_to_nanobot(settings: &AppSettings) -> Result<(), String> {
     let mut config = load_nanobot_config_safe()?;
-    config.channels.dingtalk.enabled = settings.nanobot_enabled && settings.nanobot_dingtalk_enabled;
+    config.channels.dingtalk.enabled =
+        settings.nanobot_enabled && settings.nanobot_dingtalk_enabled;
     config.channels.dingtalk.client_id = settings.nanobot_dingtalk_client_id.trim().to_string();
-    config.channels.dingtalk.client_secret = settings.nanobot_dingtalk_client_secret.trim().to_string();
+    config.channels.dingtalk.client_secret =
+        settings.nanobot_dingtalk_client_secret.trim().to_string();
     config.channels.dingtalk.allow_from = parse_allow_from(&settings.nanobot_dingtalk_allow_from);
     config.channels.email.enabled = settings.nanobot_enabled && settings.nanobot_email_enabled;
     config.channels.email.consent_granted = settings.nanobot_email_consent_granted;
@@ -270,10 +282,7 @@ async fn request_dingtalk_v0_token(
 ) -> Result<(), String> {
     let response = client
         .get(DINGTALK_V0_ACCESS_TOKEN_ENDPOINT)
-        .query(&[
-            ("appkey", client_id),
-            ("appsecret", client_secret),
-        ])
+        .query(&[("appkey", client_id), ("appsecret", client_secret)])
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -286,7 +295,10 @@ async fn request_dingtalk_v0_token(
         .get("access_token")
         .and_then(|value| value.as_str())
         .unwrap_or_default();
-    let errcode = body.get("errcode").and_then(|value| value.as_i64()).unwrap_or(0);
+    let errcode = body
+        .get("errcode")
+        .and_then(|value| value.as_i64())
+        .unwrap_or(0);
     if status.is_success() && errcode == 0 && !token.is_empty() {
         return Ok(());
     }

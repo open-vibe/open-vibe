@@ -48,9 +48,7 @@ fn resolve_shell_command() -> (String, Vec<String>) {
             .or_else(|| find_on_path(&["pwsh.exe", "powershell.exe", "cmd.exe"]))
             .unwrap_or_else(|| "C:\\Windows\\System32\\cmd.exe".to_string());
         let shell_lower = shell.to_lowercase();
-        let args = if shell_lower.ends_with("pwsh.exe")
-            || shell_lower.ends_with("powershell.exe")
-        {
+        let args = if shell_lower.ends_with("pwsh.exe") || shell_lower.ends_with("powershell.exe") {
             vec!["-NoLogo".to_string()]
         } else {
             Vec::new()
@@ -132,7 +130,8 @@ fn spawn_terminal_reader(
                                     pending.drain(..invalid_len.min(pending.len()));
                                     continue;
                                 }
-                                let chunk = String::from_utf8_lossy(&pending[..valid_up_to]).to_string();
+                                let chunk =
+                                    String::from_utf8_lossy(&pending[..valid_up_to]).to_string();
                                 if !chunk.is_empty() {
                                     let payload = TerminalOutput {
                                         workspace_id: workspace_id.clone(),
@@ -256,9 +255,7 @@ pub(crate) async fn terminal_open(
     let event_sink = TauriEventSink::new(app);
     spawn_terminal_reader(event_sink, workspace_id, terminal_id, reader);
 
-    Ok(TerminalSessionInfo {
-        id: session_id,
-    })
+    Ok(TerminalSessionInfo { id: session_id })
 }
 
 #[tauri::command]

@@ -14,8 +14,8 @@ use crate::git_utils::{
 use crate::state::AppState;
 use crate::types::{
     BranchInfo, GitCommitDiff, GitFileDiff, GitFileStatus, GitHubIssue, GitHubIssuesResponse,
-    GitHubPullRequest, GitHubPullRequestComment, GitHubPullRequestDiff,
-    GitHubPullRequestsResponse, GitLogResponse,
+    GitHubPullRequest, GitHubPullRequestComment, GitHubPullRequestDiff, GitHubPullRequestsResponse,
+    GitLogResponse,
 };
 use crate::utils::{git_env_path, normalize_git_path, resolve_git_binary};
 
@@ -107,8 +107,7 @@ fn action_paths_for_file(repo_root: &Path, path: &str) -> Vec<String> {
         let Some(delta) = delta else {
             continue;
         };
-        let (Some(old_path), Some(new_path)) =
-            (delta.old_file().path(), delta.new_file().path())
+        let (Some(old_path), Some(new_path)) = (delta.old_file().path(), delta.new_file().path())
         else {
             continue;
         };
@@ -127,7 +126,11 @@ fn action_paths_for_file(repo_root: &Path, path: &str) -> Vec<String> {
         if !new_path.is_empty() && !result.contains(&new_path) {
             result.push(new_path);
         }
-        return if result.is_empty() { vec![target] } else { result };
+        return if result.is_empty() {
+            vec![target]
+        } else {
+            result
+        };
     }
 
     vec![target]
@@ -165,9 +168,7 @@ fn upstream_remote_and_branch(repo_root: &Path) -> Result<Option<(String, String
         Err(_) => return Ok(None),
     };
     let upstream_ref = upstream_branch.get();
-    let upstream_name = upstream_ref
-        .name()
-        .or_else(|| upstream_ref.shorthand());
+    let upstream_name = upstream_ref.name().or_else(|| upstream_ref.shorthand());
     Ok(upstream_name.and_then(parse_upstream_ref))
 }
 
@@ -179,11 +180,7 @@ async fn push_with_upstream(repo_root: &Path) -> Result<(), String> {
         // This is best-effort because some setups intentionally allow push but not fetch.
         let _ = run_git_command(repo_root, &["fetch", "--prune", remote.as_str()]).await;
         let refspec = format!("HEAD:{branch}");
-        return run_git_command(
-            repo_root,
-            &["push", remote.as_str(), refspec.as_str()],
-        )
-        .await;
+        return run_git_command(repo_root, &["push", remote.as_str(), refspec.as_str()]).await;
     }
     run_git_command(repo_root, &["push"]).await
 }
@@ -277,10 +274,7 @@ fn status_for_delta(status: git2::Delta) -> &'static str {
 fn build_combined_diff(diff: &git2::Diff) -> String {
     let mut combined_diff = String::new();
     for (index, delta) in diff.deltas().enumerate() {
-        let path = delta
-            .new_file()
-            .path()
-            .or_else(|| delta.old_file().path());
+        let path = delta.new_file().path().or_else(|| delta.old_file().path());
         let Some(path) = path else {
             continue;
         };
@@ -309,10 +303,7 @@ fn build_combined_diff(diff: &git2::Diff) -> String {
 
 fn collect_workspace_diff(repo_root: &Path) -> Result<String, String> {
     let repo = Repository::open(repo_root).map_err(|e| e.to_string())?;
-    let head_tree = repo
-        .head()
-        .ok()
-        .and_then(|head| head.peel_to_tree().ok());
+    let head_tree = repo.head().ok().and_then(|head| head.peel_to_tree().ok());
 
     let mut options = DiffOptions::new();
     let index = repo.index().map_err(|e| e.to_string())?;
@@ -351,20 +342,13 @@ fn github_repo_from_path(path: &Path) -> Result<String, String> {
     let name = if remotes.iter().any(|remote| remote == Some("origin")) {
         "origin".to_string()
     } else {
-        remotes
-            .iter()
-            .flatten()
-            .next()
-            .unwrap_or("")
-            .to_string()
+        remotes.iter().flatten().next().unwrap_or("").to_string()
     };
     if name.is_empty() {
         return Err("No git remote configured.".to_string());
     }
     let remote = repo.find_remote(&name).map_err(|e| e.to_string())?;
-    let remote_url = remote
-        .url()
-        .ok_or("Remote has no URL configured.")?;
+    let remote_url = remote.url().ok_or("Remote has no URL configured.")?;
     parse_github_repo(remote_url).ok_or("Remote is not a GitHub repository.".to_string())
 }
 
@@ -376,10 +360,10 @@ fn parse_pr_diff(diff: &str) -> Vec<GitHubPullRequestDiff> {
     let mut current_status: Option<String> = None;
 
     let finalize = |lines: &Vec<&str>,
-                        old_path: &Option<String>,
-                        new_path: &Option<String>,
-                        status: &Option<String>,
-                        results: &mut Vec<GitHubPullRequestDiff>| {
+                    old_path: &Option<String>,
+                    new_path: &Option<String>,
+                    status: &Option<String>,
+                    results: &mut Vec<GitHubPullRequestDiff>| {
         if lines.is_empty() {
             return;
         }
@@ -391,7 +375,10 @@ fn parse_pr_diff(diff: &str) -> Vec<GitHubPullRequestDiff> {
         let path = if status_value == "D" {
             old_path.clone().unwrap_or_default()
         } else {
-            new_path.clone().or_else(|| old_path.clone()).unwrap_or_default()
+            new_path
+                .clone()
+                .or_else(|| old_path.clone())
+                .unwrap_or_default()
         };
         if path.is_empty() {
             return;
@@ -533,8 +520,7 @@ pub(crate) async fn get_git_status(
 
         if include_index {
             let (additions, deletions) =
-                diff_stats_for_path(&repo, head_tree.as_ref(), path, true, false)
-                    .unwrap_or((0, 0));
+                diff_stats_for_path(&repo, head_tree.as_ref(), path, true, false).unwrap_or((0, 0));
             if let Some(status_str) = status_for_index(status) {
                 staged_files.push(GitFileStatus {
                     path: normalized_path.clone(),
@@ -551,8 +537,7 @@ pub(crate) async fn get_git_status(
 
         if include_workdir {
             let (additions, deletions) =
-                diff_stats_for_path(&repo, head_tree.as_ref(), path, false, true)
-                    .unwrap_or((0, 0));
+                diff_stats_for_path(&repo, head_tree.as_ref(), path, false, true).unwrap_or((0, 0));
             if let Some(status_str) = status_for_workdir(status) {
                 unstaged_files.push(GitFileStatus {
                     path: normalized_path.clone(),
@@ -687,11 +672,13 @@ pub(crate) async fn revert_git_all(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let workspaces = state.workspaces.lock().await;
-    let entry = workspaces
-        .get(&workspace_id)
-        .ok_or("workspace not found")?;
+    let entry = workspaces.get(&workspace_id).ok_or("workspace not found")?;
     let repo_root = resolve_git_root(entry)?;
-    run_git_command(&repo_root, &["restore", "--staged", "--worktree", "--", "."]).await?;
+    run_git_command(
+        &repo_root,
+        &["restore", "--staged", "--worktree", "--", "."],
+    )
+    .await?;
     run_git_command(&repo_root, &["clean", "-f", "-d"]).await
 }
 
@@ -805,10 +792,7 @@ pub(crate) async fn get_git_diffs(
     let repo_root = resolve_git_root(&entry)?;
     tokio::task::spawn_blocking(move || {
         let repo = Repository::open(&repo_root).map_err(|e| e.to_string())?;
-        let head_tree = repo
-            .head()
-            .ok()
-            .and_then(|head| head.peel_to_tree().ok());
+        let head_tree = repo.head().ok().and_then(|head| head.peel_to_tree().ok());
 
         let mut options = DiffOptions::new();
         options
@@ -930,9 +914,7 @@ pub(crate) async fn get_git_log(
     let max_items = limit.unwrap_or(40);
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
     revwalk.push_head().map_err(|e| e.to_string())?;
-    revwalk
-        .set_sorting(Sort::TIME)
-        .map_err(|e| e.to_string())?;
+    revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
 
     let mut total = 0usize;
     for oid_result in revwalk {
@@ -942,9 +924,7 @@ pub(crate) async fn get_git_log(
 
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
     revwalk.push_head().map_err(|e| e.to_string())?;
-    revwalk
-        .set_sorting(Sort::TIME)
-        .map_err(|e| e.to_string())?;
+    revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
 
     let mut entries = Vec::new();
     for oid_result in revwalk.take(max_items) {
@@ -981,26 +961,20 @@ pub(crate) async fn get_git_log(
                             let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
                             revwalk.push(head_oid).map_err(|e| e.to_string())?;
                             revwalk.hide(upstream_oid).map_err(|e| e.to_string())?;
-                            revwalk
-                                .set_sorting(Sort::TIME)
-                                .map_err(|e| e.to_string())?;
+                            revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
                             for oid_result in revwalk.take(max_items) {
                                 let oid = oid_result.map_err(|e| e.to_string())?;
-                                let commit =
-                                    repo.find_commit(oid).map_err(|e| e.to_string())?;
+                                let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
                                 ahead_entries.push(commit_to_entry(commit));
                             }
 
                             let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
                             revwalk.push(upstream_oid).map_err(|e| e.to_string())?;
                             revwalk.hide(head_oid).map_err(|e| e.to_string())?;
-                            revwalk
-                                .set_sorting(Sort::TIME)
-                                .map_err(|e| e.to_string())?;
+                            revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
                             for oid_result in revwalk.take(max_items) {
                                 let oid = oid_result.map_err(|e| e.to_string())?;
-                                let commit =
-                                    repo.find_commit(oid).map_err(|e| e.to_string())?;
+                                let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
                                 behind_entries.push(commit_to_entry(commit));
                             }
                         }
@@ -1038,10 +1012,7 @@ pub(crate) async fn get_git_commit_diff(
     let oid = git2::Oid::from_str(&sha).map_err(|e| e.to_string())?;
     let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
     let commit_tree = commit.tree().map_err(|e| e.to_string())?;
-    let parent_tree = commit
-        .parent(0)
-        .ok()
-        .and_then(|parent| parent.tree().ok());
+    let parent_tree = commit.parent(0).ok().and_then(|parent| parent.tree().ok());
 
     let mut options = DiffOptions::new();
     let diff = repo
@@ -1148,12 +1119,7 @@ pub(crate) async fn get_git_remote(
     let name = if remotes.iter().any(|remote| remote == Some("origin")) {
         "origin".to_string()
     } else {
-        remotes
-            .iter()
-            .flatten()
-            .next()
-            .unwrap_or("")
-            .to_string()
+        remotes.iter().flatten().next().unwrap_or("").to_string()
     };
     if name.is_empty() {
         return Ok(None);
@@ -1382,8 +1348,7 @@ pub(crate) async fn get_github_pull_request_comments(
     let repo_root = resolve_git_root(&entry)?;
     let repo_name = github_repo_from_path(&repo_root)?;
 
-    let comments_endpoint =
-        format!("/repos/{repo_name}/issues/{pr_number}/comments?per_page=30");
+    let comments_endpoint = format!("/repos/{repo_name}/issues/{pr_number}/comments?per_page=30");
     let jq_filter = r#"[.[] | {id, body, createdAt: .created_at, url: .html_url, author: (if .user then {login: .user.login} else null end)}]"#;
 
     let mut command = Command::new("gh");
@@ -1492,10 +1457,7 @@ mod tests {
     use std::path::Path;
 
     fn create_temp_repo() -> (PathBuf, Repository) {
-        let root = std::env::temp_dir().join(format!(
-            "open-vibe-test-{}",
-            uuid::Uuid::new_v4()
-        ));
+        let root = std::env::temp_dir().join(format!("open-vibe-test-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&root).expect("create temp repo root");
         let repo = Repository::init(&root).expect("init repo");
         (root, repo)
@@ -1532,13 +1494,10 @@ mod tests {
         fs::write(root.join("a.txt"), "hello\n").expect("write file");
 
         let mut index = repo.index().expect("repo index");
-        index
-            .add_path(Path::new("a.txt"))
-            .expect("add path");
+        index.add_path(Path::new("a.txt")).expect("add path");
         let tree_id = index.write_tree().expect("write tree");
         let tree = repo.find_tree(tree_id).expect("find tree");
-        let sig =
-            git2::Signature::now("Test", "test@example.com").expect("signature");
+        let sig = git2::Signature::now("Test", "test@example.com").expect("signature");
         repo.commit(Some("HEAD"), &sig, &sig, "init", &tree, &[])
             .expect("commit");
 
@@ -1549,9 +1508,7 @@ mod tests {
         index
             .remove_path(Path::new("a.txt"))
             .expect("remove old path");
-        index
-            .add_path(Path::new("b.txt"))
-            .expect("add new path");
+        index.add_path(Path::new("b.txt")).expect("add new path");
         index.write().expect("write index");
 
         let paths = action_paths_for_file(&root, "b.txt");

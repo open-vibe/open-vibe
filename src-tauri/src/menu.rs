@@ -237,8 +237,7 @@ fn build_menu_with_language<R: tauri::Runtime>(
     let registry = handle.state::<MenuItemRegistry<R>>();
     let app_name = APP_DISPLAY_NAME;
     let labels = MenuLabels::new(language, app_name);
-    let about_item = MenuItemBuilder::with_id("about", labels.about.clone())
-        .build(handle)?;
+    let about_item = MenuItemBuilder::with_id("about", labels.about.clone()).build(handle)?;
     let check_updates_item =
         MenuItemBuilder::with_id("check_for_updates", labels.check_updates).build(handle)?;
     let settings_item = MenuItemBuilder::with_id("file_open_settings", labels.settings)
@@ -282,8 +281,7 @@ fn build_menu_with_language<R: tauri::Runtime>(
         MenuItemBuilder::with_id("file_new_worktree_agent", labels.new_worktree_agent)
             .build(handle)?;
     let new_clone_agent_item =
-        MenuItemBuilder::with_id("file_new_clone_agent", labels.new_clone_agent)
-            .build(handle)?;
+        MenuItemBuilder::with_id("file_new_clone_agent", labels.new_clone_agent).build(handle)?;
     let add_workspace_item =
         MenuItemBuilder::with_id("file_add_workspace", labels.add_workspace).build(handle)?;
 
@@ -345,8 +343,7 @@ fn build_menu_with_language<R: tauri::Runtime>(
         ],
     )?;
 
-    let cycle_model_item =
-        MenuItemBuilder::with_id("composer_cycle_model", labels.cycle_model)
+    let cycle_model_item = MenuItemBuilder::with_id("composer_cycle_model", labels.cycle_model)
         .accelerator("CmdOrCtrl+Shift+M")
         .build(handle)?;
     let cycle_access_item = MenuItemBuilder::with_id("composer_cycle_access", labels.cycle_access)
@@ -356,12 +353,10 @@ fn build_menu_with_language<R: tauri::Runtime>(
         MenuItemBuilder::with_id("composer_cycle_reasoning", labels.cycle_reasoning)
             .accelerator("CmdOrCtrl+Shift+R")
             .build(handle)?;
-    let cycle_collaboration_item = MenuItemBuilder::with_id(
-        "composer_cycle_collaboration",
-        labels.cycle_collaboration,
-    )
-    .accelerator("Shift+Tab")
-    .build(handle)?;
+    let cycle_collaboration_item =
+        MenuItemBuilder::with_id("composer_cycle_collaboration", labels.cycle_collaboration)
+            .accelerator("Shift+Tab")
+            .build(handle)?;
     registry.register("composer_cycle_model", &cycle_model_item);
     registry.register("composer_cycle_access", &cycle_access_item);
     registry.register("composer_cycle_reasoning", &cycle_reasoning_item);
@@ -379,18 +374,18 @@ fn build_menu_with_language<R: tauri::Runtime>(
         ],
     )?;
 
-    let toggle_projects_sidebar_item =
-        MenuItemBuilder::with_id("view_toggle_projects_sidebar", labels.toggle_projects_sidebar)
-            .build(handle)?;
+    let toggle_projects_sidebar_item = MenuItemBuilder::with_id(
+        "view_toggle_projects_sidebar",
+        labels.toggle_projects_sidebar,
+    )
+    .build(handle)?;
     let toggle_git_sidebar_item =
         MenuItemBuilder::with_id("view_toggle_git_sidebar", labels.toggle_git_sidebar)
             .build(handle)?;
-    let toggle_debug_panel_item = MenuItemBuilder::with_id(
-        "view_toggle_debug_panel",
-        labels.toggle_debug_panel,
-    )
-    .accelerator("CmdOrCtrl+Shift+D")
-    .build(handle)?;
+    let toggle_debug_panel_item =
+        MenuItemBuilder::with_id("view_toggle_debug_panel", labels.toggle_debug_panel)
+            .accelerator("CmdOrCtrl+Shift+D")
+            .build(handle)?;
     let toggle_terminal_item =
         MenuItemBuilder::with_id("view_toggle_terminal", labels.toggle_terminal)
             .accelerator("CmdOrCtrl+Shift+T")
@@ -403,7 +398,10 @@ fn build_menu_with_language<R: tauri::Runtime>(
         MenuItemBuilder::with_id("view_next_workspace", labels.next_workspace).build(handle)?;
     let prev_workspace_item =
         MenuItemBuilder::with_id("view_prev_workspace", labels.prev_workspace).build(handle)?;
-    registry.register("view_toggle_projects_sidebar", &toggle_projects_sidebar_item);
+    registry.register(
+        "view_toggle_projects_sidebar",
+        &toggle_projects_sidebar_item,
+    );
     registry.register("view_toggle_git_sidebar", &toggle_git_sidebar_item);
     registry.register("view_toggle_debug_panel", &toggle_debug_panel_item);
     registry.register("view_toggle_terminal", &toggle_terminal_item);
@@ -493,8 +491,7 @@ fn build_menu_with_language<R: tauri::Runtime>(
     #[cfg(target_os = "linux")]
     let help_menu = {
         let about_item =
-            MenuItemBuilder::with_id("help_about", labels.about.clone())
-                .build(handle)?;
+            MenuItemBuilder::with_id("help_about", labels.about.clone()).build(handle)?;
         Submenu::with_items(handle, labels.help_menu, true, &[&about_item])?
     };
     #[cfg(not(target_os = "linux"))]
@@ -531,7 +528,8 @@ pub(crate) fn apply_menu_language<R: Runtime>(
         let _ = tx.send(result);
     })
     .map_err(|error| error.to_string())?;
-    rx.recv().unwrap_or_else(|_| Err("menu update canceled".to_string()))
+    rx.recv()
+        .unwrap_or_else(|_| Err("menu update canceled".to_string()))
 }
 
 pub(crate) fn handle_menu_event<R: tauri::Runtime>(
@@ -587,9 +585,7 @@ pub(crate) fn handle_menu_event<R: tauri::Runtime>(
         "composer_cycle_model" => emit_menu_event(app, "menu-composer-cycle-model"),
         "composer_cycle_access" => emit_menu_event(app, "menu-composer-cycle-access"),
         "composer_cycle_reasoning" => emit_menu_event(app, "menu-composer-cycle-reasoning"),
-        "composer_cycle_collaboration" => {
-            emit_menu_event(app, "menu-composer-cycle-collaboration")
-        }
+        "composer_cycle_collaboration" => emit_menu_event(app, "menu-composer-cycle-collaboration"),
         "window_minimize" => {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.minimize();

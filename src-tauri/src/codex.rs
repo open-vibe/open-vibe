@@ -131,7 +131,6 @@ fn extract_response_item_stream_message(
     build_stream_message(thread_id, message_index, role, &text)
 }
 
-
 pub(crate) async fn spawn_workspace_session(
     entry: WorkspaceEntry,
     default_codex_bin: Option<String>,
@@ -173,7 +172,11 @@ pub(crate) async fn ensure_global_session(
             .values()
             .find(|entry| std::path::Path::new(&entry.path).is_dir())
             .map(|entry| entry.path.clone())
-            .or_else(|| std::env::current_dir().ok().and_then(|path| path.to_str().map(|value| value.to_string())))
+            .or_else(|| {
+                std::env::current_dir()
+                    .ok()
+                    .and_then(|path| path.to_str().map(|value| value.to_string()))
+            })
             .unwrap_or_else(|| ".".to_string())
     };
     let entry = WorkspaceEntry {
@@ -245,7 +248,9 @@ pub(crate) async fn codex_doctor(
     command.stdout(std::process::Stdio::piped());
     command.stderr(std::process::Stdio::piped());
     let app_server_ok = match timeout(Duration::from_secs(5), command.output()).await {
-        Ok(result) => result.map(|output| output.status.success()).unwrap_or(false),
+        Ok(result) => result
+            .map(|output| output.status.success())
+            .unwrap_or(false),
         Err(_) => false,
     };
     let (node_ok, node_version, node_details) = {
@@ -261,12 +266,14 @@ pub(crate) async fn codex_doctor(
             Ok(result) => match result {
                 Ok(output) => {
                     if output.status.success() {
-                        let version = String::from_utf8_lossy(&output.stdout)
-                            .trim()
-                            .to_string();
+                        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
                         (
                             !version.is_empty(),
-                            if version.is_empty() { None } else { Some(version) },
+                            if version.is_empty() {
+                                None
+                            } else {
+                                Some(version)
+                            },
                             None,
                         )
                     } else {
@@ -296,7 +303,11 @@ pub(crate) async fn codex_doctor(
                     }
                 }
             },
-            Err(_) => (false, None, Some("Timed out while checking Node.".to_string())),
+            Err(_) => (
+                false,
+                None,
+                Some("Timed out while checking Node.".to_string()),
+            ),
         }
     };
     let details = if app_server_ok {
@@ -451,9 +462,7 @@ pub(crate) async fn stream_thread_history(
     app: AppHandle,
 ) -> Result<String, String> {
     if remote_backend::is_remote_mode(&*state).await {
-        return Err(
-            "thread history streaming is unavailable in remote backend mode".to_string(),
-        );
+        return Err("thread history streaming is unavailable in remote backend mode".to_string());
     }
 
     let resolved_path = path
@@ -544,9 +553,11 @@ pub(crate) async fn stream_thread_history(
                     if seen_event_message {
                         continue;
                     }
-                    if let Some(item) =
-                        extract_response_item_stream_message(payload, &thread_id, &mut message_index)
-                    {
+                    if let Some(item) = extract_response_item_stream_message(
+                        payload,
+                        &thread_id,
+                        &mut message_index,
+                    ) {
                         pending_response_items.push(item);
                     }
                 }
@@ -1097,11 +1108,21 @@ Changes:\n{diff}"
     let thread_id = thread_result
         .get("result")
         .and_then(|r| r.get("threadId"))
-        .or_else(|| thread_result.get("result").and_then(|r| r.get("thread")).and_then(|t| t.get("id")))
+        .or_else(|| {
+            thread_result
+                .get("result")
+                .and_then(|r| r.get("thread"))
+                .and_then(|t| t.get("id"))
+        })
         .or_else(|| thread_result.get("threadId"))
         .or_else(|| thread_result.get("thread").and_then(|t| t.get("id")))
         .and_then(|t| t.as_str())
-        .ok_or_else(|| format!("Failed to get threadId from thread/start response: {:?}", thread_result))?
+        .ok_or_else(|| {
+            format!(
+                "Failed to get threadId from thread/start response: {:?}",
+                thread_result
+            )
+        })?
         .to_string();
 
     // Create channel for receiving events
@@ -1280,11 +1301,21 @@ Task:\n{cleaned_prompt}"
     let thread_id = thread_result
         .get("result")
         .and_then(|r| r.get("threadId"))
-        .or_else(|| thread_result.get("result").and_then(|r| r.get("thread")).and_then(|t| t.get("id")))
+        .or_else(|| {
+            thread_result
+                .get("result")
+                .and_then(|r| r.get("thread"))
+                .and_then(|t| t.get("id"))
+        })
         .or_else(|| thread_result.get("threadId"))
         .or_else(|| thread_result.get("thread").and_then(|t| t.get("id")))
         .and_then(|t| t.as_str())
-        .ok_or_else(|| format!("Failed to get threadId from thread/start response: {:?}", thread_result))?
+        .ok_or_else(|| {
+            format!(
+                "Failed to get threadId from thread/start response: {:?}",
+                thread_result
+            )
+        })?
         .to_string();
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Value>();
@@ -1376,8 +1407,8 @@ Task:\n{cleaned_prompt}"
         return Err("No metadata was generated".to_string());
     }
 
-    let json_value = extract_json_value(trimmed)
-        .ok_or_else(|| "Failed to parse metadata JSON".to_string())?;
+    let json_value =
+        extract_json_value(trimmed).ok_or_else(|| "Failed to parse metadata JSON".to_string())?;
     let title = json_value
         .get("title")
         .and_then(|v| v.as_str())
@@ -1433,10 +1464,21 @@ fn sanitize_run_worktree_name(value: &str) -> String {
         cleaned.pop();
     }
     let allowed_prefixes = [
-        "feat/", "fix/", "chore/", "test/", "docs/", "refactor/", "perf/",
-        "build/", "ci/", "style/",
+        "feat/",
+        "fix/",
+        "chore/",
+        "test/",
+        "docs/",
+        "refactor/",
+        "perf/",
+        "build/",
+        "ci/",
+        "style/",
     ];
-    if allowed_prefixes.iter().any(|prefix| cleaned.starts_with(prefix)) {
+    if allowed_prefixes
+        .iter()
+        .any(|prefix| cleaned.starts_with(prefix))
+    {
         return cleaned;
     }
     for prefix in allowed_prefixes.iter() {

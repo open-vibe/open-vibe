@@ -83,8 +83,7 @@ impl RemoteBackend {
             return Err(DISCONNECTED_MESSAGE.to_string());
         }
 
-        rx.await
-            .map_err(|_| DISCONNECTED_MESSAGE.to_string())?
+        rx.await.map_err(|_| DISCONNECTED_MESSAGE.to_string())?
     }
 }
 
