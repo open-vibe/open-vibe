@@ -37,13 +37,12 @@ export function useThreadStorage(): UseThreadStorageResult {
   const threadActivityRef = useRef<ThreadActivityMap>(loadThreadActivity());
   const pinnedThreadsRef = useRef<PinnedThreadsMap>(loadPinnedThreads());
   const [pinnedThreadsVersion, setPinnedThreadsVersion] = useState(0);
-  const customNamesRef = useRef<CustomNamesMap>({});
+  const customNamesRef = useRef<CustomNamesMap>(loadCustomNames());
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
     }
-    customNamesRef.current = loadCustomNames();
     const handleStorage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY_CUSTOM_NAMES) {
         customNamesRef.current = loadCustomNames();

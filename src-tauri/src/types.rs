@@ -492,6 +492,11 @@ pub(crate) struct AppSettings {
         rename = "nanobotQqAllowFrom"
     )]
     pub(crate) nanobot_qq_allow_from: String,
+    #[serde(
+        default = "default_moltis_telegram_bot_token",
+        rename = "moltisTelegramBotToken"
+    )]
+    pub(crate) moltis_telegram_bot_token: String,
     #[serde(default = "default_access_mode", rename = "defaultAccessMode")]
     pub(crate) default_access_mode: String,
     #[serde(
@@ -917,6 +922,10 @@ fn default_nanobot_qq_allow_from() -> String {
     String::new()
 }
 
+fn default_moltis_telegram_bot_token() -> String {
+    String::new()
+}
+
 fn default_ui_scale() -> f64 {
     1.0
 }
@@ -1245,6 +1254,7 @@ impl Default for AppSettings {
             nanobot_qq_app_id: default_nanobot_qq_app_id(),
             nanobot_qq_secret: default_nanobot_qq_secret(),
             nanobot_qq_allow_from: default_nanobot_qq_allow_from(),
+            moltis_telegram_bot_token: default_moltis_telegram_bot_token(),
             default_access_mode: "current".to_string(),
             composer_model_shortcut: default_composer_model_shortcut(),
             composer_access_shortcut: default_composer_access_shortcut(),
@@ -1369,6 +1379,7 @@ mod tests {
         assert!(settings.nanobot_qq_app_id.is_empty());
         assert!(settings.nanobot_qq_secret.is_empty());
         assert!(settings.nanobot_qq_allow_from.is_empty());
+        assert!(settings.moltis_telegram_bot_token.is_empty());
         assert!(!settings.compact_sidebar);
         assert_eq!(settings.default_access_mode, "current");
         assert_eq!(

@@ -1,7 +1,5 @@
 import type { ConversationItem } from "../types";
 import { cleanCommandText } from "./commandText";
-
-const MAX_ITEMS_PER_THREAD = 200;
 const MAX_ITEM_TEXT = 20000;
 const TOOL_OUTPUT_RECENT_ITEMS = 40;
 const NO_TRUNCATE_TOOL_TYPES = new Set(["fileChange", "commandExecution"]);
@@ -425,11 +423,10 @@ export function prepareThreadItems(items: ConversationItem[]) {
     filtered.push(item);
   }
   const normalized = filtered.map((item) => normalizeItem(item));
-  const limited =
-    normalized.length > MAX_ITEMS_PER_THREAD
-      ? normalized.slice(-MAX_ITEMS_PER_THREAD)
-      : normalized;
-  const summarized = summarizeExploration(limited);
+  // Keep the full conversation history in memory so users can scroll back
+  // through long threads. Exploration/tool items are still summarized below
+  // and individual fields are truncated to keep rendering costs bounded.
+  const summarized = summarizeExploration(normalized);
   const cutoff = Math.max(0, summarized.length - TOOL_OUTPUT_RECENT_ITEMS);
   return summarized.map((item, index) => {
     if (index >= cutoff || item.kind !== "tool") {

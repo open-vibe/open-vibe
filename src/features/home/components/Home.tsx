@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 import FolderOpen from "lucide-react/dist/esm/icons/folder-open";
 import Plus from "lucide-react/dist/esm/icons/plus";
@@ -153,8 +154,11 @@ export function Home({
   };
 
   const usageTotals = localUsageSnapshot?.totals ?? null;
-  const usageDays = localUsageSnapshot?.days ?? [];
-  const last7Days = usageDays.slice(-7);
+  const usageDays = useMemo(
+    () => localUsageSnapshot?.days ?? [],
+    [localUsageSnapshot?.days],
+  );
+  const last7Days = useMemo(() => usageDays.slice(-7), [usageDays]);
   const last7AgentMs = last7Days.reduce(
     (total, day) => total + (day.agentTimeMs ?? 0),
     0,
@@ -203,11 +207,15 @@ export function Home({
     },
   } satisfies ChartConfig;
   const chartMetricKey = usageMetric === "tokens" ? "tokens" : "time";
-  const chartData = last7Days.map((day) => ({
-    day: formatDayLabel(day.day),
-    tokens: day.totalTokens ?? 0,
-    time: day.agentTimeMs ?? 0,
-  }));
+  const chartData = useMemo(
+    () =>
+      last7Days.map((day) => ({
+        day: formatDayLabel(day.day),
+        tokens: day.totalTokens ?? 0,
+        time: day.agentTimeMs ?? 0,
+      })),
+    [last7Days],
+  );
 
   return (
     <div

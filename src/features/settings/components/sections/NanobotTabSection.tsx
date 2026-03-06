@@ -94,6 +94,11 @@ export function NanobotTabSection(props: any) {
     nanobotCleanupState,
     nanobotConfigPath,
     nanobotConfigPathError,
+    moltisTelegramTokenDraft,
+    setMoltisTelegramTokenDraft,
+    handleSaveMoltisTelegramToken,
+    handleSyncMoltisMenu,
+    moltisMenuSyncState,
     cn,
   } = props;
 
@@ -1180,6 +1185,81 @@ export function NanobotTabSection(props: any) {
                               {t("settings.nanobot.qq.allowFrom.help")}
                             </div>
                           </div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/60 p-3">
+                        <div className="mb-3 text-sm font-medium">
+                          {t("settings.nanobot.moltis.sectionTitle")}
+                        </div>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="moltis-telegram-token">
+                              {t("settings.nanobot.moltis.telegramToken.label")}
+                            </Label>
+                            <Input
+                              id="moltis-telegram-token"
+                              type="password"
+                              value={moltisTelegramTokenDraft}
+                              placeholder={t(
+                                "settings.nanobot.moltis.telegramToken.placeholder",
+                              )}
+                              onChange={(event: any) =>
+                                setMoltisTelegramTokenDraft(event.target.value)
+                              }
+                              onBlur={() => {
+                                void handleSaveMoltisTelegramToken();
+                              }}
+                              onKeyDown={(event: any) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  void handleSaveMoltisTelegramToken();
+                                }
+                              }}
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {t("settings.nanobot.moltis.telegramToken.help")}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                void handleSaveMoltisTelegramToken();
+                              }}
+                            >
+                              {t("settings.nanobot.moltis.saveToken")}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={
+                                moltisMenuSyncState.status === "running" ||
+                                !moltisTelegramTokenDraft.trim()
+                              }
+                              onClick={() => {
+                                void handleSyncMoltisMenu();
+                              }}
+                            >
+                              {moltisMenuSyncState.status === "running"
+                                ? t("settings.action.running")
+                                : t("settings.nanobot.moltis.syncButton")}
+                            </Button>
+                          </div>
+                          {moltisMenuSyncState.status === "done" &&
+                          moltisMenuSyncState.message ? (
+                            <div
+                              className={cn(
+                                "rounded-md border p-3 text-xs",
+                                moltisMenuSyncState.ok
+                                  ? "border-emerald-500/40 bg-emerald-50/40 text-emerald-900 dark:text-emerald-200"
+                                  : "border-destructive/40 bg-destructive/10",
+                              )}
+                            >
+                              {moltisMenuSyncState.message}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">

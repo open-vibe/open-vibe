@@ -89,6 +89,7 @@ const defaultSettings: AppSettings = {
   nanobotQqAppId: "",
   nanobotQqSecret: "",
   nanobotQqAllowFrom: "",
+  moltisTelegramBotToken: "",
   defaultAccessMode: "current",
   composerModelShortcut: "cmd+shift+m",
   composerAccessShortcut: "cmd+shift+a",
@@ -268,6 +269,7 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     nanobotQqAppId: settings.nanobotQqAppId?.trim() ?? "",
     nanobotQqSecret: settings.nanobotQqSecret?.trim() ?? "",
     nanobotQqAllowFrom: settings.nanobotQqAllowFrom ?? "",
+    moltisTelegramBotToken: settings.moltisTelegramBotToken?.trim() ?? "",
     defaultAccessMode: allowedAccessModes.has(settings.defaultAccessMode)
       ? settings.defaultAccessMode
       : "current",

@@ -20,6 +20,7 @@ import type {
   AppSettings,
   CodexDoctorResult,
   DictationModelStatus,
+  MoltisTelegramMenuSyncResult,
   ModelOption,
   NanobotDingTalkTestResult,
   OpenAppTarget,
@@ -214,6 +215,9 @@ export type SettingsViewProps = {
     clientId: string,
     clientSecret: string,
   ) => Promise<NanobotDingTalkTestResult>;
+  onSyncMoltisTelegramMenu: (
+    token: string,
+  ) => Promise<MoltisTelegramMenuSyncResult>;
   onClearNanobotThreads?: (options?: { previewOnly?: boolean }) => Promise<{
     cleared: number;
     workspaceName: string;
@@ -363,6 +367,7 @@ export function SettingsView({
   onRunDoctor,
   onGetNanobotConfigPath,
   onTestNanobotDingTalk,
+  onSyncMoltisTelegramMenu,
   onClearNanobotThreads,
   nanobotAwayDetected = false,
   nanobotBluetoothState,
@@ -672,6 +677,18 @@ export function SettingsView({
   const [nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft] = useState(
     appSettings.nanobotQqAllowFrom,
   );
+  const [moltisTelegramTokenDraft, setMoltisTelegramTokenDraft] = useState(
+    appSettings.moltisTelegramBotToken,
+  );
+  const [moltisMenuSyncState, setMoltisMenuSyncState] = useState<{
+    status: "idle" | "running" | "done";
+    ok: boolean;
+    message: string | null;
+  }>({
+    status: "idle",
+    ok: true,
+    message: null,
+  });
   const [nanobotCodexBinDraft, setNanobotCodexBinDraft] = useState(
     nanobotWorkspace?.codex_bin ?? "",
   );
@@ -982,6 +999,10 @@ export function SettingsView({
   useEffect(() => {
     setNanobotQqAllowFromDraft(appSettings.nanobotQqAllowFrom);
   }, [appSettings.nanobotQqAllowFrom]);
+
+  useEffect(() => {
+    setMoltisTelegramTokenDraft(appSettings.moltisTelegramBotToken);
+  }, [appSettings.moltisTelegramBotToken]);
 
   useEffect(() => {
     setNanobotCodexBinDraft(nanobotWorkspace?.codex_bin ?? "");
@@ -1832,6 +1853,43 @@ export function SettingsView({
     }
   };
 
+  const handleSaveMoltisTelegramToken = async () => {
+    await onUpdateAppSettings({
+      ...appSettings,
+      moltisTelegramBotToken: moltisTelegramTokenDraft.trim(),
+    });
+  };
+
+  const handleSyncMoltisMenu = async () => {
+    const token = moltisTelegramTokenDraft.trim();
+    if (!token) {
+      setMoltisMenuSyncState({
+        status: "done",
+        ok: false,
+        message: t("settings.nanobot.moltis.sync.missingToken"),
+      });
+      return;
+    }
+    setMoltisMenuSyncState({ status: "running", ok: true, message: null });
+    try {
+      const result = await onSyncMoltisTelegramMenu(token);
+      setMoltisMenuSyncState({
+        status: "done",
+        ok: result.ok,
+        message: t("settings.nanobot.moltis.sync.success", {
+          count: result.commandCount,
+        }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setMoltisMenuSyncState({
+        status: "done",
+        ok: false,
+        message: t("settings.nanobot.moltis.sync.failed", { value: message }),
+      });
+    }
+  };
+
   const updateShortcut = async (
     key: ShortcutSettingKey,
     value: string | null,
@@ -2071,7 +2129,7 @@ export function SettingsView({
                             <DictationTabSection {...{ t, platform, appSettings, onUpdateAppSettings, dictationModelStatus, onCancelDictationDownload, onDownloadDictationModel, dictationModels, selectedDictationModel, dictationProgress, dictationReady, onRemoveDictationModel, DICTATION_AUTO_VALUE, DICTATION_HOLD_OFF_VALUE }} />
                             <ShortcutsTabSection {...{ t, shortcutDrafts, handleShortcutKeyDown, updateShortcut, formatShortcut, getDefaultInterruptShortcut }} />
                             <OpenAppsTabSection {...{ t, openAppDrafts, openAppIconById, handleOpenAppDraftChange, handleCommitOpenApps, handleOpenAppKindChange, fileManagerLabel, openAppSelectedId, handleSelectOpenAppDefault, handleMoveOpenApp, handleDeleteOpenApp, handleAddOpenApp }} />
-                            <NanobotTabSection {...{ t, appSettings, onUpdateAppSettings, models, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAgentModel, nextNanobotAgentReasoningEffort, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAgentModelDraft, nanobotAgentModelSelectValue, handleSelectNanobotAgentModel, nanobotAgentReasoningEffortDraft, nanobotAgentReasoningOptions, handleSelectNanobotAgentReasoningEffort, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotAwayDetected, nanobotBluetoothState, nanobotBluetoothDevices, onStartNanobotBluetoothScan, onStopNanobotBluetoothScan, nanobotWorkspace, nanobotCodexBinDraft, setNanobotCodexBinDraft, handleCommitNanobotCodexBin, nanobotCodexBinSaving, nanobotCodexBinSavedAt, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, cn }} />
+                            <NanobotTabSection {...{ t, appSettings, onUpdateAppSettings, models, nextNanobotClientId, nextNanobotClientSecret, nextNanobotAgentModel, nextNanobotAgentReasoningEffort, nextNanobotAllowFrom, nextNanobotEmailImapHost, nextNanobotEmailImapPort, nextNanobotEmailImapUsername, nextNanobotEmailImapPassword, nextNanobotEmailImapMailbox, nextNanobotEmailSmtpHost, nextNanobotEmailSmtpPort, nextNanobotEmailSmtpUsername, nextNanobotEmailSmtpPassword, nextNanobotEmailFromAddress, nextNanobotEmailAllowFrom, nextNanobotEmailPollIntervalSeconds, nextNanobotQqAppId, nextNanobotQqSecret, nextNanobotQqAllowFrom, nanobotClientIdDraft, setNanobotClientIdDraft, nanobotClientSecretDraft, setNanobotClientSecretDraft, nanobotAgentModelDraft, nanobotAgentModelSelectValue, handleSelectNanobotAgentModel, nanobotAgentReasoningEffortDraft, nanobotAgentReasoningOptions, handleSelectNanobotAgentReasoningEffort, nanobotAllowFromDraft, setNanobotAllowFromDraft, handleTestNanobotDingTalk, nanobotTestState, nanobotAwayDetected, nanobotBluetoothState, nanobotBluetoothDevices, onStartNanobotBluetoothScan, onStopNanobotBluetoothScan, nanobotWorkspace, nanobotCodexBinDraft, setNanobotCodexBinDraft, handleCommitNanobotCodexBin, nanobotCodexBinSaving, nanobotCodexBinSavedAt, nanobotEmailImapHostDraft, setNanobotEmailImapHostDraft, nanobotEmailImapPortDraft, setNanobotEmailImapPortDraft, nanobotEmailImapUsernameDraft, setNanobotEmailImapUsernameDraft, nanobotEmailImapPasswordDraft, setNanobotEmailImapPasswordDraft, nanobotEmailImapMailboxDraft, setNanobotEmailImapMailboxDraft, nanobotEmailSmtpHostDraft, setNanobotEmailSmtpHostDraft, nanobotEmailSmtpPortDraft, setNanobotEmailSmtpPortDraft, nanobotEmailSmtpUsernameDraft, setNanobotEmailSmtpUsernameDraft, nanobotEmailSmtpPasswordDraft, setNanobotEmailSmtpPasswordDraft, nanobotEmailFromAddressDraft, setNanobotEmailFromAddressDraft, nanobotEmailPollIntervalDraft, setNanobotEmailPollIntervalDraft, nanobotEmailAllowFromDraft, setNanobotEmailAllowFromDraft, nanobotQqAppIdDraft, setNanobotQqAppIdDraft, nanobotQqSecretDraft, setNanobotQqSecretDraft, nanobotQqAllowFromDraft, setNanobotQqAllowFromDraft, nanobotDirty, handleSaveNanobotSettings, isSavingSettings, handleClearNanobotThreads, nanobotCleanupState, nanobotConfigPath, nanobotConfigPathError, moltisTelegramTokenDraft, setMoltisTelegramTokenDraft, handleSaveMoltisTelegramToken, handleSyncMoltisMenu, moltisMenuSyncState, cn }} />
                             <CodexTabSection {...{ t, codexPathDraft, setCodexPathDraft, handleBrowseCodex, codexArgsDraft, setCodexArgsDraft, codexDirty, handleSaveCodexSettings, isSavingSettings, handleRunDoctor, doctorState, projects, codexBinOverrideDrafts, setCodexBinOverrideDrafts, handleCommitCodexBinOverride, codexBinOverrideSaving, codexBinOverrideSavedAt, setCodexBinOverrideSaving, onUpdateWorkspaceCodexBin, setCodexBinOverrideSavedAt, appSettings, handleRunWorkspaceDoctor, codexBinOverrideDoctor, codexHomeOverrideDrafts, setCodexHomeOverrideDrafts, onUpdateWorkspaceSettings, codexArgsOverrideDrafts, setCodexArgsOverrideDrafts, onUpdateAppSettings, remoteHostDraft, setRemoteHostDraft, handleCommitRemoteHost, remoteTokenDraft, setRemoteTokenDraft, handleCommitRemoteToken, globalAgentsMeta, globalAgentsError, globalAgentsContent, globalAgentsLoading, globalAgentsRefreshDisabled, globalAgentsSaveDisabled, globalAgentsSaveLabel, setGlobalAgentsContent, refreshGlobalAgents, saveGlobalAgents, globalConfigMeta, globalConfigError, globalConfigContent, globalConfigLoading, globalConfigRefreshDisabled, globalConfigSaveDisabled, globalConfigSaveLabel, setGlobalConfigContent, refreshGlobalConfig, saveGlobalConfig, normalizeOverrideValue, cn }} />
                             <ExperimentalTabSection {...{ t, hasCodexHomeOverrides, fileManagerLabel, handleOpenConfig, openInFileManagerLabel, openConfigError, appSettings, onUpdateAppSettings, yunyiTokenDraft, setYunyiTokenDraft, handleCommitYunyiToken, happyServerDraft, setHappyServerDraft, handleCommitHappyServer }} />
             </div>

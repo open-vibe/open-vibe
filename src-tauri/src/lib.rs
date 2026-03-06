@@ -31,6 +31,7 @@ mod git_utils;
 mod happy_bridge;
 mod local_usage;
 mod menu;
+mod moltis;
 mod nanobot_bridge;
 mod nanobot_bridge_daemon;
 mod nanobot_integration;
@@ -198,6 +199,7 @@ pub fn run() {
             settings::get_app_settings,
             settings::update_app_settings,
             settings::get_codex_config_path,
+            moltis::moltis_sync_telegram_menu,
             nanobot_integration::nanobot_config_path,
             nanobot_integration::nanobot_test_dingtalk,
             nanobot_integration::nanobot_bluetooth_probe,

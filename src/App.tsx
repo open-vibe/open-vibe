@@ -114,6 +114,7 @@ import {
   getNanobotConfigPath,
   listThreads as listThreadsService,
   pickWorkspacePath,
+  syncMoltisTelegramMenu,
   testNanobotDingTalk,
 } from "./services/tauri";
 import { ThreadTabsBar } from "./features/app/components/ThreadTabsBar";
@@ -3535,6 +3536,7 @@ function MainApp({ detachedTab = null }: MainAppProps = {}) {
             onRunDoctor: doctor,
             onGetNanobotConfigPath: getNanobotConfigPath,
             onTestNanobotDingTalk: testNanobotDingTalk,
+            onSyncMoltisTelegramMenu: syncMoltisTelegramMenu,
             onClearNanobotThreads: handleClearNanobotThreads,
             nanobotAwayDetected,
             nanobotBluetoothState,

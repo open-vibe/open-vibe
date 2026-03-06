@@ -67,6 +67,7 @@ const baseSettings: AppSettings = {
   nanobotQqAppId: "",
   nanobotQqSecret: "",
   nanobotQqAllowFrom: "",
+  moltisTelegramBotToken: "",
   defaultAccessMode: "current",
   composerModelShortcut: null,
   composerAccessShortcut: null,
@@ -191,6 +192,11 @@ const renderDisplaySection = async (
       ok: true,
       endpoint: "https://api.dingtalk.com/v1.0/oauth2/accessToken",
       message: "ok",
+    }),
+    onSyncMoltisTelegramMenu: vi.fn().mockResolvedValue({
+      ok: true,
+      commandCount: 15,
+      description: "ok",
     }),
     onUpdateWorkspaceCodexBin: vi.fn().mockResolvedValue(undefined),
     onUpdateWorkspaceSettings: vi.fn().mockResolvedValue(undefined),
@@ -413,6 +419,11 @@ describe("SettingsView Codex overrides", () => {
             endpoint: null,
             message: "ok",
           })}
+          onSyncMoltisTelegramMenu={vi.fn().mockResolvedValue({
+            ok: true,
+            commandCount: 15,
+            description: "ok",
+          })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={onUpdateWorkspaceSettings}
           scaleShortcutTitle="Scale shortcut"
@@ -469,6 +480,11 @@ describe("SettingsView Shortcuts", () => {
             endpoint: null,
             message: "ok",
           })}
+          onSyncMoltisTelegramMenu={vi.fn().mockResolvedValue({
+            ok: true,
+            commandCount: 15,
+            description: "ok",
+          })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
           scaleShortcutTitle="Scale shortcut"
@@ -519,6 +535,11 @@ describe("SettingsView Shortcuts", () => {
             ok: true,
             endpoint: null,
             message: "ok",
+          })}
+          onSyncMoltisTelegramMenu={vi.fn().mockResolvedValue({
+            ok: true,
+            commandCount: 15,
+            description: "ok",
           })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
@@ -575,6 +596,11 @@ describe("SettingsView Experimental", () => {
             ok: true,
             endpoint: null,
             message: "ok",
+          })}
+          onSyncMoltisTelegramMenu={vi.fn().mockResolvedValue({
+            ok: true,
+            commandCount: 15,
+            description: "ok",
           })}
           onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
           onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}

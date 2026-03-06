@@ -689,6 +689,18 @@ const en = {
   "settings.nanobot.qq.allowFrom.placeholder": "user_a, user_b",
   "settings.nanobot.qq.allowFrom.help":
     "Use sender IDs separated by commas, semicolons, or new lines.",
+  "settings.nanobot.moltis.sectionTitle": "Moltis Telegram menu",
+  "settings.nanobot.moltis.telegramToken.label": "Telegram bot token",
+  "settings.nanobot.moltis.telegramToken.placeholder": "123456789:AA...",
+  "settings.nanobot.moltis.telegramToken.help":
+    "Used by OpenVibe to update Telegram command menu for Moltis + OpenVibe controls.",
+  "settings.nanobot.moltis.saveToken": "Save token",
+  "settings.nanobot.moltis.syncButton": "Enhance Moltis menu",
+  "settings.nanobot.moltis.sync.missingToken":
+    "Please enter Telegram bot token first.",
+  "settings.nanobot.moltis.sync.success":
+    "Menu synced successfully ({count} commands).",
+  "settings.nanobot.moltis.sync.failed": "Menu sync failed: {value}",
   "settings.nanobot.cleanup.title": "Clean Nanobot threads",
   "settings.nanobot.cleanup.subtitle":
     "Archive all threads under the Nanobot workspace (~/.nanobot).",
@@ -1588,6 +1600,16 @@ const zhCN: Record<TranslationKey, string> = {
   "settings.nanobot.qq.allowFrom.placeholder": "user_a, user_b",
   "settings.nanobot.qq.allowFrom.help":
     "可使用逗号、分号或换行分隔 sender ID。",
+  "settings.nanobot.moltis.sectionTitle": "Moltis Telegram 菜单",
+  "settings.nanobot.moltis.telegramToken.label": "Telegram 机器人 Token",
+  "settings.nanobot.moltis.telegramToken.placeholder": "123456789:AA...",
+  "settings.nanobot.moltis.telegramToken.help":
+    "用于让 OpenVibe 更新 Moltis 机器人的 Telegram 菜单（含 OpenVibe 控制命令）。",
+  "settings.nanobot.moltis.saveToken": "保存 Token",
+  "settings.nanobot.moltis.syncButton": "增强 Moltis 菜单",
+  "settings.nanobot.moltis.sync.missingToken": "请先输入 Telegram Token。",
+  "settings.nanobot.moltis.sync.success": "菜单同步成功（共 {count} 条命令）。",
+  "settings.nanobot.moltis.sync.failed": "菜单同步失败：{value}",
   "settings.nanobot.cleanup.title": "清理 Nanobot 对话",
   "settings.nanobot.cleanup.subtitle":
     "归档 Nanobot 工作区（~/.nanobot）下的全部对话。",

@@ -8,6 +8,7 @@ import type {
   HappyBridgeCommand,
   HappyBridgeStatus,
   LocalUsageSnapshot,
+  MoltisTelegramMenuSyncResult,
   NanobotBridgeCommand,
   NanobotBridgeStatus,
   NanobotDingTalkTestResult,
@@ -615,6 +616,14 @@ export async function testNanobotDingTalk(
   return invoke<NanobotDingTalkTestResult>("nanobot_test_dingtalk", {
     clientId,
     clientSecret,
+  });
+}
+
+export async function syncMoltisTelegramMenu(
+  token: string,
+): Promise<MoltisTelegramMenuSyncResult> {
+  return invoke<MoltisTelegramMenuSyncResult>("moltis_sync_telegram_menu", {
+    token,
   });
 }
 

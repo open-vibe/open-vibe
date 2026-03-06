@@ -234,6 +234,7 @@ export type AppSettings = {
   nanobotQqAppId: string;
   nanobotQqSecret: string;
   nanobotQqAllowFrom: string;
+  moltisTelegramBotToken: string;
   defaultAccessMode: AccessMode;
   composerModelShortcut: string | null;
   composerAccessShortcut: string | null;
@@ -321,6 +322,12 @@ export type NanobotBridgeStatus = {
   running: boolean;
   configured: boolean;
   mode: NanobotMode;
+};
+
+export type MoltisTelegramMenuSyncResult = {
+  ok: boolean;
+  commandCount: number;
+  description: string;
 };
 
 export type NanobotBridgeCommand =

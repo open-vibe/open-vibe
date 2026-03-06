@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Brain, ChevronDown, ShieldCheck, Sparkles, Users } from "lucide-react";
 import {
   PolarAngleAxis,
@@ -94,13 +95,16 @@ export function ComposerMetaBar({
       color: "var(--primary)",
     },
   } satisfies ChartConfig;
-  const contextChartData = [
-    {
-      name: "context",
-      value: contextFreePercent ?? 0,
-      fill: "var(--color-context)",
-    },
-  ];
+  const contextChartData = useMemo(
+    () => [
+      {
+        name: "context",
+        value: contextFreePercent ?? 0,
+        fill: "var(--color-context)",
+      },
+    ],
+    [contextFreePercent],
+  );
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
