@@ -18,6 +18,7 @@ import { TabBar } from "../../app/components/TabBar";
 import { TabletNav } from "../../app/components/TabletNav";
 import { TerminalDock } from "../../terminal/components/TerminalDock";
 import { TerminalPanel } from "../../terminal/components/TerminalPanel";
+import { PaneErrorBoundary } from "../../app/components/PaneErrorBoundary";
 import type {
   AccessMode,
   ApprovalRequest,
@@ -532,97 +533,109 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
     />
   );
 
+  const activePaneKey = `${options.activeWorkspace?.id ?? "workspace"}:${
+    options.activeThreadId ?? "thread"
+  }`;
+
   const messagesNode = (
-    <Messages
-      items={options.activeItems}
-      threadId={options.activeThreadId ?? null}
-      workspaceId={options.activeWorkspace?.id ?? null}
-      workspacePath={options.activeWorkspace?.path ?? null}
-      openTargets={options.openAppTargets}
-      selectedOpenAppId={options.selectedOpenAppId}
-      happyEnabled={options.happyEnabled}
-      happyMessageStatusById={options.happyMessageStatusById}
-      happyMessageIdByItemId={options.happyMessageIdByItemId}
-      onRetryHappyMessage={options.onRetryHappyMessage}
-      codeBlockCopyUseModifier={options.codeBlockCopyUseModifier}
-      userInputRequests={options.userInputRequests}
-      onUserInputSubmit={options.handleUserInputSubmit}
-      isThinking={
-        options.activeThreadId
-          ? options.threadStatusById[options.activeThreadId]?.isProcessing ?? false
-          : false
-      }
-      processingStartedAt={activeThreadStatus?.processingStartedAt ?? null}
-      lastDurationMs={activeThreadStatus?.lastDurationMs ?? null}
-    />
+    <PaneErrorBoundary
+      label="Chat messages"
+      resetKey={activePaneKey}
+      className="messages-full"
+    >
+      <Messages
+        items={options.activeItems}
+        threadId={options.activeThreadId ?? null}
+        workspaceId={options.activeWorkspace?.id ?? null}
+        workspacePath={options.activeWorkspace?.path ?? null}
+        openTargets={options.openAppTargets}
+        selectedOpenAppId={options.selectedOpenAppId}
+        happyEnabled={options.happyEnabled}
+        happyMessageStatusById={options.happyMessageStatusById}
+        happyMessageIdByItemId={options.happyMessageIdByItemId}
+        onRetryHappyMessage={options.onRetryHappyMessage}
+        codeBlockCopyUseModifier={options.codeBlockCopyUseModifier}
+        userInputRequests={options.userInputRequests}
+        onUserInputSubmit={options.handleUserInputSubmit}
+        isThinking={
+          options.activeThreadId
+            ? options.threadStatusById[options.activeThreadId]?.isProcessing ?? false
+            : false
+        }
+        processingStartedAt={activeThreadStatus?.processingStartedAt ?? null}
+        lastDurationMs={activeThreadStatus?.lastDurationMs ?? null}
+      />
+    </PaneErrorBoundary>
   );
 
   const composerNode = options.showComposer ? (
-    <Composer
-      onSend={options.onSend}
-      onQueue={options.onQueue}
-      onStop={options.onStop}
-      canStop={options.canStop}
-      disabled={options.isReviewing}
-      contextUsage={options.activeTokenUsage}
-      queuedMessages={options.activeQueue}
-      sendLabel={
-        options.composerSendLabel ??
-        (options.isProcessing && !options.steerEnabled ? "Queue" : "Send")
-      }
-      sendBehavior={options.composerSendBehavior}
-      sendConfirmationEnabled={options.composerSendConfirmationEnabled}
-      targetLabel={options.composerTargetLabel ?? null}
-      copySourceLabel={options.composerCopyLabel ?? null}
-      onCopySource={options.onCopyComposerDraft}
-      steerEnabled={options.steerEnabled}
-      isProcessing={options.isProcessing}
-      draftText={options.draftText}
-      onDraftChange={options.onDraftChange}
-      attachedImages={options.activeImages}
-      onPickImages={options.onPickImages}
-      onAttachImages={options.onAttachImages}
-      onRemoveImage={options.onRemoveImage}
-      prefillDraft={options.prefillDraft}
-      onPrefillHandled={options.onPrefillHandled}
-      insertText={options.insertText}
-      onInsertHandled={options.onInsertHandled}
-      onEditQueued={options.onEditQueued}
-      onDeleteQueued={options.onDeleteQueued}
-      collaborationModes={options.collaborationModes}
-      selectedCollaborationModeId={options.selectedCollaborationModeId}
-      onSelectCollaborationMode={options.onSelectCollaborationMode}
-      models={options.models}
-      selectedModelId={options.selectedModelId}
-      onSelectModel={options.onSelectModel}
-      reasoningOptions={options.reasoningOptions}
-      selectedEffort={options.selectedEffort}
-      onSelectEffort={options.onSelectEffort}
-      reasoningSupported={options.reasoningSupported}
-      accessMode={options.accessMode}
-      onSelectAccessMode={options.onSelectAccessMode}
-      skills={options.skills}
-      prompts={options.prompts}
-      files={options.files}
-      textareaRef={options.textareaRef}
-      historyKey={options.activeWorkspace?.id ?? null}
-      editorSettings={options.composerEditorSettings}
-      editorExpanded={options.composerEditorExpanded}
-      onToggleEditorExpanded={options.onToggleComposerEditorExpanded}
-      dictationEnabled={options.dictationEnabled}
-      dictationState={options.dictationState}
-      dictationLevel={options.dictationLevel}
-      onToggleDictation={options.onToggleDictation}
-      onOpenDictationSettings={options.onOpenDictationSettings}
-      dictationTranscript={options.dictationTranscript}
-      onDictationTranscriptHandled={options.onDictationTranscriptHandled}
-      dictationError={options.dictationError}
-      onDismissDictationError={options.onDismissDictationError}
-      dictationHint={options.dictationHint}
-      onDismissDictationHint={options.onDismissDictationHint}
-      happyEnabled={options.happyEnabled}
-      happyConnected={options.happyConnected}
-    />
+    <PaneErrorBoundary label="Composer" resetKey={activePaneKey}>
+      <Composer
+        onSend={options.onSend}
+        onQueue={options.onQueue}
+        onStop={options.onStop}
+        canStop={options.canStop}
+        disabled={options.isReviewing}
+        contextUsage={options.activeTokenUsage}
+        queuedMessages={options.activeQueue}
+        sendLabel={
+          options.composerSendLabel ??
+          (options.isProcessing && !options.steerEnabled ? "Queue" : "Send")
+        }
+        sendBehavior={options.composerSendBehavior}
+        sendConfirmationEnabled={options.composerSendConfirmationEnabled}
+        targetLabel={options.composerTargetLabel ?? null}
+        copySourceLabel={options.composerCopyLabel ?? null}
+        onCopySource={options.onCopyComposerDraft}
+        steerEnabled={options.steerEnabled}
+        isProcessing={options.isProcessing}
+        draftText={options.draftText}
+        onDraftChange={options.onDraftChange}
+        attachedImages={options.activeImages}
+        onPickImages={options.onPickImages}
+        onAttachImages={options.onAttachImages}
+        onRemoveImage={options.onRemoveImage}
+        prefillDraft={options.prefillDraft}
+        onPrefillHandled={options.onPrefillHandled}
+        insertText={options.insertText}
+        onInsertHandled={options.onInsertHandled}
+        onEditQueued={options.onEditQueued}
+        onDeleteQueued={options.onDeleteQueued}
+        collaborationModes={options.collaborationModes}
+        selectedCollaborationModeId={options.selectedCollaborationModeId}
+        onSelectCollaborationMode={options.onSelectCollaborationMode}
+        models={options.models}
+        selectedModelId={options.selectedModelId}
+        onSelectModel={options.onSelectModel}
+        reasoningOptions={options.reasoningOptions}
+        selectedEffort={options.selectedEffort}
+        onSelectEffort={options.onSelectEffort}
+        reasoningSupported={options.reasoningSupported}
+        accessMode={options.accessMode}
+        onSelectAccessMode={options.onSelectAccessMode}
+        skills={options.skills}
+        prompts={options.prompts}
+        files={options.files}
+        textareaRef={options.textareaRef}
+        historyKey={options.activeWorkspace?.id ?? null}
+        editorSettings={options.composerEditorSettings}
+        editorExpanded={options.composerEditorExpanded}
+        onToggleEditorExpanded={options.onToggleComposerEditorExpanded}
+        dictationEnabled={options.dictationEnabled}
+        dictationState={options.dictationState}
+        dictationLevel={options.dictationLevel}
+        onToggleDictation={options.onToggleDictation}
+        onOpenDictationSettings={options.onOpenDictationSettings}
+        dictationTranscript={options.dictationTranscript}
+        onDictationTranscriptHandled={options.onDictationTranscriptHandled}
+        dictationError={options.dictationError}
+        onDismissDictationError={options.onDismissDictationError}
+        dictationHint={options.dictationHint}
+        onDismissDictationHint={options.onDismissDictationHint}
+        happyEnabled={options.happyEnabled}
+        happyConnected={options.happyConnected}
+      />
+    </PaneErrorBoundary>
   ) : null;
 
   const approvalToastsNode = (
@@ -843,23 +856,35 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
     );
   }
 
-  const gitDiffViewerNode = (
-    <GitDiffViewer
-      diffs={options.gitDiffs}
-      selectedPath={options.selectedDiffPath}
-      scrollRequestId={options.diffScrollRequestId}
-      isLoading={options.gitDiffLoading}
-      error={options.gitDiffError}
-      diffStyle={options.gitDiffViewStyle}
-      pullRequest={options.selectedPullRequest}
-      pullRequestComments={options.selectedPullRequestComments}
-      pullRequestCommentsLoading={options.selectedPullRequestCommentsLoading}
-      pullRequestCommentsError={options.selectedPullRequestCommentsError}
-      onActivePathChange={options.onDiffActivePathChange}
-    />
+  gitDiffPanelNode = (
+    <PaneErrorBoundary label="Context panel" resetKey={activePaneKey}>
+      {gitDiffPanelNode}
+    </PaneErrorBoundary>
   );
 
-  const planPanelNode = <PlanPanel plan={options.plan} isProcessing={options.isProcessing} />;
+  const gitDiffViewerNode = (
+    <PaneErrorBoundary label="Diff viewer" resetKey={activePaneKey}>
+      <GitDiffViewer
+        diffs={options.gitDiffs}
+        selectedPath={options.selectedDiffPath}
+        scrollRequestId={options.diffScrollRequestId}
+        isLoading={options.gitDiffLoading}
+        error={options.gitDiffError}
+        diffStyle={options.gitDiffViewStyle}
+        pullRequest={options.selectedPullRequest}
+        pullRequestComments={options.selectedPullRequestComments}
+        pullRequestCommentsLoading={options.selectedPullRequestCommentsLoading}
+        pullRequestCommentsError={options.selectedPullRequestCommentsError}
+        onActivePathChange={options.onDiffActivePathChange}
+      />
+    </PaneErrorBoundary>
+  );
+
+  const planPanelNode = (
+    <PaneErrorBoundary label="Plan panel" resetKey={activePaneKey}>
+      <PlanPanel plan={options.plan} isProcessing={options.isProcessing} />
+    </PaneErrorBoundary>
+  );
 
   const terminalPanelNode = options.terminalState ? (
     <TerminalPanel

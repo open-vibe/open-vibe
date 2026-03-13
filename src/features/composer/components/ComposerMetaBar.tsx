@@ -1,11 +1,5 @@
-import { useMemo } from "react";
+import { memo } from "react";
 import { Brain, ChevronDown, ShieldCheck, Sparkles, Users } from "lucide-react";
-import {
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart,
-} from "recharts";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +9,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import type { AccessMode, ThreadTokenUsage } from "../../../types";
 import { formatCollaborationModeLabel } from "../../../utils/collaborationModes";
 import { useI18n } from "../../../i18n";
@@ -37,7 +30,7 @@ type ComposerMetaBarProps = {
   contextUsage?: ThreadTokenUsage | null;
 };
 
-export function ComposerMetaBar({
+export const ComposerMetaBar = memo(function ComposerMetaBar({
   disabled,
   collaborationModes,
   selectedCollaborationModeId,
@@ -89,22 +82,15 @@ export function ComposerMetaBar({
       : t("composer.contextFree", {
           percent: Math.round(contextFreePercent),
         });
-  const contextChartConfig = {
-    context: {
-      label: t("composer.contextFreeUnknown"),
-      color: "var(--primary)",
-    },
-  } satisfies ChartConfig;
-  const contextChartData = useMemo(
-    () => [
-      {
-        name: "context",
-        value: contextFreePercent ?? 0,
-        fill: "var(--color-context)",
-      },
-    ],
-    [contextFreePercent],
-  );
+  const showContextChart =
+    contextUsedPercent !== null &&
+    contextWindow !== null &&
+    contextWindow > 0 &&
+    usedTokens > 0;
+  const contextRingDashOffset =
+    contextUsedPercent === null
+      ? 62.83
+      : Number((62.83 * (1 - contextUsedPercent / 100)).toFixed(2));
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
@@ -263,40 +249,50 @@ export function ComposerMetaBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="ml-auto flex items-center gap-2" style={{marginRight:"-6px"}}>
+      <div className="ml-auto flex items-center gap-2" style={{ marginRight: "-6px" }}>
         <span className="text-xs font-semibold text-muted-foreground">
           {contextUsedPercent === null
             ? "—"
             : `${Math.round(contextUsedPercent)}%`}
         </span>
-        <ChartContainer
-          config={contextChartConfig}
-          className="composer-context-chart"
-          aria-label={contextLabel}
-          title={contextLabel}
-        >
-          <RadialBarChart
-            data={contextChartData}
-            startAngle={90}
-            endAngle={-270}
-            innerRadius="60%"
-            outerRadius="100%"
+        {showContextChart ? (
+          <div
+            className="composer-context-chart"
+            role="img"
+            aria-label={contextLabel}
+            title={contextLabel}
           >
-            <PolarAngleAxis
-              type="number"
-              domain={[0, 100]}
-              tick={false}
-              axisLine={false}
-            />
-            <RadialBar
-              dataKey="value"
-              background={{ fill: "var(--surface-control)" }}
-              cornerRadius={12}
-            />
-            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false} />
-          </RadialBarChart>
-        </ChartContainer>
+            <svg
+              viewBox="0 0 24 24"
+              className="composer-context-ring"
+              aria-hidden="true"
+            >
+              <circle
+                className="composer-context-ring-track"
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <circle
+                className="composer-context-ring-value"
+                cx="12"
+                cy="12"
+                r="10"
+                style={{
+                  strokeDasharray: "62.83",
+                  strokeDashoffset: `${contextRingDashOffset}`,
+                }}
+              />
+            </svg>
+          </div>
+        ) : (
+          <div
+            className="composer-context-chart rounded-full border border-border/70"
+            aria-hidden
+            style={{ background: "var(--surface-control)" }}
+          />
+        )}
       </div>
     </div>
   );
-}
+});

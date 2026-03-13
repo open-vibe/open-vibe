@@ -81,7 +81,16 @@ describe("useModels", () => {
 
     await waitFor(() => expect(result.current.selectedModelId).toBe("provider-id"));
 
-    expect(result.current.models).toHaveLength(1);
+    expect(result.current.models).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "provider-id", model: "custom-model" }),
+        expect.objectContaining({
+          id: "gpt-5.4-codex",
+          model: "gpt-5.4-codex",
+        }),
+        expect.objectContaining({ id: "gpt-5.4-pro", model: "gpt-5.4-pro" }),
+      ]),
+    );
     expect(result.current.selectedModel?.id).toBe("provider-id");
     expect(result.current.reasoningSupported).toBe(true);
   });
@@ -120,6 +129,61 @@ describe("useModels", () => {
     await waitFor(() => {
       expect(result.current.selectedModelId).toBe("custom-model");
       expect(result.current.selectedEffort).toBe("high");
+    });
+  });
+
+  it("appends real gpt-5.4 codex and pro models with reasoning options", async () => {
+    vi.mocked(getModelList).mockResolvedValueOnce({
+      result: {
+        data: [
+          {
+            id: "remote-1",
+            model: "gpt-4.1",
+            displayName: "GPT-4.1",
+            supportedReasoningEfforts: [
+              { reasoningEffort: "low", description: "Low" },
+              { reasoningEffort: "medium", description: "Medium" },
+              { reasoningEffort: "high", description: "High" },
+            ],
+            defaultReasoningEffort: "medium",
+            isDefault: true,
+          },
+        ],
+      },
+    });
+    vi.mocked(getConfigModel).mockResolvedValueOnce("gpt-4.1");
+
+    const { result } = renderHook(() =>
+      useModels({ activeWorkspace: workspace }),
+    );
+
+    await waitFor(() => expect(result.current.models.length).toBeGreaterThan(2));
+
+    const codexAlias = result.current.models.find(
+      (model) => model.id === "gpt-5.4-codex",
+    );
+    const proAlias = result.current.models.find(
+      (model) => model.id === "gpt-5.4-pro",
+    );
+
+    expect(result.current.selectedModel?.model).toBe("gpt-4.1");
+    expect(codexAlias?.model).toBe("gpt-5.4-codex");
+    expect(proAlias?.model).toBe("gpt-5.4-pro");
+
+    act(() => {
+      result.current.setSelectedModelId("gpt-5.4-pro");
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedModel?.model).toBe("gpt-5.4-pro");
+      expect(result.current.reasoningSupported).toBe(true);
+      expect(result.current.reasoningOptions).toEqual([
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ]);
+      expect(result.current.selectedEffort).toBe("medium");
     });
   });
 });

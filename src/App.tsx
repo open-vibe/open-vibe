@@ -1848,11 +1848,11 @@ function MainApp({ detachedTab = null }: MainAppProps = {}) {
       if (tab.kind !== "thread") {
         continue;
       }
-      if (tab.threadId === activeThreadId) {
+      if (tab.threadId === activeThreadId && tab.workspaceId === activeWorkspaceId) {
         continue;
       }
-      const text = getDraftForThread(tab.threadId);
-      const images = getImagesForThread(tab.threadId);
+      const text = getDraftForThread(tab.workspaceId, tab.threadId);
+      const images = getImagesForThread(tab.workspaceId, tab.threadId);
       if (!text.trim() && images.length === 0) {
         continue;
       }
@@ -1870,16 +1870,16 @@ function MainApp({ detachedTab = null }: MainAppProps = {}) {
       text: best.text,
       images: best.images,
     };
-  }, [activeThreadId, getDraftForThread, getImagesForThread, threadTabs]);
+  }, [activeThreadId, activeWorkspaceId, getDraftForThread, getImagesForThread, threadTabs]);
 
   const handleCopyOtherDraft = useCallback(() => {
-    if (!otherDraftSource || !activeThreadId) {
+    if (!otherDraftSource || !activeThreadId || !activeWorkspaceId) {
       return;
     }
     handleDraftChange(otherDraftSource.text, { immediate: true });
-    setImagesForThread(activeThreadId, otherDraftSource.images);
+    setImagesForThread(activeWorkspaceId, activeThreadId, otherDraftSource.images);
     composerInputRef.current?.focus();
-  }, [activeThreadId, handleDraftChange, otherDraftSource, setImagesForThread]);
+  }, [activeThreadId, activeWorkspaceId, handleDraftChange, otherDraftSource, setImagesForThread]);
   const otherDraftLabel = useMemo(() => {
     if (!otherDraftSource) {
       return null;
@@ -2400,8 +2400,8 @@ function MainApp({ detachedTab = null }: MainAppProps = {}) {
         archivedThreadIds.has(tab.threadId)
       ) {
         handleCloseThreadTab(tab.id);
-        clearDraftForThread(tab.threadId);
-        removeImagesForThread(tab.threadId);
+        clearDraftForThread(tab.workspaceId, tab.threadId);
+        removeImagesForThread(tab.workspaceId, tab.threadId);
       }
     });
 
@@ -2502,8 +2502,8 @@ function MainApp({ detachedTab = null }: MainAppProps = {}) {
       if (!removed) {
         return;
       }
-      clearDraftForThread(activeThreadId);
-      removeImagesForThread(activeThreadId);
+      clearDraftForThread(activeWorkspaceId, activeThreadId);
+      removeImagesForThread(activeWorkspaceId, activeThreadId);
     })();
   }, [
     activeThreadId,
@@ -2899,8 +2899,8 @@ function MainApp({ detachedTab = null }: MainAppProps = {}) {
           return;
         }
         handleCloseThreadTab(`${workspaceId}:${threadId}`);
-        clearDraftForThread(threadId);
-        removeImagesForThread(threadId);
+        clearDraftForThread(workspaceId, threadId);
+        removeImagesForThread(workspaceId, threadId);
       })();
     },
     onSyncThread: (workspaceId, threadId) => {

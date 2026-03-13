@@ -135,6 +135,30 @@
   width: 32px;
   height: 32px;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.composer-context-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.composer-context-ring-track {
+  fill: none;
+  stroke: var(--surface-control);
+  stroke-width: 3;
+}
+
+.composer-context-ring-value {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 180ms ease;
 }
 
 .composer-send-confirm {

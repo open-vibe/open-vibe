@@ -160,12 +160,14 @@ export function Composer({
   happyEnabled = false,
   happyConnected = false,
 }: ComposerProps) {
-  const [text, setText] = useState(draftText);
+  const [localText, setLocalText] = useState(draftText);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
   const pendingSendRef = useRef<{ text: string; images: string[] } | null>(null);
   const internalRef = useRef<HTMLTextAreaElement | null>(null);
   const textareaRef = externalTextareaRef ?? internalRef;
+  const isControlled = Boolean(onDraftChange);
+  const text = isControlled ? draftText : localText;
   const editorSettings = editorSettingsProp ?? DEFAULT_EDITOR_SETTINGS;
   const isDictationBusy = dictationState !== "idle";
   const { t } = useI18n();
@@ -195,15 +197,21 @@ export function Composer({
   } = editorSettings;
 
   useEffect(() => {
-    setText((prev) => (prev === draftText ? prev : draftText));
-  }, [draftText]);
+    if (isControlled) {
+      return;
+    }
+    setLocalText((prev) => (prev === draftText ? prev : draftText));
+  }, [draftText, isControlled]);
 
   const setComposerText = useCallback(
     (next: string) => {
-      setText(next);
-      onDraftChange?.(next);
+      if (isControlled) {
+        onDraftChange?.(next, { immediate: true });
+        return;
+      }
+      setLocalText(next);
     },
-    [onDraftChange],
+    [isControlled, onDraftChange],
   );
 
   const {

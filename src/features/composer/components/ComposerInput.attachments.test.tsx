@@ -2,6 +2,7 @@
 import { act, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n";
 import { useComposerImages } from "../hooks/useComposerImages";
 import { ComposerInput } from "./ComposerInput";
 
@@ -82,7 +83,11 @@ function renderComposerHarness(initial: HarnessProps): RenderedHarness {
   const root = createRoot(container);
 
   act(() => {
-    root.render(<ComposerHarness {...props} />);
+    root.render(
+      <I18nProvider language="en">
+        <ComposerHarness {...props} />
+      </I18nProvider>,
+    );
   });
 
   return {
@@ -90,7 +95,11 @@ function renderComposerHarness(initial: HarnessProps): RenderedHarness {
     rerender: (next) => {
       props = next;
       act(() => {
-        root.render(<ComposerHarness {...props} />);
+        root.render(
+          <I18nProvider language="en">
+            <ComposerHarness {...props} />
+          </I18nProvider>,
+        );
       });
     },
     unmount: () => {

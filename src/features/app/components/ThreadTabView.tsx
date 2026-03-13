@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type { ThreadTopbarOverrides } from "../types/threadTabs";
 import { useI18n } from "../../../i18n";
+import { PaneErrorBoundary } from "./PaneErrorBoundary";
 
 const GitHubPanelData = lazy(() =>
   import("../../git/components/GitHubPanelData").then((module) => ({
@@ -739,6 +740,8 @@ export function ThreadTabView({
     );
   })();
 
+  const paneResetKey = `${workspace.id}:${threadId}:${centerMode}`;
+
   return (
     <div
       className={cn("thread-tab-view", !isActive && "is-hidden")}
@@ -765,45 +768,49 @@ export function ThreadTabView({
           aria-hidden={centerMode !== "diff"}
           ref={diffLayerRef}
         >
-          <GitDiffViewer
-            diffs={activeDiffs}
-            selectedPath={selectedDiffPath}
-            scrollRequestId={diffScrollRequestId}
-            isLoading={activeDiffLoading}
-            error={activeDiffError}
-            diffStyle={gitDiffViewStyle}
-            pullRequest={diffSource === "pr" ? selectedPullRequest : null}
-            pullRequestComments={
-              diffSource === "pr" ? gitPullRequestComments : []
-            }
-            pullRequestCommentsLoading={gitPullRequestCommentsLoading}
-            pullRequestCommentsError={gitPullRequestCommentsError}
-            onActivePathChange={handleActiveDiffPath}
-          />
+          <PaneErrorBoundary label="Diff viewer" resetKey={paneResetKey}>
+            <GitDiffViewer
+              diffs={activeDiffs}
+              selectedPath={selectedDiffPath}
+              scrollRequestId={diffScrollRequestId}
+              isLoading={activeDiffLoading}
+              error={activeDiffError}
+              diffStyle={gitDiffViewStyle}
+              pullRequest={diffSource === "pr" ? selectedPullRequest : null}
+              pullRequestComments={
+                diffSource === "pr" ? gitPullRequestComments : []
+              }
+              pullRequestCommentsLoading={gitPullRequestCommentsLoading}
+              pullRequestCommentsError={gitPullRequestCommentsError}
+              onActivePathChange={handleActiveDiffPath}
+            />
+          </PaneErrorBoundary>
         </div>
         <div
           className={`content-layer ${centerMode === "chat" ? "is-active" : "is-hidden"}`}
           aria-hidden={centerMode !== "chat"}
           ref={chatLayerRef}
         >
-          <Messages
-            items={items}
-            threadId={threadId}
-            workspaceId={workspace.id}
-            workspacePath={workspace.path}
-            openTargets={openAppTargets}
-            selectedOpenAppId={selectedOpenAppId}
-            happyEnabled={happyEnabled}
-            happyMessageStatusById={happyMessageStatusById}
-            happyMessageIdByItemId={happyMessageIdByItemId}
-            onRetryHappyMessage={onRetryHappyMessage}
-            codeBlockCopyUseModifier={codeBlockCopyUseModifier}
-            userInputRequests={userInputRequests}
-            onUserInputSubmit={onUserInputSubmit}
-            isThinking={threadStatus?.isProcessing ?? false}
-            processingStartedAt={threadStatus?.processingStartedAt ?? null}
-            lastDurationMs={threadStatus?.lastDurationMs ?? null}
-          />
+          <PaneErrorBoundary label="Chat messages" resetKey={paneResetKey}>
+            <Messages
+              items={items}
+              threadId={threadId}
+              workspaceId={workspace.id}
+              workspacePath={workspace.path}
+              openTargets={openAppTargets}
+              selectedOpenAppId={selectedOpenAppId}
+              happyEnabled={happyEnabled}
+              happyMessageStatusById={happyMessageStatusById}
+              happyMessageIdByItemId={happyMessageIdByItemId}
+              onRetryHappyMessage={onRetryHappyMessage}
+              codeBlockCopyUseModifier={codeBlockCopyUseModifier}
+              userInputRequests={userInputRequests}
+              onUserInputSubmit={onUserInputSubmit}
+              isThinking={threadStatus?.isProcessing ?? false}
+              processingStartedAt={threadStatus?.processingStartedAt ?? null}
+              lastDurationMs={threadStatus?.lastDurationMs ?? null}
+            />
+          </PaneErrorBoundary>
         </div>
       </div>
       <div
@@ -814,7 +821,11 @@ export function ThreadTabView({
         onMouseDown={onRightPanelResizeStart}
       />
       <div className={`right-panel ${hasActivePlan ? "" : "plan-collapsed"}`}>
-        <div className="right-panel-top">{gitDiffPanelNode}</div>
+        <div className="right-panel-top">
+          <PaneErrorBoundary label="Context panel" resetKey={paneResetKey}>
+            {gitDiffPanelNode}
+          </PaneErrorBoundary>
+        </div>
         <div
           className="right-panel-divider"
           role="separator"
@@ -823,10 +834,12 @@ export function ThreadTabView({
           onMouseDown={onPlanPanelResizeStart}
         />
         <div className="right-panel-bottom">
-          <PlanPanel
-            plan={plan}
-            isProcessing={threadStatus?.isProcessing ?? false}
-          />
+          <PaneErrorBoundary label="Plan panel" resetKey={paneResetKey}>
+            <PlanPanel
+              plan={plan}
+              isProcessing={threadStatus?.isProcessing ?? false}
+            />
+          </PaneErrorBoundary>
         </div>
       </div>
       {threadStatus?.isLoading ? (

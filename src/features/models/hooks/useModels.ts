@@ -10,6 +10,32 @@ type UseModelsOptions = {
 };
 
 const CONFIG_MODEL_DESCRIPTION = "Configured in CODEX_HOME/config.toml";
+const DEFAULT_REASONING_EFFORTS = [
+  { reasoningEffort: "low", description: "Low" },
+  { reasoningEffort: "medium", description: "Medium" },
+  { reasoningEffort: "high", description: "High" },
+  { reasoningEffort: "xhigh", description: "Extreme" },
+] as const;
+const DEFAULT_REASONING_EFFORT = "medium";
+const EXTRA_MODEL_OPTIONS: ReadonlyArray<{
+  id: string;
+  model: string;
+  displayName: string;
+  description: string;
+}> = [
+  {
+    id: "gpt-5.4-codex",
+    model: "gpt-5.4-codex",
+    displayName: "gpt-5.4-codex",
+    description: "Extra OpenVibe option added ahead of Codex model list sync.",
+  },
+  {
+    id: "gpt-5.4-pro",
+    model: "gpt-5.4-pro",
+    displayName: "gpt-5.4-pro",
+    description: "Extra OpenVibe option added ahead of Codex model list sync.",
+  },
+];
 
 const normalizeEffort = (value: unknown): string | null => {
   if (typeof value !== "string") {
@@ -38,6 +64,67 @@ const pickDefaultModel = (models: ModelOption[], configModel: string | null) =>
   models.find((model) => model.isDefault) ??
   models[0] ??
   null;
+
+const cloneReasoningEfforts = (
+  efforts: ModelOption["supportedReasoningEfforts"],
+): ModelOption["supportedReasoningEfforts"] =>
+  efforts.map((effort) => ({
+    reasoningEffort: effort.reasoningEffort,
+    description: effort.description,
+  }));
+
+const resolveExtraModelReasoning = (
+  models: ModelOption[],
+): Pick<ModelOption, "supportedReasoningEfforts" | "defaultReasoningEffort"> => {
+  const template =
+    models.find((model) => model.model === "gpt-5.4" || model.id === "gpt-5.4") ??
+    models.find((model) => model.model.startsWith("gpt-5"));
+  if (template) {
+    const supportedReasoningEfforts =
+      template.supportedReasoningEfforts.length > 0
+        ? cloneReasoningEfforts(template.supportedReasoningEfforts)
+        : cloneReasoningEfforts([...DEFAULT_REASONING_EFFORTS]);
+    return {
+      supportedReasoningEfforts,
+      defaultReasoningEffort:
+        normalizeEffort(template.defaultReasoningEffort) ??
+        DEFAULT_REASONING_EFFORT,
+    };
+  }
+  return {
+    supportedReasoningEfforts: cloneReasoningEfforts([
+      ...DEFAULT_REASONING_EFFORTS,
+    ]),
+    defaultReasoningEffort: DEFAULT_REASONING_EFFORT,
+  };
+};
+
+const appendExtraModelOptions = (models: ModelOption[]): ModelOption[] => {
+  const existingKeys = new Set(
+    models.flatMap((model) => [model.id, model.model]),
+  );
+  const reasoning = resolveExtraModelReasoning(models);
+  const extras = EXTRA_MODEL_OPTIONS.filter(
+    (option) =>
+      !existingKeys.has(option.id) && !existingKeys.has(option.model),
+  ).map(
+    (option): ModelOption => ({
+      id: option.id,
+      model: option.model,
+      displayName: option.displayName,
+      description: option.description,
+      supportedReasoningEfforts: cloneReasoningEfforts(
+        reasoning.supportedReasoningEfforts,
+      ),
+      defaultReasoningEffort: reasoning.defaultReasoningEffort,
+      isDefault: false,
+    }),
+  );
+  if (extras.length === 0) {
+    return models;
+  }
+  return [...models, ...extras];
+};
 
 export function useModels({
   activeWorkspace,
@@ -217,13 +304,13 @@ export function useModels({
       }));
       const data = (() => {
         if (!configModelFromConfig) {
-          return dataFromServer;
+          return appendExtraModelOptions(dataFromServer);
         }
         const hasConfigModel = dataFromServer.some(
           (model) => model.model === configModelFromConfig,
         );
         if (hasConfigModel) {
-          return dataFromServer;
+          return appendExtraModelOptions(dataFromServer);
         }
         const configOption: ModelOption = {
           id: configModelFromConfig,
@@ -234,7 +321,7 @@ export function useModels({
           defaultReasoningEffort: null,
           isDefault: false,
         };
-        return [configOption, ...dataFromServer];
+        return appendExtraModelOptions([configOption, ...dataFromServer]);
       })();
       setModels(data);
       lastFetchedWorkspaceId.current = workspaceId;

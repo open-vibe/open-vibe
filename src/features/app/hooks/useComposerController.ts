@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { QueuedMessage, WorkspaceInfo } from "../../../types";
-import { useComposerImages } from "../../composer/hooks/useComposerImages";
 import { useQueuedSend } from "../../threads/hooks/useQueuedSend";
+import { useComposerDraftStore } from "./useComposerDraftStore";
 
 export function useComposerController({
   activeThreadId,
@@ -24,22 +24,25 @@ export function useComposerController({
   sendUserMessage: (text: string, images?: string[]) => Promise<void>;
   startReview: (text: string) => Promise<void>;
 }) {
-  const draftsRef = useRef<Record<string, string>>({});
   const [prefillDraft, setPrefillDraft] = useState<QueuedMessage | null>(null);
   const [composerInsert, setComposerInsert] = useState<QueuedMessage | null>(
     null,
   );
 
   const {
+    activeDraft,
     activeImages,
+    handleDraftChange,
     attachImages,
     pickImages,
     removeImage,
     clearActiveImages,
+    getDraftForThread,
+    clearDraftForThread,
+    getImagesForThread,
     setImagesForThread,
     removeImagesForThread,
-    getImagesForThread,
-  } = useComposerImages({ activeThreadId, activeWorkspaceId });
+  } = useComposerDraftStore({ activeThreadId, activeWorkspaceId });
 
   const {
     activeQueue,
@@ -58,25 +61,6 @@ export function useComposerController({
     clearActiveImages,
   });
 
-  const [, setDraftVersion] = useState(0);
-  const activeDraft = activeThreadId ? draftsRef.current[activeThreadId] ?? "" : "";
-
-  const handleDraftChange = useCallback(
-    (next: string, options?: { immediate?: boolean }) => {
-      if (!activeThreadId) {
-        return;
-      }
-      if (draftsRef.current[activeThreadId] === next) {
-        return;
-      }
-      draftsRef.current[activeThreadId] = next;
-      if (options?.immediate) {
-        setDraftVersion((prev) => prev + 1);
-      }
-    },
-    [activeThreadId],
-  );
-
   const handleSendPrompt = useCallback(
     (text: string) => {
       if (!text.trim()) {
@@ -89,14 +73,14 @@ export function useComposerController({
 
   const handleEditQueued = useCallback(
     (item: QueuedMessage) => {
-      if (!activeThreadId) {
+      if (!activeThreadId || !activeWorkspaceId) {
         return;
       }
       removeQueuedMessage(activeThreadId, item.id);
-      setImagesForThread(activeThreadId, item.images ?? []);
+      setImagesForThread(activeWorkspaceId, activeThreadId, item.images ?? []);
       setPrefillDraft(item);
     },
-    [activeThreadId, removeQueuedMessage, setImagesForThread],
+    [activeThreadId, activeWorkspaceId, removeQueuedMessage, setImagesForThread],
   );
 
   const handleDeleteQueued = useCallback(
@@ -107,18 +91,6 @@ export function useComposerController({
       removeQueuedMessage(activeThreadId, id);
     },
     [activeThreadId, removeQueuedMessage],
-  );
-
-  const clearDraftForThread = useCallback((threadId: string) => {
-    if (draftsRef.current[threadId] !== undefined) {
-      delete draftsRef.current[threadId];
-      setDraftVersion((prev) => prev + 1);
-    }
-  }, []);
-
-  const getDraftForThread = useCallback(
-    (threadId: string) => draftsRef.current[threadId] ?? "",
-    [],
   );
 
   return {
