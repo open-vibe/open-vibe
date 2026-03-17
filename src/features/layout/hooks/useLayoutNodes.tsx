@@ -541,7 +541,6 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
     <PaneErrorBoundary
       label="Chat messages"
       resetKey={activePaneKey}
-      className="messages-full"
     >
       <Messages
         items={options.activeItems}

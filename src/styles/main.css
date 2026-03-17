@@ -903,6 +903,12 @@
   height: 100%;
 }
 
+.pane-error-boundary > :not(.pane-error-boundary-state) {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
 .pane-error-boundary-state {
   margin: auto;
   display: flex;
